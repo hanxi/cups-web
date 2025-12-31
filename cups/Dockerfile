@@ -11,20 +11,35 @@ ENV TZ=Asia/Shanghai
 ENV CUPSADMIN=print
 ENV CUPSPASSWORD=print
 
-# Install available packages for the current architecture only
+# Install packages directly for the current architecture (do not pre-check availability)
 RUN apt-get update && \
-    PKGS="wget curl gnupg2 ca-certificates libcups2 libcupsimage2 cups cups-client cups-filters libjpeg62-turbo libpng16-16 libtiff6 libusb-1.0-0 lsb-release apt-utils usbutils printer-driver-gutenprint printer-driver-all printer-driver-cups-pdf printer-driver-foo2zjs foomatic-db-compressed-ppds openprinting-ppds hpijs-ppds hp-ppd hplip avahi-daemon" && \
-    AVAILABLE="" && \
-    for pkg in $PKGS; do \
-      # skip packages with no candidate for this architecture
-      if apt-cache policy "$pkg" | grep -q "Candidate: (none)"; then \
-        echo "Skipping unavailable package on ${TARGETARCH}${TARGETVARIANT:+/$TARGETVARIANT}: $pkg"; \
-      else \
-        AVAILABLE="$AVAILABLE $pkg"; \
-      fi; \
-    done && \
-    if [ -z "$AVAILABLE" ]; then echo "No packages available to install; aborting"; exit 1; fi && \
-    apt-get install -y --no-install-recommends $AVAILABLE && \
+    apt-get install -y --no-install-recommends \
+      wget \
+      curl \
+      gnupg2 \
+      ca-certificates \
+      libcups2 \
+      libcupsimage2 \
+      cups \
+      cups-client \
+      cups-filters \
+      libjpeg62-turbo \
+      libpng16-16 \
+      libtiff6 \
+      libusb-1.0-0 \
+      lsb-release \
+      apt-utils \
+      usbutils \
+      printer-driver-gutenprint \
+      printer-driver-all \
+      printer-driver-cups-pdf \
+      printer-driver-foo2zjs \
+      foomatic-db-compressed-ppds \
+      openprinting-ppds \
+      hpijs-ppds \
+      hp-ppd \
+      hplip \
+      avahi-daemon && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Only install Epson proprietary driver on amd64; other architectures will use the Debian drivers
