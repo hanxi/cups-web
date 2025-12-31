@@ -1,8 +1,8 @@
-FROM oven/bun AS web-build
-WORKDIR /src/web
-COPY web/package*.json ./
+FROM oven/bun AS frontend-build
+WORKDIR /src/frontend
+COPY frontend/package*.json ./
 RUN bun install
-COPY web ./
+COPY frontend ./
 RUN bun run build
 
 FROM golang:1.20 AS builder
@@ -13,8 +13,8 @@ COPY go.mod go.sum ./
 RUN go env -w GOPROXY=https://proxy.golang.org
 RUN go mod download
 COPY . .
-# Copy built web assets into expected location for go:embed
-COPY --from=web-build /src/frontend/dist ./frontend/dist
+# Copy built frontend assets into expected location for go:embed
+COPY --from=frontend-build /src/frontend/dist ./frontend/dist
 
 # Build the Go binary (frontend must be built before this step in CI/local)
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags='-s -w' -o /out/cups-web ./cmd/server
