@@ -12,3 +12,8 @@
 
 cups 服务建议根据自己的打印机型号安装合适的驱动。
 
+
+SESSION_HASH_KEY 和 SESSION_BLOCK_KEY 可以用下面的命令生成
+```
+openssl rand -base64 32 | tr -d '\n'
+```
