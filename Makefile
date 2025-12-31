@@ -17,6 +17,6 @@ clean:
 	rm -f $(BINARY)
 
 docker-build:
-	docker build -t cups-web:local -f Dockerfile .
-	docker build -t cups:local -f cups/Dockerfile cups
+	docker build -t cups-web:latest -f Dockerfile .
+	docker build -t cups:latest -f cups/Dockerfile cups
 
