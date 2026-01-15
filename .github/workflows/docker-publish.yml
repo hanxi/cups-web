@@ -3,7 +3,7 @@ name: Build and Push Docker images
 on:
   push:
     branches: [ master ]
-    tags:      # push on tags as well
+    tags:
       - 'v*'
   workflow_dispatch:
 
@@ -37,6 +37,8 @@ jobs:
           tags: |
             hanxi/cups:latest
             hanxi/cups:${{ github.ref_name }}
+          cache-from: type=gha,scope=cups
+          cache-to: type=gha,scope=cups,mode=max
 
   build-cups-web:
     name: Build and push hanxi/cups-web
@@ -67,6 +69,8 @@ jobs:
           tags: |
             hanxi/cups-web:latest
             hanxi/cups-web:${{ github.ref_name }}
+          cache-from: type=gha,scope=cups-web
+          cache-to: type=gha,scope=cups-web,mode=max
 
   output:
     name: Output pushed image refs
