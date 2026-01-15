@@ -1,4 +1,7 @@
 .etc/
+.data
+.uploads
+
 bin/
 frontend/dist/
 node_modules/
@@ -18,8 +21,6 @@ coverage/
 *.log
 
 # Build outputs
-dist/
-out/
 data/
 uploads/
 
