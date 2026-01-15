@@ -162,6 +162,11 @@ func cleanupOldPrints(ctx context.Context, s *store.Store, uploads string, now t
 	for _, rel := range paths {
 		abs := filepath.Join(uploads, filepath.FromSlash(rel))
 		_ = os.Remove(abs)
+		convertedRel := convertedRelPath(rel)
+		if convertedRel != "" {
+			convertedAbs := filepath.Join(uploads, filepath.FromSlash(convertedRel))
+			_ = os.Remove(convertedAbs)
+		}
 	}
 
 	if len(paths) > 0 {

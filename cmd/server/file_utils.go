@@ -24,6 +24,9 @@ const (
 	fileKindOther  fileKind = "other"
 )
 
+const textLinesPerPage = 60
+const convertedSuffix = ".print.pdf"
+
 func sanitizeFilename(name string) string {
 	base := filepath.Base(name)
 	ext := filepath.Ext(base)
@@ -92,6 +95,36 @@ func saveUploadedFile(file io.Reader, filename string, baseDir string) (string, 
 	}
 	relPath := filepath.ToSlash(filepath.Join(subDir, storedName))
 	return relPath, absPath, nil
+}
+
+func convertedRelPath(storedRel string) string {
+	if storedRel == "" {
+		return ""
+	}
+	return storedRel + convertedSuffix
+}
+
+func saveConvertedPDFToUploads(tempPath string, storedRel string, baseDir string) (string, string, error) {
+	convertedRel := convertedRelPath(storedRel)
+	absPath := filepath.Join(baseDir, filepath.FromSlash(convertedRel))
+	if err := os.MkdirAll(filepath.Dir(absPath), 0755); err != nil {
+		return "", "", err
+	}
+	in, err := os.Open(tempPath)
+	if err != nil {
+		return "", "", err
+	}
+	defer in.Close()
+	out, err := os.Create(absPath)
+	if err != nil {
+		return "", "", err
+	}
+	defer out.Close()
+	if _, err := io.Copy(out, in); err != nil {
+		_ = os.Remove(absPath)
+		return "", "", err
+	}
+	return convertedRel, absPath, nil
 }
 
 func saveTempUpload(file io.Reader, filename string) (string, func(), error) {
@@ -194,6 +227,7 @@ func estimateTextPages(path string) (int, error) {
 	}
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 	lines := 0
 	for scanner.Scan() {
 		lines++
@@ -204,8 +238,7 @@ func estimateTextPages(path string) (int, error) {
 	if lines < 1 {
 		lines = 1
 	}
-	const linesPerPage = 60
-	pages := (lines + linesPerPage - 1) / linesPerPage
+	pages := (lines + textLinesPerPage - 1) / textLinesPerPage
 	if pages < 1 {
 		pages = 1
 	}

@@ -57,14 +57,92 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 
 	countCtx, cancel := convertTimeoutContext(r.Context())
 	defer cancel()
-	pages, _, err := countPages(countCtx, storedAbs, fh.Filename)
-	if err != nil {
-		_ = os.Remove(storedAbs)
-		writeJSONError(w, http.StatusBadRequest, "failed to read pages")
-		return
+	printPath := storedAbs
+	var printCleanup func()
+	printMime := ""
+	var pages int
+	kind := detectFileKind(storedAbs, fh.Filename)
+	switch kind {
+	case fileKindOffice:
+		outPath, cleanup, err := convertOfficeToPDF(countCtx, storedAbs)
+		if err != nil {
+			_ = os.Remove(storedAbs)
+			writeJSONError(w, http.StatusBadRequest, "conversion failed")
+			return
+		}
+		pages, err = countPDFPages(outPath)
+		if err != nil {
+			cleanup()
+			_ = os.Remove(storedAbs)
+			writeJSONError(w, http.StatusBadRequest, "failed to read pages")
+			return
+		}
+		_, convertedAbs, err := saveConvertedPDFToUploads(outPath, storedRel, uploadDir)
+		if err != nil {
+			cleanup()
+			_ = os.Remove(storedAbs)
+			writeJSONError(w, http.StatusInternalServerError, "failed to save converted file")
+			return
+		}
+		printPath = convertedAbs
+		printCleanup = cleanup
+		printMime = "application/pdf"
+	case fileKindImage:
+		outPath, cleanup, err := convertImageToPDF(storedAbs)
+		if err != nil {
+			_ = os.Remove(storedAbs)
+			writeJSONError(w, http.StatusBadRequest, "conversion failed")
+			return
+		}
+		_, convertedAbs, err := saveConvertedPDFToUploads(outPath, storedRel, uploadDir)
+		if err != nil {
+			cleanup()
+			_ = os.Remove(storedAbs)
+			writeJSONError(w, http.StatusInternalServerError, "failed to save converted file")
+			return
+		}
+		printPath = convertedAbs
+		printCleanup = cleanup
+		printMime = "application/pdf"
+		pages = 1
+	case fileKindText:
+		var err error
+		pages, err = estimateTextPages(storedAbs)
+		if err != nil {
+			_ = os.Remove(storedAbs)
+			writeJSONError(w, http.StatusBadRequest, "failed to read pages")
+			return
+		}
+		outPath, cleanup, err := convertTextToPDF(storedAbs)
+		if err != nil {
+			_ = os.Remove(storedAbs)
+			writeJSONError(w, http.StatusBadRequest, "conversion failed")
+			return
+		}
+		_, convertedAbs, err := saveConvertedPDFToUploads(outPath, storedRel, uploadDir)
+		if err != nil {
+			cleanup()
+			_ = os.Remove(storedAbs)
+			writeJSONError(w, http.StatusInternalServerError, "failed to save converted file")
+			return
+		}
+		printPath = convertedAbs
+		printCleanup = cleanup
+		printMime = "application/pdf"
+	default:
+		var err error
+		pages, _, err = countPages(countCtx, storedAbs, fh.Filename)
+		if err != nil {
+			_ = os.Remove(storedAbs)
+			writeJSONError(w, http.StatusBadRequest, "failed to read pages")
+			return
+		}
 	}
 	if pages < 1 {
 		pages = 1
+	}
+	if printCleanup != nil {
+		defer printCleanup()
 	}
 
 	sess, _ := auth.GetSession(r)
@@ -144,7 +222,7 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	f, err := os.Open(storedAbs)
+	f, err := os.Open(printPath)
 	if err != nil {
 		_ = refundPrint(r.Context(), recordID, sess.UserID, costCents)
 		writeJSONError(w, http.StatusInternalServerError, "failed to open file")
@@ -152,7 +230,10 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer f.Close()
 
-	mime := fh.Header.Get("Content-Type")
+	mime := printMime
+	if mime == "" {
+		mime = fh.Header.Get("Content-Type")
+	}
 	if mime == "" {
 		buf := make([]byte, 512)
 		if n, _ := f.Read(buf); n > 0 {
