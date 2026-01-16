@@ -26,3 +26,5 @@ uploads/
 
 # Go
 vendor/
+
+.aone_copilot/

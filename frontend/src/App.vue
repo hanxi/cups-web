@@ -1,5 +1,5 @@
 <template>
-  <div class="grid grid-rows-[auto_1fr] min-h-screen w-full bg-base-200">
+  <div class="grid grid-rows-[auto_1fr_auto] min-h-screen w-full bg-base-200">
     <div class="navbar bg-base-100 shadow z-10 px-4 w-full">
       <div class="flex-1 flex items-center gap-3">
         <h1 class="text-xl font-bold text-base-content">CUPS 打印</h1>
@@ -14,6 +14,11 @@
     <div class="overflow-auto relative">
       <component :is="view" :session="session" @login-success="onLogin" @logout="onLogout" />
     </div>
+    <footer class="footer footer-center p-4 bg-base-100 text-base-content">
+      <div class="text-sm">
+        <p>Powered by <a href="https://github.com/hanxi/cups-web" target="_blank" class="link link-hover text-primary">cups-web</a></p>
+      </div>
+    </footer>
   </div>
 </template>
 

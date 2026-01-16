@@ -15,8 +15,6 @@ services:
   web:
     image: hanxi/cups-web:latest
     environment:
-      - AUTH_USER=${AUTH_USER} # 网页登录用户名
-      - AUTH_PASS=${AUTH_PASS} # 网页登录密码
       - SESSION_HASH_KEY=${SESSION_HASH_KEY} # session 加密 hash key
       - SESSION_BLOCK_KEY=${SESSION_BLOCK_KEY} # session 加密 block key
       - SESSION_SECURE=${SESSION_SECURE} # 如果使用 https，设置为 true
