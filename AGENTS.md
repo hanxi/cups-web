@@ -213,6 +213,239 @@ docker-compose up -d
 
 ---
 
-**最后更新**: 2026-01-16  
-**维护者**: 项目开发团队  
-**文档版本**: v1.0
+## 🔧 开发环境搭建
+
+### 本地开发
+
+```bash
+# 1. 克隆项目
+git clone <repo-url>
+cd cups-web
+
+# 2. 构建前端
+cd frontend
+bun install
+bun run dev  # 开发模式
+bun run build  # 生产构建
+
+# 3. 构建后端
+cd ..
+go mod download
+go build -o bin/cups-web ./cmd/server
+
+# 4. 运行服务
+./bin/cups-web
+```
+
+### 使用 Makefile
+
+```bash
+# 查看可用命令
+make help
+
+# 构建所有
+make all
+
+# 仅构建后端
+make build
+
+# 仅构建前端
+make frontend
+
+# 清理构建
+make clean
+```
+
+## 📁 完整项目结构
+
+```
+cups-web/
+├── cmd/server/                 # 后端主程序
+│   ├── assets/fonts/          # 字体资源
+│   ├── admin_handlers.go      # 管理员接口处理器
+│   ├── auth_handlers.go       # 认证接口处理器
+│   ├── bootstrap.go           # 应用初始化
+│   ├── convert_handler.go     # 文件转换接口
+│   ├── convert_utils.go       # 转换工具函数
+│   ├── estimate_handler.go    # 页数估算接口
+│   ├── file_utils.go          # 文件处理工具
+│   ├── fonts.go               # 字体管理
+│   ├── main.go                # 程序入口
+│   ├── maintenance.go         # 维护模式处理
+│   ├── pdf_utils.go           # PDF 处理工具
+│   ├── print_handlers.go      # 打印接口处理器
+│   ├── print_records_handlers.go  # 打印记录接口
+│   ├── printer_info_handler.go    # 打印机信息接口
+│   └── user_handlers.go       # 用户管理接口
+├── frontend/                  # 前端项目
+│   ├── src/
+│   │   ├── views/             # 页面组件
+│   │   │   ├── LoginView.vue  # 登录页面
+│   │   │   ├── PrintView.vue  # 打印页面
+│   │   │   └── AdminView.vue  # 管理页面
+│   │   ├── App.vue            # 根组件
+│   │   ├── main.js            # 入口文件
+│   │   └── index.css          # 全局样式
+│   ├── package.json           # 前端依赖
+│   └── vite.config.js         # Vite 配置
+├── internal/                  # 内部模块
+│   ├── auth/                  # 认证模块
+│   ├── ipp/                   # IPP 协议客户端
+│   ├── middleware/            # 中间件
+│   └── store/                 # 数据存储
+│       ├── prints.go          # 打印记录存储
+│       ├── settings.go        # 系统设置存储
+│       └── users.go           # 用户存储
+├── cups/                      # CUPS 相关配置
+├── screenshots/               # 界面截图
+├── test/                      # 测试文件
+├── bin/                       # 编译输出
+├── data/                      # 数据库文件
+├── uploads/                   # 上传文件
+├── .aone_copilot/             # AI 助手计划
+├── .github/                   # GitHub 配置
+├── docker-compose.yml         # Docker Compose 配置
+├── Dockerfile                 # Docker 镜像构建
+├── go.mod                     # Go 模块定义
+├── go.sum                     # Go 依赖锁定
+├── LICENSE                    # 许可证
+├── Makefile                   # 构建脚本
+├── README.md                  # 用户文档
+└── AGENTS.md                  # 开发者文档
+```
+
+## 🎯 关键开发任务指南
+
+### 添加新的 API 端点
+
+1. **创建 Handler**
+   - 在 `cmd/server/` 下创建对应的 handler 文件（如 `xxx_handler.go`）
+   - 实现处理函数，遵循现有代码模式
+   - 添加适当的错误处理和日志记录
+
+2. **注册路由**
+   - 在 `main.go` 中找到路由注册部分
+   - 添加新的路由映射
+   - 应用适当的中间件（如认证、CSRF）
+
+3. **更新前端**
+   - 在对应的 Vue 组件中添加 API 调用
+   - 更新状态管理和 UI 展示
+
+### 修改数据库结构
+
+1. **更新模型定义**
+   - 在 `internal/store/` 中找到对应的模型文件
+   - 添加新字段或新表
+   - 更新相关的 CRUD 操作
+
+2. **执行迁移**
+   - 编写数据库迁移脚本
+   - 确保向后兼容
+   - 测试迁移过程
+
+3. **更新业务逻辑**
+   - 更新所有使用到该模型的代码
+   - 确保数据一致性
+
+### 添加新的前端页面
+
+1. **创建 Vue 组件**
+   - 在 `frontend/src/views/` 下创建新的 `.vue` 文件
+   - 使用 Composition API 组织逻辑
+   - 应用 Tailwind CSS + DaisyUI 样式
+
+2. **注册路由**
+   - 在 `App.vue` 中添加路由配置
+   - 设置适当的权限控制
+
+3. **更新导航**
+   - 在导航菜单中添加新页面的入口
+   - 根据用户角色显示/隐藏菜单项
+
+## 🧪 测试指南
+
+### 后端测试
+
+```bash
+# 运行所有测试
+go test ./...
+
+# 运行特定包的测试
+go test ./cmd/server/...
+
+# 带覆盖率报告
+go test -cover ./...
+```
+
+### 前端测试
+
+```bash
+cd frontend
+
+# 运行测试
+bun run test
+
+# 构建检查
+bun run build
+```
+
+## 📊 监控和日志
+
+### 日志查看
+
+```bash
+# Docker 环境
+docker-compose logs -f web
+docker-compose logs -f cups
+
+# 本地开发
+# 日志输出到控制台
+```
+
+### 数据库检查
+
+```bash
+# 查看 SQLite 数据库
+sqlite3 data/cups-web.db
+
+# 查看表结构
+.tables
+
+# 查询数据
+SELECT * FROM users;
+SELECT * FROM prints LIMIT 10;
+```
+
+## 🔐 安全检查清单
+
+- [ ] 所有敏感配置使用环境变量
+- [ ] Session 密钥足够随机和复杂
+- [ ] 文件上传进行类型和大小限制
+- [ ] SQL 查询使用参数化防止注入
+- [ ] CSRF 保护已启用
+- [ ] 密码使用 bcrypt 加密
+- [ ] 生产环境启用 HTTPS
+
+## 📚 相关资源
+
+- [CUPS 官方文档](https://www.cups.org/)
+- [Go 语言文档](https://golang.org/doc/)
+- [Vue.js 文档](https://vuejs.org/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [DaisyUI](https://daisyui.com/)
+
+---
+
+**最后更新**: 2026-03-18  
+**维护者**: 涵曦 (im.hanxi@gmail.com)  
+**文档版本**: v1.1
+
+## 📚 文档说明
+
+本文档 (`AGENTS.md`) 主要面向开发者，提供详细的技术架构、开发指南和内部实现细节。用户文档请参阅 `README.md`。
+
+### 文档分工
+
+- **README.md**: 用户快速开始指南、功能介绍、部署说明
+- **AGENTS.md**: 开发者技术文档、架构说明、API 规范、开发流程
