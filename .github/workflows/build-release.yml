@@ -75,11 +75,30 @@ jobs:
     if: github.event_name == 'push'
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
           merge-multiple: true
+
+      - name: Delete existing release if exists
+        run: |
+          RELEASE_TAG="${{ github.ref_name }}"
+          echo "Checking if release exists for tag: $RELEASE_TAG"
+          RELEASE_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/$RELEASE_TAG" | \
+            jq -r '.id // empty')
+          if [ -n "$RELEASE_ID" ] && [ "$RELEASE_ID" != "null" ]; then
+            echo "Found existing release with ID: $RELEASE_ID, deleting..."
+            curl -s -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID"
+            echo "Release deleted"
+          else
+            echo "No existing release found for tag: $RELEASE_TAG"
+          fi
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -88,7 +107,7 @@ jobs:
           name: Release ${{ github.ref_name }}
           files: artifacts/*
           draft: false
-          prerelease: false
+          prerelease: ${{ github.ref_type == 'branch' }}
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

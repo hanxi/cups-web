@@ -35,8 +35,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            hanxi/cups:latest
-            hanxi/cups:${{ github.ref_name }}
+            hanxi/cups:${{ github.ref_name }}${{ github.ref_type == 'tag' && '
+            hanxi/cups:latest' || '' }}
           cache-from: type=gha,scope=cups
           cache-to: type=gha,scope=cups,mode=max
 
@@ -67,8 +67,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            hanxi/cups-web:latest
-            hanxi/cups-web:${{ github.ref_name }}
+            hanxi/cups-web:${{ github.ref_name }}${{ github.ref_type == 'tag' && '
+            hanxi/cups-web:latest' || '' }}
           cache-from: type=gha,scope=cups-web
           cache-to: type=gha,scope=cups-web,mode=max
 
@@ -81,5 +81,5 @@ jobs:
     steps:
       - name: Output pushed image refs
         run: |
-          echo "Pushed hanxi/cups:latest and hanxi/cups:${{ github.ref_name }}"
-          echo "Pushed hanxi/cups-web:latest and hanxi/cups-web:${{ github.ref_name }}"
+          echo "Pushed hanxi/cups:${{ github.ref_name }}${{ github.ref_type == 'tag' && ' and hanxi/cups:latest' || '' }}"
+          echo "Pushed hanxi/cups-web:${{ github.ref_name }}${{ github.ref_type == 'tag' && ' and hanxi/cups-web:latest' || '' }}"
