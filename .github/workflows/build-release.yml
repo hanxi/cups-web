@@ -108,6 +108,7 @@ jobs:
           files: artifacts/*
           draft: false
           prerelease: ${{ github.ref_type == 'branch' }}
-          generate_release_notes: true
+          generate_release_notes: ${{ github.ref_type == 'tag' }}
+          body: ${{ github.ref_type == 'branch' && 'This is a pre-release build from branch **' || '' }}${{ github.ref_type == 'branch' && github.ref_name || '' }}${{ github.ref_type == 'branch' && '**.' || '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
