@@ -203,17 +203,34 @@
         </UCard>
 
         <!-- 文件预览 -->
-        <UCard v-if="previewUrl || previewType === 'text'">
+        <UCard v-if="selectedFile">
           <template #header>
-            <div class="flex items-center gap-2 font-semibold">
-              <UIcon name="i-lucide-eye" class="w-4 h-4" />
-              预览
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 font-semibold">
+                <UIcon name="i-lucide-eye" class="w-4 h-4" />
+                预览
+              </div>
+              <span class="text-sm text-gray-500">
+                {{ paperSizeLabel }} · {{ orientationLabel }} · {{ paperDimText }}
+              </span>
             </div>
           </template>
-          <div class="preview-area">
-            <img v-if="previewType === 'image'" :src="previewUrl" alt="preview" class="max-w-full max-h-96 mx-auto block rounded" />
-            <iframe v-else-if="previewType === 'pdf'" :src="previewUrl" class="w-full rounded" style="height:500px;" frameborder="0"></iframe>
-            <pre v-else-if="previewType === 'text'" class="text-xs p-3 bg-elevated rounded overflow-auto max-h-64 whitespace-pre-wrap">{{ textPreview }}</pre>
+          <!-- 纸张预览容器 -->
+          <div class="flex justify-center items-center py-4 bg-gray-100 dark:bg-gray-800 rounded-lg" style="min-height: 300px;">
+            <!-- 纸张模拟 -->
+            <div :style="paperPreviewStyle"
+                 class="bg-white shadow-lg border border-gray-200 overflow-hidden transition-all duration-300 ease-in-out relative">
+              <!-- 内容预览嵌入 -->
+              <img v-if="previewType === 'image'" :src="previewUrl" class="w-full h-full object-contain" />
+              <iframe v-else-if="previewType === 'pdf'" :src="previewUrl" class="w-full h-full border-0" />
+              <div v-else-if="previewType === 'text'" class="p-3 text-[8px] leading-tight overflow-hidden h-full text-gray-700 whitespace-pre-wrap">
+                {{ textPreview?.substring(0, 800) }}
+              </div>
+              <!-- 空白纸张占位 -->
+              <div v-else class="flex items-center justify-center h-full text-gray-300 text-sm">
+                {{ paperSizeLabel }}
+              </div>
+            </div>
           </div>
         </UCard>
       </div>
@@ -495,9 +512,80 @@ const scalingItems = [
   { label: '无缩放', value: 'none' }
 ]
 
+// ─── 纸张尺寸映射 ─────────────────────────────────────────
+const paperDimensionsMap = {
+  'A5': { width: 148, height: 210 },
+  'A4': { width: 210, height: 297 },
+  'A3': { width: 297, height: 420 },
+  'A2': { width: 420, height: 594 },
+  'A1': { width: 594, height: 841 },
+  '5inch': { width: 89, height: 127 },
+  '6inch': { width: 102, height: 152 },
+  '7inch': { width: 127, height: 178 },
+  '8inch': { width: 152, height: 203 },
+  '10inch': { width: 203, height: 254 },
+  'Letter': { width: 216, height: 279 },
+  'Legal': { width: 216, height: 356 },
+}
+
 // ─── 计算属性 ─────────────────────────────────────────────
 const canPrint = computed(() => !!printer.value && (!!pdfBlob.value || !!selectedFile.value) && !pageRangeError.value)
 const canConvert = computed(() => !!selectedFile.value && !converting.value && selectedFile.value.type !== 'application/pdf')
+
+// 当前纸张尺寸标签
+const paperSizeLabel = computed(() => {
+  const item = paperSizeItems.find(i => i.value === paperSize.value)
+  return item?.label || paperSize.value
+})
+
+// 当前方向标签
+const orientationLabel = computed(() => {
+  const item = orientationItems.find(i => i.value === orientation.value)
+  return item?.label || (orientation.value === 'portrait' ? '纵向' : '横向')
+})
+
+// 纸张尺寸文本（如 210×297mm）
+const paperDimText = computed(() => {
+  const dim = paperDimensionsMap[paperSize.value]
+  if (!dim) return ''
+  if (orientation.value === 'landscape') {
+    return `${dim.height}×${dim.width}mm`
+  }
+  return `${dim.width}×${dim.height}mm`
+})
+
+// 纸张预览样式
+const paperPreviewStyle = computed(() => {
+  const dim = paperDimensionsMap[paperSize.value]
+  if (!dim) return {}
+  
+  const isLandscape = orientation.value === 'landscape'
+  const width = isLandscape ? dim.height : dim.width
+  const height = isLandscape ? dim.width : dim.height
+  const ratio = width / height
+  
+  // 容器最大高度 400px，宽度自适应
+  const maxHeight = 400
+  const maxWidth = 600
+  
+  let displayWidth, displayHeight
+  
+  // 根据宽高比计算实际显示尺寸
+  if (ratio > 1) {
+    // 横向纸张，以最大宽度为限制
+    displayWidth = Math.min(maxWidth, maxHeight * ratio)
+    displayHeight = displayWidth / ratio
+  } else {
+    // 纵向纸张，以最大高度为限制
+    displayHeight = Math.min(maxHeight, maxWidth / ratio)
+    displayWidth = displayHeight * ratio
+  }
+  
+  return {
+    width: `${displayWidth}px`,
+    height: `${displayHeight}px`,
+  }
+})
 
 // ─── 工具函数 ─────────────────────────────────────────────
 function getCSRF() {
