@@ -18,8 +18,6 @@ services:
     user: root
     environment:
       - CUPS_HOST=cups:631
-      - CUPSADMIN=${CUPSADMIN}
-      - CUPSPASSWORD=${CUPSPASSWORD}
     volumes:
       - ./.data:/data
       - ./.uploads:/uploads

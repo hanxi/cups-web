@@ -7,9 +7,9 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	goipp "github.com/OpenPrinting/goipp"
 )
@@ -41,6 +41,7 @@ func SendPrintJob(printerURI string, r io.Reader, mime string, username string, 
 	if username != "" {
 		req.Operation.Add(goipp.MakeAttribute("requesting-user-name", goipp.TagName, goipp.String(username)))
 	}
+	log.Printf("[ipp] SendPrintJob: uri=%q user=%q job=%q mime=%q", printerURI, username, jobName, mime)
 	if jobName != "" {
 		req.Operation.Add(goipp.MakeAttribute("job-name", goipp.TagName, goipp.String(jobName)))
 	}
@@ -129,23 +130,30 @@ func SendPrintJob(printerURI string, r io.Reader, mime string, username string, 
 	}
 	httpReq.Header.Set("Content-Type", goipp.ContentType)
 	httpReq.Header.Set("Accept", goipp.ContentType)
-	setBasicAuth(httpReq)
 
-	resp, err := http.DefaultClient.Do(httpReq)
+	client := &http.Client{Timeout: 30 * time.Second}
+	log.Printf("[ipp] SendPrintJob: sending HTTP POST to %q", printerURI)
+	resp, err := client.Do(httpReq)
 	if resp != nil {
 		defer resp.Body.Close()
 	}
 	if err != nil {
+		log.Printf("[ipp] SendPrintJob: http error: %v", err)
 		return "", fmt.Errorf("http post: %w", err)
 	}
+	log.Printf("[ipp] SendPrintJob: HTTP response status: %s", resp.Status)
 	if resp.StatusCode/100 != 2 {
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("[ipp] SendPrintJob: non-2xx body: %s", string(body))
 		return "", fmt.Errorf("http status: %s", resp.Status)
 	}
 
 	var rsp goipp.Message
 	if err := rsp.Decode(resp.Body); err != nil {
+		log.Printf("[ipp] SendPrintJob: decode error: %v", err)
 		return "", fmt.Errorf("decode ipp response: %w", err)
 	}
+	log.Printf("[ipp] SendPrintJob: IPP response code: %d (%s)", rsp.Code, goipp.Status(rsp.Code).String())
 	if goipp.Status(rsp.Code) != goipp.StatusOk {
 		return "", fmt.Errorf("ipp error: %s", goipp.Status(rsp.Code).String())
 	}
@@ -153,11 +161,13 @@ func SendPrintJob(printerURI string, r io.Reader, mime string, username string, 
 	for _, a := range rsp.Job {
 		if a.Name == "job-uri" || a.Name == "job-id" {
 			if len(a.Values) > 0 {
+				log.Printf("[ipp] SendPrintJob: success, %s=%s", a.Name, a.Values[0].V.String())
 				return a.Values[0].V.String(), nil
 			}
 		}
 	}
 
+	log.Printf("[ipp] SendPrintJob: success (no job-id in response)")
 	return "ok", nil
 }
 
@@ -233,16 +243,6 @@ type PrinterInfo struct {
 	MarkerColors    []string          `json:"markerColors"`
 	MediaReady      []string          `json:"mediaReady"`
 	Attributes      map[string]string `json:"attributes"`
-}
-
-// setBasicAuth adds HTTP Basic Authentication to the request if CUPSADMIN and
-// CUPSPASSWORD environment variables are set.
-func setBasicAuth(req *http.Request) {
-	user := os.Getenv("CUPSADMIN")
-	pass := os.Getenv("CUPSPASSWORD")
-	if user != "" && pass != "" {
-		req.SetBasicAuth(user, pass)
-	}
 }
 
 // httpToIppURI converts an http:// URI to ipp:// for use in IPP request attributes.

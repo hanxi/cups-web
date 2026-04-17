@@ -18,7 +18,7 @@ WORKDIR /src
 
 # copy go modules and source
 COPY go.mod go.sum ./
-RUN go env -w GOPROXY=https://proxy.golang.org
+RUN go env -w GOPROXY=https://goproxy.cn,direct
 RUN go mod download
 COPY . .
 # Copy built frontend assets into expected location for go:embed
