@@ -162,6 +162,8 @@ http://localhost:631
 
 使用 `.env` 中配置的 `CUPSADMIN` 和 `CUPSPASSWORD` 登录，然后添加你的打印机。
 
+**⚠️ 重要**：添加打印机后，请在 CUPS 管理界面中将打印机设置为**共享（Shared）**状态，否则 Web 服务可能无法发现和使用该打印机。
+
 **提示**：建议根据打印机型号安装合适的驱动程序。
 
 ### 6. 访问 Web 界面
@@ -436,6 +438,7 @@ tar -czf cups-config-backup.tar.gz ./.etc/
 - CUPS 容器中可能没有预装所有打印机驱动
 - 建议根据打印机型号手动安装对应驱动
 - 可以通过 `docker exec` 进入 CUPS 容器安装驱动
+- **务必在 CUPS 管理后台将打印机设为共享（Shared）状态**，否则 Web 端无法调用该打印机
 
 ### LibreOffice 转换
 
