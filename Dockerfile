@@ -13,7 +13,7 @@ RUN mvn dependency:go-offline -q
 COPY ofd-converter/src ./src
 RUN mvn clean package -q -DskipTests
 
-FROM golang:1.25 AS builder
+FROM golang:1.26 AS builder
 WORKDIR /src
 
 # copy go modules and source
