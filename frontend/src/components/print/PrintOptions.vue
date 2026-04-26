@@ -7,7 +7,8 @@
       </div>
     </template>
     <div class="space-y-4">
-      <!-- 第一行：颜色 + 方向（紧凑按钮组） -->
+      <!-- ═══ 基础选项（始终显示） ═══ -->
+      <!-- 颜色 + 方向 -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <UFormField label="颜色模式" :hint="isColor ? undefined : '文档中的彩色内容将以灰阶模式打印输出'">
           <div class="flex rounded-lg border border-muted overflow-hidden">
@@ -34,7 +35,7 @@
         </UFormField>
       </div>
 
-      <!-- 第二行：双面 + 份数 -->
+      <!-- 双面 + 份数 -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <UFormField label="双面打印">
           <USelect :model-value="duplex" :items="duplexItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:duplex', $event)" />
@@ -52,41 +53,65 @@
         </UFormField>
       </div>
 
-      <!-- 第三行：纸张大小 + 纸张类型 -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <UFormField label="纸张大小">
-          <USelect :model-value="paperSize" :items="paperSizeItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:paperSize', $event)" />
-        </UFormField>
-        <UFormField label="纸张类型">
-          <USelect :model-value="paperType" :items="paperTypeItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:paperType', $event)" />
-        </UFormField>
-      </div>
-
-      <!-- 第四行：打印缩放 + 页面范围 -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <UFormField label="缩放">
-          <USelect :model-value="printScaling" :items="scalingItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:printScaling', $event)" />
-        </UFormField>
-        <UFormField label="页面范围" :hint="pageRangeError || '如：1-5 8'">
-          <UInput
-            :model-value="pageRange"
-            placeholder="留空=全部"
-            class="w-full"
-            :color="pageRangeError ? 'error' : undefined"
-            @update:model-value="onPageRangeInput"
+      <!-- ═══ 高级选项折叠区 ═══ -->
+      <div class="border-t border-default pt-3">
+        <button
+          type="button"
+          class="flex items-center gap-2 w-full text-sm text-primary hover:text-primary/80 transition cursor-pointer"
+          @click="showAdvanced = !showAdvanced"
+        >
+          <UIcon
+            name="i-lucide-chevron-right"
+            class="w-4 h-4 transition-transform duration-200"
+            :class="showAdvanced ? 'rotate-90' : ''"
           />
-        </UFormField>
-      </div>
+          <span class="font-medium">高级选项</span>
+          <span v-if="!showAdvanced" class="text-xs text-muted ml-1 truncate">{{ advancedSummary }}</span>
+        </button>
 
-      <!-- 镜像打印 -->
-      <UFormField label="镜像打印">
-        <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer transition hover:bg-elevated w-fit"
-          :class="mirror ? 'border-primary bg-primary/5' : 'border-muted'">
-          <UCheckbox :model-value="mirror" @update:model-value="$emit('update:mirror', $event)" />
-          <UIcon name="i-lucide-flip-horizontal" class="w-4 h-4" />
-          <span class="text-sm">水平镜像翻转</span>
-        </label>
-      </UFormField>
+        <div
+          class="overflow-hidden transition-all duration-300 ease-in-out"
+          :style="{ maxHeight: showAdvanced ? '1000px' : '0px', opacity: showAdvanced ? 1 : 0, visibility: showAdvanced ? 'visible' : 'hidden' }"
+        >
+          <div class="space-y-4 pt-3">
+            <!-- 纸张大小 + 纸张类型 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <UFormField label="纸张大小">
+                <USelect :model-value="paperSize" :items="paperSizeItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:paperSize', $event)" />
+              </UFormField>
+              <UFormField label="纸张类型">
+                <USelect :model-value="paperType" :items="paperTypeItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:paperType', $event)" />
+              </UFormField>
+            </div>
+
+            <!-- 缩放 + 页面范围 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <UFormField label="缩放">
+                <USelect :model-value="printScaling" :items="scalingItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:printScaling', $event)" />
+              </UFormField>
+              <UFormField label="页面范围" :hint="pageRangeError || '如：1-5 8'">
+                <UInput
+                  :model-value="pageRange"
+                  placeholder="留空=全部"
+                  class="w-full"
+                  :color="pageRangeError ? 'error' : undefined"
+                  @update:model-value="onPageRangeInput"
+                />
+              </UFormField>
+            </div>
+
+            <!-- 镜像打印 -->
+            <UFormField label="镜像打印">
+              <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer transition hover:bg-elevated w-fit"
+                :class="mirror ? 'border-primary bg-primary/5' : 'border-muted'">
+                <UCheckbox :model-value="mirror" @update:model-value="$emit('update:mirror', $event)" />
+                <UIcon name="i-lucide-flip-horizontal" class="w-4 h-4" />
+                <span class="text-sm">水平镜像翻转</span>
+              </label>
+            </UFormField>
+          </div>
+        </div>
+      </div>
 
       <!-- 预览 -->
       <template v-if="selectedFile">
@@ -101,7 +126,7 @@
             </span>
           </div>
           <div class="flex justify-center items-center py-4 bg-elevated rounded-lg" style="min-height: 200px;">
-            <div :style="paperPreviewStyle"
+            <div :style="adjustedPreviewStyle"
                  class="bg-white shadow-lg border border-default overflow-hidden transition-all duration-300 ease-in-out relative">
               <img v-if="previewType === 'image'" :src="previewUrl" class="w-full h-full object-contain" />
               <PdfCanvas v-else-if="previewType === 'pdf'" :src="previewUrl" />
@@ -133,7 +158,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import PdfCanvas from './PdfCanvas.vue'
 
 const props = defineProps({
@@ -164,7 +189,45 @@ const emit = defineEmits([
   'update:mirror', 'print'
 ])
 
+const showAdvanced = ref(false)
 const pageRangeError = ref('')
+const isMobile = ref(false)
+
+let mediaQuery = null
+function updateMobile(e) { isMobile.value = e.matches }
+onMounted(() => {
+  mediaQuery = window.matchMedia('(max-width: 639px)')
+  isMobile.value = mediaQuery.matches
+  mediaQuery.addEventListener('change', updateMobile)
+})
+onUnmounted(() => {
+  mediaQuery?.removeEventListener('change', updateMobile)
+})
+
+const advancedSummary = computed(() => {
+  const sizeLabel = paperSizeItems.find(i => i.value === props.paperSize)?.label?.split(' ')[0] || props.paperSize
+  const typeLabel = paperTypeItems.find(i => i.value === props.paperType)?.label || props.paperType
+  const scaleLabel = scalingItems.find(i => i.value === props.printScaling)?.label || props.printScaling
+  const parts = [sizeLabel, typeLabel, scaleLabel]
+  if (props.pageRange) parts.push(`页码: ${props.pageRange}`)
+  if (props.mirror) parts.push('镜像')
+  return parts.join(' / ')
+})
+
+const adjustedPreviewStyle = computed(() => {
+  if (!isMobile.value || !props.paperPreviewStyle) return props.paperPreviewStyle
+  const style = { ...props.paperPreviewStyle }
+  const w = parseInt(style.width) || 380
+  const h = parseInt(style.height) || 480
+  const maxW = 280
+  const maxH = 280
+  const scale = Math.min(maxW / w, maxH / h, 1)
+  if (scale < 1) {
+    style.width = `${Math.round(w * scale)}px`
+    style.height = `${Math.round(h * scale)}px`
+  }
+  return style
+})
 
 const colorItems = [
   { label: '彩色打印', value: true, icon: 'i-lucide-palette' },

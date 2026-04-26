@@ -1,14 +1,32 @@
 <template>
   <UCard>
     <template #header>
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2 font-semibold">
-          <UIcon name="i-lucide-activity" class="w-5 h-5" />
-          打印机状态
+      <div class="flex items-center justify-between cursor-pointer select-none" @click="expanded = !expanded">
+        <div class="flex items-center gap-2 font-semibold min-w-0">
+          <UIcon name="i-lucide-activity" class="w-5 h-5 shrink-0" />
+          <span class="truncate">打印机状态</span>
+          <!-- 折叠时显示摘要 -->
+          <template v-if="!expanded && printerInfo">
+            <span class="text-xs text-muted truncate">{{ printerInfo.name || '未知' }}</span>
+            <UBadge :color="printerStateColor(printerInfo.state)" variant="subtle" size="xs" class="shrink-0">
+              {{ printerStateText(printerInfo.state) }}
+            </UBadge>
+          </template>
         </div>
-        <UButton variant="ghost" size="xs" icon="i-lucide-refresh-cw" @click="$emit('refresh')" :loading="loading" />
+        <div class="flex items-center gap-1 shrink-0">
+          <UButton variant="ghost" size="xs" icon="i-lucide-refresh-cw" @click.stop="$emit('refresh')" :loading="loading" />
+          <UIcon
+            :name="expanded ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'"
+            class="w-4 h-4 text-muted transition-transform duration-200"
+          />
+        </div>
       </div>
     </template>
+    <div
+      ref="contentRef"
+      class="overflow-hidden transition-all duration-300 ease-in-out"
+      :style="{ maxHeight: expanded ? maxContentHeight : '0px', visibility: expanded ? 'visible' : 'hidden' }"
+    >
     <div>
       <div v-if="!printerUri" class="text-center py-6 text-muted text-sm">
         请先选择打印机
@@ -119,13 +137,15 @@
         </div>
       </div>
     </div>
+    </div>
   </UCard>
 </template>
 
 <script setup>
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { formatStateDuration, printerStateColor, printerStateText, markerLevelColor, markerBarColor } from '../../utils/format'
 
-defineProps({
+const props = defineProps({
   printerInfo: { type: Object, default: null },
   printerUri: { type: String, default: '' },
   loading: { type: Boolean, default: false },
@@ -133,4 +153,35 @@ defineProps({
 })
 
 defineEmits(['refresh'])
+
+const expanded = ref(window.innerWidth >= 1024) // 仅用于初始折叠态，用户可手动切换展开/折叠
+const contentRef = ref(null)
+const innerHeight = ref(0)
+
+const maxContentHeight = computed(() => {
+  return innerHeight.value ? `${innerHeight.value}px` : '500px'
+})
+
+function measureContent() {
+  nextTick(() => {
+    if (contentRef.value) {
+      // Temporarily remove max-height to measure real height
+      const el = contentRef.value
+      const prevMaxHeight = el.style.maxHeight
+      const prevTransition = el.style.transition
+      el.style.transition = 'none'
+      el.style.maxHeight = 'none'
+      innerHeight.value = el.scrollHeight
+      el.style.maxHeight = prevMaxHeight
+      // Force reflow then restore transition
+      el.offsetHeight
+      el.style.transition = prevTransition
+    }
+  })
+}
+
+watch(() => props.printerInfo, measureContent, { deep: true })
+watch(() => props.loading, measureContent)
+watch(() => props.error, measureContent)
+onMounted(measureContent)
 </script>
