@@ -1,19 +1,50 @@
 <template>
   <div class="p-3 sm:p-4 md:p-6 max-w-7xl mx-auto">
-    <!-- 顶部标题栏 -->
-    <div class="flex items-center justify-between mb-3">
-      <h1 class="text-lg font-bold flex items-center gap-2">
-        <UIcon name="i-lucide-printer" class="w-5 h-5 text-primary" />
-        打印
-      </h1>
-      <UButton variant="ghost" size="sm" icon="i-lucide-refresh-cw" @click="refreshAll" :loading="refreshing">刷新</UButton>
+    <!-- 顶部标题栏：桌面端与主体栅格对齐（3 + 2），移动端单行 flex -->
+    <div class="mb-3 grid grid-cols-1 lg:grid-cols-5 gap-x-4 gap-y-2">
+      <!-- 左：打印标题 + 打印机下拉（桌面 col-span-3，与左栏 FileUpload 对齐） -->
+      <div class="lg:col-span-3 flex items-center gap-2 sm:gap-3 min-w-0">
+        <h1 class="text-lg font-bold flex items-center gap-2 shrink-0">
+          <UIcon name="i-lucide-printer" class="w-5 h-5 text-primary" />
+          打印
+        </h1>
+        <USelect
+          :model-value="printer"
+          :items="printerItems"
+          value-key="value"
+          label-key="label"
+          placeholder="选择打印机"
+          icon="i-lucide-printer"
+          class="flex-1 min-w-0"
+          @update:model-value="onPrinterSelect"
+        />
+        <!-- 移动端：刷新按钮紧跟下拉（纯图标），桌面端隐藏 -->
+        <UButton
+          variant="ghost"
+          size="xs"
+          icon="i-lucide-refresh-cw"
+          class="shrink-0 lg:hidden"
+          @click="refreshAll"
+          :loading="refreshing"
+        />
+      </div>
+      <!-- 右：刷新按钮（桌面 col-span-2，靠右，与右栏对齐；移动端隐藏） -->
+      <div class="hidden lg:flex lg:col-span-2 items-center justify-end">
+        <UButton
+          variant="ghost"
+          size="xs"
+          icon="i-lucide-refresh-cw"
+          @click="refreshAll"
+          :loading="refreshing"
+        >刷新</UButton>
+      </div>
     </div>
 
     <!-- 主体两栏布局 -->
     <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
       <!-- 左栏：打印设置 + 预览 -->
       <div class="lg:col-span-3 space-y-4">
-        <PrinterSelector v-model="printer" :printers="printers" @change="onPrinterChange" />
+        <!-- 1. 文件上传（打印机已合并到顶部标题栏） -->
         <FileUpload
           :selected-file="selectedFile"
           :display-name="fileDisplayName"
@@ -34,7 +65,33 @@
           @print="uploadAndPrint"
         />
 
-        <!-- 多图片列表 -->
+        <!-- 3. 预览（紧贴上传） -->
+        <PrintPreview
+          :selected-file="selectedFile"
+          :is-multi-image="isMultiImage"
+          :preview-url="previewUrl"
+          :preview-type="previewType"
+          :text-preview="textPreview"
+          :paper-size-label="paperSizeLabel"
+          :orientation-label="orientationLabel"
+          :paper-dim-text="paperDimText"
+          :paper-preview-style="paperPreviewStyle"
+        />
+
+        <!-- 4. 提交打印按钮（紧随预览之后，首屏即可见） -->
+        <UButton
+          color="primary"
+          size="lg"
+          class="w-full"
+          icon="i-lucide-printer"
+          :disabled="!canPrint || printing"
+          :loading="printing"
+          @click="uploadAndPrint"
+        >
+          提交打印
+        </UButton>
+
+        <!-- 5. 多图片列表 -->
         <UCard v-if="selectedImages.length > 1">
           <template #header>
             <div class="flex items-center justify-between">
@@ -55,6 +112,8 @@
             </div>
           </div>
         </UCard>
+
+        <!-- 6. 打印参数（不再内嵌预览与提交按钮） -->
         <PrintOptions
           v-model:isColor="isColor"
           v-model:duplex="duplex"
@@ -66,17 +125,6 @@
           v-model:pageRange="pageRange"
           v-model:mirror="mirror"
           :printing="printing"
-          :can-print="canPrint"
-          :selected-file="selectedFile"
-          :preview-url="previewUrl"
-          :preview-type="previewType"
-          :text-preview="textPreview"
-          :paper-size-label="paperSizeLabel"
-          :orientation-label="orientationLabel"
-          :paper-dim-text="paperDimText"
-          :paper-preview-style="paperPreviewStyle"
-          :is-multi-image="isMultiImage"
-          @print="uploadAndPrint"
         />
       </div>
 
@@ -94,8 +142,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { jsPDF } from 'jspdf'
 import { getCSRF } from '../utils/api'
 import { isOfficeFile, isOFDFile } from '../utils/file'
-import PrinterSelector from '../components/print/PrinterSelector.vue'
 import FileUpload from '../components/print/FileUpload.vue'
+import PrintPreview from '../components/print/PrintPreview.vue'
 import PrintOptions from '../components/print/PrintOptions.vue'
 import PrintRecordList from '../components/print/PrintRecordList.vue'
 import PrinterStatus from '../components/print/PrinterStatus.vue'
@@ -184,6 +232,15 @@ const paperSizeItems = [
 const isMultiImage = computed(() => selectedImages.value.length > 1)
 const multiImageTotalSize = computed(() => selectedImages.value.reduce((sum, f) => sum + f.size, 0))
 const canPrint = computed(() => !!printer.value && (!!pdfBlob.value || !!selectedFile.value || isMultiImage.value))
+
+// 打印机下拉选项（原 PrinterSelector.vue 迁移过来）
+const printerItems = computed(() =>
+  printers.value.map(p => ({ label: `${p.name} — ${p.uri}`, value: p.uri }))
+)
+function onPrinterSelect(val) {
+  printer.value = val
+  onPrinterChange()
+}
 const canConvert = computed(() => {
   if (isMultiImage.value) return !converting.value && !converted.value
   return !!selectedFile.value && !converting.value && selectedFile.value.type !== 'application/pdf'

@@ -30,6 +30,7 @@ declare module 'vue' {
     UPrinterSelector: typeof import('./src/components/print/PrinterSelector.vue')['default']
     UPrinterStatus: typeof import('./src/components/print/PrinterStatus.vue')['default']
     UPrintOptions: typeof import('./src/components/print/PrintOptions.vue')['default']
+    UPrintPreview: typeof import('./src/components/print/PrintPreview.vue')['default']
     UPrintRecordList: typeof import('./src/components/print/PrintRecordList.vue')['default']
     USelect: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/Select.vue')['default']
     UTable: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/Table.vue')['default']

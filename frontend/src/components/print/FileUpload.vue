@@ -1,14 +1,9 @@
 <template>
-  <UCard>
-    <template #header>
-      <div class="flex items-center gap-2 font-semibold">
-        <UIcon name="i-lucide-file-up" class="w-5 h-5" />
-        文件
-      </div>
-    </template>
-    <div class="space-y-3">
+  <UCard :ui="{ body: 'p-3 sm:p-4' }">
+    <div class="space-y-2">
+      <!-- 拖拽区 -->
       <div
-        class="border-2 border-dashed rounded-lg p-4 sm:p-6 text-center cursor-pointer transition-colors"
+        class="border-2 border-dashed rounded-lg p-2 sm:p-4 text-center cursor-pointer transition-colors"
         :class="isDragging ? 'border-primary bg-primary/5' : 'border-muted hover:border-primary/50'"
         @dragover.prevent="isDragging = true"
         @dragleave="isDragging = false"
@@ -17,12 +12,20 @@
       >
         <input ref="fileInput" type="file" class="hidden" multiple @change="onFileChange" />
         <div v-if="!selectedFile && !displayName">
-          <UIcon name="i-lucide-upload-cloud" class="w-8 h-8 sm:w-10 sm:h-10 mx-auto text-muted mb-2" />
-          <p class="text-sm text-muted">点击或拖拽文件上传</p>
-          <p class="text-xs text-muted mt-1">支持 PDF、Word、Excel、PPT、OFD、图片等格式（可多选图片）</p>
+          <!-- 移动端：单行紧凑 -->
+          <div class="flex sm:hidden items-center justify-center gap-2 text-sm text-muted py-1">
+            <UIcon name="i-lucide-upload-cloud" class="w-4 h-4" />
+            <span>点击或拖拽上传文件</span>
+          </div>
+          <!-- 桌面端：维持原样 -->
+          <div class="hidden sm:block">
+            <UIcon name="i-lucide-upload-cloud" class="w-8 h-8 sm:w-10 sm:h-10 mx-auto text-muted mb-2" />
+            <p class="text-sm text-muted">点击或拖拽文件上传</p>
+            <p class="text-xs text-muted mt-1">支持 PDF、Word、Excel、PPT、OFD、图片等格式（可多选图片）</p>
+          </div>
         </div>
-        <div v-else class="flex items-center gap-3 w-full">
-          <UIcon name="i-lucide-file-check" class="w-8 h-8 text-success shrink-0" />
+        <div v-else class="flex items-center gap-2 sm:gap-3 w-full">
+          <UIcon name="i-lucide-file-check" class="w-5 h-5 sm:w-8 sm:h-8 text-success shrink-0" />
           <div class="flex-1 min-w-0 text-left">
             <p class="text-sm font-medium break-all line-clamp-2 leading-snug">{{ displayName || (selectedFile && selectedFile.name) }}</p>
             <p v-if="selectedFile" class="text-xs text-muted mt-0.5">{{ formatFileSize(selectedFile.size) }}</p>
@@ -33,33 +36,48 @@
             size="xs"
             icon="i-lucide-x"
             color="error"
-            class="shrink-0"
+            class="shrink-0 !w-6 !h-6 !min-h-0 !p-0"
             @click.stop="$emit('clear')"
           />
         </div>
       </div>
 
-      <!-- 转换状态 -->
-      <UAlert v-if="converting" color="info" variant="subtle" icon="i-lucide-loader-circle" :title="props.isMultiImage ? '正在合并图片为 PDF，请稍候…' : '正在转换为 PDF，请稍候…'" />
-      <UAlert v-if="converted && !converting" color="success" variant="subtle" icon="i-lucide-check-circle" title="已转换为 PDF，可以打印" />
-
-      <!-- 操作按钮 -->
-      <div class="flex flex-wrap gap-2">
-        <UButton
-          v-if="canConvert"
-          variant="outline"
-          icon="i-lucide-file-text"
-          :loading="converting"
-          @click="$emit('convert')"
-        >{{ props.isMultiImage ? '合并图片为PDF' : '转换为 PDF' }}</UButton>
-        <UButton
-          v-if="previewUrl"
-          variant="ghost"
-          icon="i-lucide-download"
-          :href="previewUrl"
-          :download="downloadName"
-          tag="a"
-        >下载预览</UButton>
+      <!-- 状态 + 操作合并成一行；仅在需要时显示 -->
+      <div
+        v-if="selectedFile || isMultiImage || converting"
+        class="flex items-center justify-between gap-2 text-xs"
+      >
+        <!-- 左侧：状态文字 -->
+        <div class="flex items-center gap-1.5 min-w-0 text-muted">
+          <UIcon v-if="converting" name="i-lucide-loader-circle" class="w-3.5 h-3.5 animate-spin text-info shrink-0" />
+          <UIcon v-else-if="converted" name="i-lucide-check-circle" class="w-3.5 h-3.5 text-success shrink-0" />
+          <UIcon v-else name="i-lucide-clock" class="w-3.5 h-3.5 shrink-0" />
+          <span class="truncate">
+            {{ converting
+              ? (isMultiImage ? '正在合并图片…' : '正在转换为 PDF…')
+              : (converted ? '已转换为 PDF，可以打印' : '等待转换') }}
+          </span>
+        </div>
+        <!-- 右侧：按钮 -->
+        <div class="flex items-center gap-1 shrink-0">
+          <UButton
+            v-if="canConvert"
+            variant="ghost"
+            size="xs"
+            icon="i-lucide-file-text"
+            :loading="converting"
+            @click="$emit('convert')"
+          >{{ isMultiImage ? '合并' : '转 PDF' }}</UButton>
+          <UButton
+            v-if="previewUrl"
+            variant="ghost"
+            size="xs"
+            icon="i-lucide-download"
+            :href="previewUrl"
+            :download="downloadName"
+            tag="a"
+          >下载</UButton>
+        </div>
       </div>
     </div>
   </UCard>
