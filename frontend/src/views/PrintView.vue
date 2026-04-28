@@ -73,22 +73,24 @@
           :preview-type="previewType"
           :text-preview="textPreview"
           :paper-size-label="paperSizeLabel"
+          v-model:orientation="orientation"
           :orientation-label="orientationLabel"
           :paper-dim-text="paperDimText"
           :paper-preview-style="paperPreviewStyle"
         />
 
-        <!-- 4. 提交打印按钮（紧随预览之后，首屏即可见） -->
+        <!-- 4. 开始打印按钮（紧随预览之后，首屏即可见；主 CTA，视觉上与顶部导航区分） -->
         <UButton
           color="primary"
-          size="lg"
-          class="w-full"
-          icon="i-lucide-printer"
+          size="xl"
+          :ui="{ base: 'justify-center', label: 'flex-1 text-center' }"
+          class="w-full font-semibold tracking-wide shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35 transition-all ring-1 ring-primary/30"
+          icon="i-lucide-send"
           :disabled="!canPrint || printing"
           :loading="printing"
           @click="uploadAndPrint"
         >
-          提交打印
+          开始打印
         </UButton>
 
         <!-- 5. 多图片列表 -->
@@ -117,7 +119,6 @@
         <PrintOptions
           v-model:isColor="isColor"
           v-model:duplex="duplex"
-          v-model:orientation="orientation"
           v-model:copies="copies"
           v-model:paperSize="paperSize"
           v-model:paperType="paperType"

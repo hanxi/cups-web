@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -21,7 +22,15 @@ import (
 )
 
 func main() {
-	addr := os.Getenv("LISTEN_ADDR")
+	// 命令行参数优先级高于环境变量。
+	// 默认值留空以便区分"用户未指定"与"显式指定"，最终再回退到 :8080。
+	listenFlag := flag.String("addr", "", "监听地址，如 :8080 或 0.0.0.0:8080 (优先级高于 LISTEN_ADDR 环境变量)")
+	flag.Parse()
+
+	addr := *listenFlag
+	if addr == "" {
+		addr = os.Getenv("LISTEN_ADDR")
+	}
 	if addr == "" {
 		addr = ":8080"
 	}

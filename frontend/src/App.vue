@@ -4,15 +4,46 @@
       <UIcon name="i-lucide-loader-circle" class="w-8 h-8 animate-spin text-primary" />
     </div>
     <div v-else class="grid grid-rows-[auto_1fr_auto] min-h-screen w-full bg-default">
-      <header class="flex items-center justify-between px-6 py-3 border-b border-default bg-default">
-        <div class="flex items-center gap-3">
-          <h1 class="text-xl font-bold">CUPS 打印</h1>
-          <span v-if="session" class="text-sm text-muted">{{ session.username }}</span>
+      <header class="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-default bg-default">
+        <div class="flex items-center gap-3 min-w-0">
+          <h1 class="text-xl font-bold shrink-0">CUPS 打印</h1>
+          <span v-if="session" class="text-sm text-muted truncate">{{ session.username }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <UButton v-if="isAdmin" :variant="route.path === '/print' ? 'solid' : 'ghost'" size="sm" @click="router.push('/print')">打印</UButton>
-          <UButton v-if="isAdmin" :variant="route.path === '/admin' ? 'solid' : 'ghost'" size="sm" @click="router.push('/admin')">管理</UButton>
-          <UButton v-if="session" variant="outline" size="sm" @click="logout">登出</UButton>
+          <!-- 导航分段容器：与主 CTA 视觉区分 -->
+          <div
+            v-if="isAdmin"
+            class="flex items-center gap-0.5 p-0.5 rounded-lg bg-elevated/60 border border-default"
+          >
+            <UButton
+              :variant="route.path === '/print' ? 'soft' : 'ghost'"
+              :color="route.path === '/print' ? 'primary' : 'neutral'"
+              size="xs"
+              icon="i-lucide-file-text"
+              @click="router.push('/print')"
+            >
+              <span class="hidden sm:inline">打印</span>
+            </UButton>
+            <UButton
+              :variant="route.path === '/admin' ? 'soft' : 'ghost'"
+              :color="route.path === '/admin' ? 'primary' : 'neutral'"
+              size="xs"
+              icon="i-lucide-settings"
+              @click="router.push('/admin')"
+            >
+              <span class="hidden sm:inline">管理</span>
+            </UButton>
+          </div>
+          <UButton
+            v-if="session"
+            variant="ghost"
+            color="neutral"
+            size="xs"
+            icon="i-lucide-log-out"
+            @click="logout"
+          >
+            <span class="hidden sm:inline">登出</span>
+          </UButton>
         </div>
       </header>
       <div class="overflow-auto relative">

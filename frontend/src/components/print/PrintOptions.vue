@@ -8,35 +8,21 @@
     </template>
     <div class="space-y-4">
       <!-- ═══ 基础选项（始终显示） ═══ -->
-      <!-- 颜色 + 方向 -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <UFormField label="颜色模式" :hint="isColor ? undefined : '文档中的彩色内容将以灰阶模式打印输出'">
-          <div class="flex rounded-lg border border-muted overflow-hidden">
-            <label v-for="item in colorItems" :key="String(item.value)"
-              class="flex-1 flex items-center justify-center gap-1.5 py-2 px-2 cursor-pointer text-sm transition"
-              :class="isColor === item.value ? 'bg-primary text-white font-medium' : 'hover:bg-elevated'">
-              <input type="radio" :value="item.value" :checked="isColor === item.value" class="sr-only" @change="$emit('update:isColor', item.value)" />
-              <UIcon :name="item.icon" class="w-3.5 h-3.5 shrink-0" />
-              <span class="text-xs whitespace-nowrap">{{ item.label }}</span>
-            </label>
-          </div>
-        </UFormField>
-
-        <UFormField label="打印方向">
-          <div class="flex rounded-lg border border-muted overflow-hidden">
-            <label v-for="item in orientationItems" :key="item.value"
-              class="flex-1 flex items-center justify-center gap-1.5 py-2 px-2 cursor-pointer text-sm transition"
-              :class="orientation === item.value ? 'bg-primary text-white font-medium' : 'hover:bg-elevated'">
-              <input type="radio" :value="item.value" :checked="orientation === item.value" class="sr-only" @change="$emit('update:orientation', item.value)" />
-              <UIcon :name="item.icon" class="w-3.5 h-3.5 shrink-0" />
-              <span class="text-xs whitespace-nowrap">{{ item.label }}</span>
-            </label>
-          </div>
-        </UFormField>
-      </div>
+      <!-- 颜色 -->
+      <UFormField label="颜色模式" :hint="isColor ? undefined : '文档中的彩色内容将以灰阶模式打印输出'">
+        <div class="flex rounded-lg border border-muted overflow-hidden">
+          <label v-for="item in colorItems" :key="String(item.value)"
+            class="flex-1 flex items-center justify-center gap-1.5 py-2 px-2 cursor-pointer text-sm transition"
+            :class="isColor === item.value ? 'bg-primary text-white font-medium' : 'hover:bg-elevated'">
+            <input type="radio" :value="item.value" :checked="isColor === item.value" class="sr-only" @change="$emit('update:isColor', item.value)" />
+            <UIcon :name="item.icon" class="w-3.5 h-3.5 shrink-0" />
+            <span class="text-xs whitespace-nowrap">{{ item.label }}</span>
+          </label>
+        </div>
+      </UFormField>
 
       <!-- 双面 + 份数 -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div class="grid grid-cols-2 gap-3">
         <UFormField label="双面打印">
           <USelect :model-value="duplex" :items="duplexItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:duplex', $event)" />
         </UFormField>
@@ -123,7 +109,6 @@ import { ref, computed } from 'vue'
 const props = defineProps({
   isColor: { type: Boolean, default: true },
   duplex: { type: String, default: 'one-sided' },
-  orientation: { type: String, default: 'portrait' },
   copies: { type: Number, default: 1 },
   paperSize: { type: String, default: 'A4' },
   paperType: { type: String, default: 'plain' },
@@ -134,7 +119,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits([
-  'update:isColor', 'update:duplex', 'update:orientation', 'update:copies',
+  'update:isColor', 'update:duplex', 'update:copies',
   'update:paperSize', 'update:paperType', 'update:printScaling', 'update:pageRange',
   'update:mirror'
 ])
@@ -161,11 +146,6 @@ const duplexItems = [
   { label: '单面打印', value: 'one-sided' },
   { label: '双面（长边翻页）', value: 'two-sided-long-edge' },
   { label: '双面（短边翻页）', value: 'two-sided-short-edge' }
-]
-
-const orientationItems = [
-  { label: '纵向', value: 'portrait', icon: 'i-lucide-rectangle-vertical' },
-  { label: '横向', value: 'landscape', icon: 'i-lucide-rectangle-horizontal' }
 ]
 
 const paperSizeItems = [
