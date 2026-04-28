@@ -329,9 +329,33 @@ function processFile(f) {
     previewType.value = 'pdf'
     pdfBlob.value = f
     converted.value = true
-  } else if (f.type.startsWith('image/')) {
-    previewUrl.value = URL.createObjectURL(f)
-    previewType.value = 'image'
+  } else if (f.type.startsWith('image/') || /\.(heic|heif)$/i.test(f.name)) {
+    if (isHeicImage(f)) {
+      // HEIC/HEIF 浏览器无法原生解码，先提示"正在转换"，异步用 heic2any 转成 JPEG 再预览
+      previewType.value = 'text'
+      textPreview.value = '正在解码 HEIC/HEIF 图片，请稍候…'
+      const originalFile = f
+      heicBlobToJpegBlob(originalFile)
+        .then(jpegFile => {
+          // 若用户在转码期间已切换/清空文件，则丢弃结果
+          if (selectedFile.value !== originalFile) return
+          selectedFile.value = jpegFile
+          downloadName.value = jpegFile.name.replace(/\.[^/.]+$/, '') + '.pdf'
+          clearPreviewUrl()
+          previewUrl.value = URL.createObjectURL(jpegFile)
+          previewType.value = 'image'
+          textPreview.value = ''
+        })
+        .catch(err => {
+          if (selectedFile.value !== originalFile) return
+          previewType.value = 'text'
+          textPreview.value = `HEIC 解码失败：${err.message || '未知错误'}`
+          toast.add({ title: 'HEIC 解码失败', description: err.message, color: 'error', icon: 'i-lucide-x-circle' })
+        })
+    } else {
+      previewUrl.value = URL.createObjectURL(f)
+      previewType.value = 'image'
+    }
   } else if (isOfficeFile(f)) {
     previewType.value = 'text'
     textPreview.value = 'Office 文档（无法直接预览）。点击"转换为 PDF"生成预览。'
@@ -351,6 +375,94 @@ function processFile(f) {
   }
 }
 
+// 判断是否为 HEIC/HEIF 格式（iPhone 默认的高效图片格式，浏览器无法原生解码）
+function isHeicImage(file) {
+  const type = (file.type || '').toLowerCase()
+  if (type === 'image/heic' || type === 'image/heif') return true
+  if (/\.(heic|heif)$/i.test(file.name)) return true
+  return false
+}
+
+// 动态加载 heic2any 并将 HEIC/HEIF Blob 转成 JPEG Blob。
+// 使用动态 import 是为了不把 heic2any（~800KB）打进主包，仅当用户真的上传 HEIC 时才按需加载。
+async function heicBlobToJpegBlob(file) {
+  let heic2any
+  try {
+    const mod = await import('heic2any')
+    heic2any = mod.default || mod
+  } catch (e) {
+    throw new Error('加载 HEIC 解码器失败，请检查网络后重试')
+  }
+  try {
+    const result = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 })
+    // heic2any 多图时可能返回数组，这里只取第一张
+    const blob = Array.isArray(result) ? result[0] : result
+    // 保留原文件名但改为 .jpg 后缀，便于后续流程展示
+    const jpegName = file.name.replace(/\.(heic|heif)$/i, '') + '.jpg'
+    return new File([blob], jpegName, { type: 'image/jpeg', lastModified: Date.now() })
+  } catch (e) {
+    throw new Error(`HEIC 解码失败：${file.name}（文件可能已损坏或非标准 HEIC 格式）`)
+  }
+}
+
+// 将 File 加载为 HTMLImageElement，使用 decode() 保证手机端宽高可用。
+// 遇到 HEIC/HEIF 会先用 heic2any 转成 JPEG，再走正常解码。
+async function loadImageElement(file) {
+  const realFile = isHeicImage(file) ? await heicBlobToJpegBlob(file) : file
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(realFile)
+    const img = new Image()
+    img.decoding = 'async'
+    const done = (err) => {
+      URL.revokeObjectURL(url)
+      if (err) reject(err)
+      else resolve(img)
+    }
+    img.onload = () => {
+      // 优先使用 decode() 确保像素已解码，避免手机端 naturalWidth 读到 0
+      if (typeof img.decode === 'function') {
+        img.decode().then(() => done()).catch(() => done())
+      } else {
+        done()
+      }
+    }
+    img.onerror = () => done(new Error(`图片加载失败：${realFile.name}（格式可能不受支持）`))
+    img.src = url
+  })
+}
+
+// 将图片重绘到 canvas 并编码为 JPEG dataURL。
+// 用于规避 iOS Safari canvas 最大尺寸限制（约 4096px）导致 PDF 预览空白的问题，
+// 同时将 webp/gif 首帧等各种格式统一为 jsPDF 可靠支持的 JPEG。
+function imageToJpegDataUrl(img, maxEdge = 3000, quality = 0.9) {
+  const srcW = img.naturalWidth || img.width
+  const srcH = img.naturalHeight || img.height
+  if (!srcW || !srcH) {
+    throw new Error('图片尺寸读取失败，可能格式不受支持')
+  }
+  let targetW = srcW
+  let targetH = srcH
+  if (Math.max(srcW, srcH) > maxEdge) {
+    const scale = maxEdge / Math.max(srcW, srcH)
+    targetW = Math.max(1, Math.round(srcW * scale))
+    targetH = Math.max(1, Math.round(srcH * scale))
+  }
+  const canvas = document.createElement('canvas')
+  canvas.width = targetW
+  canvas.height = targetH
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('当前浏览器不支持 Canvas 绘制')
+  // 填充白底，避免透明 PNG 在 JPEG 中变黑
+  ctx.fillStyle = '#FFFFFF'
+  ctx.fillRect(0, 0, targetW, targetH)
+  ctx.drawImage(img, 0, 0, targetW, targetH)
+  const dataUrl = canvas.toDataURL('image/jpeg', quality)
+  if (!dataUrl || dataUrl === 'data:,') {
+    throw new Error('图片编码失败（分辨率可能超过浏览器限制）')
+  }
+  return { dataUrl, width: targetW, height: targetH }
+}
+
 async function imagesToPdfBlob(files, orient, pSize) {
   const fileList = Array.isArray(files) ? files : [files]
   const dims = paperDimensionsMap[pSize] || { width: 210, height: 297 }
@@ -368,38 +480,74 @@ async function imagesToPdfBlob(files, orient, pSize) {
 
   for (let i = 0; i < fileList.length; i++) {
     if (i > 0) doc.addPage([dims.width, dims.height], isLandscape ? 'l' : 'p')
-    await new Promise((resolve, reject) => {
-      const img = new Image()
-      img.onload = () => {
-        const imgRatio = img.width / img.height
-        let drawW, drawH
-        if (imgRatio > maxW / maxH) { drawW = maxW; drawH = maxW / imgRatio }
-        else { drawH = maxH; drawW = maxH * imgRatio }
-        const x = margin + (maxW - drawW) / 2
-        const y = margin + (maxH - drawH) / 2
-        const fmt = fileList[i].type === 'image/png' ? 'PNG' : 'JPEG'
-        doc.addImage(img, fmt, x, y, drawW, drawH)
-        URL.revokeObjectURL(img.src)
-        resolve()
-      }
-      img.onerror = () => { URL.revokeObjectURL(img.src); reject(new Error(`图片加载失败: ${fileList[i].name}`)) }
-      img.src = URL.createObjectURL(fileList[i])
-    })
+    const file = fileList[i]
+    const img = await loadImageElement(file)
+    const { dataUrl } = imageToJpegDataUrl(img)
+    const naturalW = img.naturalWidth || img.width
+    const naturalH = img.naturalHeight || img.height
+    const imgRatio = naturalW / naturalH
+    let drawW, drawH
+    if (imgRatio > maxW / maxH) { drawW = maxW; drawH = maxW / imgRatio }
+    else { drawH = maxH; drawW = maxH * imgRatio }
+    const x = margin + (maxW - drawW) / 2
+    const y = margin + (maxH - drawH) / 2
+    doc.addImage(dataUrl, 'JPEG', x, y, drawW, drawH)
   }
   return doc.output('blob')
 }
 
 function processMultipleImages(files) {
   clearFile()
-  selectedImages.value = [...files]
-  fileDisplayName.value = `${files.length}张图片`
+  const arr = Array.from(files)
+  selectedImages.value = arr
+  fileDisplayName.value = `${arr.length}张图片`
   downloadName.value = '合并图片.pdf'
-  // 生成缩略图
-  imageThumbnails.value = files.map(f => URL.createObjectURL(f))
-  // 用第一张图片作为预览
-  previewUrl.value = imageThumbnails.value[0]
-  previewType.value = 'image'
   converted.value = false
+
+  // HEIC 无法直接生成缩略图，先用占位图，再异步转码后替换
+  const hasHeic = arr.some(isHeicImage)
+  imageThumbnails.value = arr.map(f => isHeicImage(f) ? '' : URL.createObjectURL(f))
+  // 用第一张可用的缩略图作为预览；若没有则等待转码
+  const firstReadyIdx = imageThumbnails.value.findIndex(u => !!u)
+  if (firstReadyIdx >= 0) {
+    previewUrl.value = imageThumbnails.value[firstReadyIdx]
+    previewType.value = 'image'
+  } else {
+    previewType.value = 'text'
+    textPreview.value = '正在解码 HEIC/HEIF 图片，请稍候…'
+  }
+
+  if (hasHeic) {
+    const batchFiles = arr
+    arr.forEach((f, idx) => {
+      if (!isHeicImage(f)) return
+      heicBlobToJpegBlob(f)
+        .then(jpegFile => {
+          // 若用户在转码期间已切换/清空文件，则丢弃结果
+          if (selectedImages.value !== batchFiles) return
+          selectedImages.value[idx] = jpegFile
+          imageThumbnails.value[idx] = URL.createObjectURL(jpegFile)
+          // 若之前没有可用预览，此时用第一张已就绪的
+          if (!previewUrl.value || previewType.value !== 'image') {
+            const firstIdx = imageThumbnails.value.findIndex(u => !!u)
+            if (firstIdx >= 0) {
+              previewUrl.value = imageThumbnails.value[firstIdx]
+              previewType.value = 'image'
+              textPreview.value = ''
+            }
+          }
+        })
+        .catch(err => {
+          if (selectedImages.value !== batchFiles) return
+          toast.add({
+            title: `HEIC 解码失败：${f.name}`,
+            description: err.message,
+            color: 'error',
+            icon: 'i-lucide-x-circle'
+          })
+        })
+    })
+  }
 }
 
 function removeImage(idx) {
