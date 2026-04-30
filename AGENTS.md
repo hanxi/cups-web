@@ -20,6 +20,7 @@
 | 数据库 | `modernc.org/sqlite`（纯 Go，无 CGO） |
 | 打印协议 | `github.com/OpenPrinting/goipp`（IPP） |
 | PDF 解析 | `rsc.io/pdf`（页数读取）、`github.com/phpdave11/gofpdf`（PDF 生成） |
+| 图像缩放 | `golang.org/x/image/draw`（CatmullRom，用于大图下采样） |
 | 加密 | `golang.org/x/crypto/bcrypt` |
 
 ### 前端
@@ -235,10 +236,10 @@ KV 表：`key TEXT PRIMARY KEY` + `value TEXT`。
 1. **接收**：解析 multipart 表单，提取 `file` + 打印参数
 2. **落盘**：`saveUploadedFile` 将上传文件按日期分目录保存到 `uploads/YYYYMMDD/` 下，文件名做安全化处理
 3. **类型识别 & 转换**（`detectFileKind`）：
-   - `pdf` → **PDF 标准化管线**（`diagnosePDF` 诊断日志 → `normalizePDF`：Ghostscript `pdfwrite -dCompatibilityLevel=1.4 -dEmbedAllFonts=true` 优先 → LibreOffice `--convert-to pdf` 兜底 → passthrough 最终降级），解决 Acrobat 高版本 / `UniGB-UCS2-H` 等外部 CMap 导致的预览空白与打印乱码
+   - `pdf` → **PDF 标准化管线**（`diagnosePDF` 诊断日志 → `normalizePDF`：Ghostscript `pdfwrite -dCompatibilityLevel=1.4 -dEmbedAllFonts=true` 优先（两档 strict `/prepress` → lenient `-dNEWPDF=false -dPDFSTOPONERROR=false` 重试）→ LibreOffice `--convert-to pdf` 兜底 → passthrough 最终降级），解决 Acrobat 高版本 / `UniGB-UCS2-H` 等外部 CMap 导致的预览空白与打印乱码
    - `office` → `convertOfficeToPDF`（调 `libreoffice --headless --convert-to pdf`）
    - `ofd` → `convertOFDToPDF`（调 `java -jar /ofd-converter.jar`）
-   - `image` → `convertImageToPDF`（用 `gofpdf` 渲染）
+   - `image` → `convertImageToPDF`（用 `gofpdf` 渲染；长边超过 3000px 的大图会先经 `downscaleImageIfNeeded` 下采样到 3000px 并以 JPEG Q85 重编码再嵌入 PDF，避免把手机端 10MB+ 原图整张塞进 PDF 导致移动端预览/下载超时，见 [Issue #22](https://github.com/hanxi/cups-web/issues/22)；PNG 透明像素会被合成到白底以符合打印预期）
    - `text` → `convertTextToPDF`（用 `gofpdf` + 内嵌中文字体渲染）
 4. **页数统计**：`countPDFPages` / `countPDFPagesWithFallback` / `estimateTextPages`；PDF 页数读取失败时走 `normalizePDF` 再重试，仍失败则以 1 页兜底而非直接 400
 5. **持久化**：在 `print_jobs` 插入一条 `queued` 记录
@@ -246,6 +247,10 @@ KV 表：`key TEXT PRIMARY KEY` + `value TEXT`。
 7. **回写状态**：成功后更新为 `printed` 并回填 `job_id`
 
 转换或标准化后的 PDF 以 `<原文件>.print.pdf` 副文件形式存到 `uploads/`，维护任务清理时会连同原文件一起删除。`/api/convert` 对 PDF 也会走同一条 `normalizePDF` 管线，让前端 `PdfCanvas` 预览与最终打印使用完全相同的字节流。
+
+### HTTP 超时
+
+`cmd/server/main.go` 的 `http.Server` 配置为 `ReadTimeout = WriteTimeout = IdleTimeout = 120s`。之所以放宽到 2 分钟，是因为 `/api/convert` 与 `/api/print` 在移动端场景需要：上传 10MB+ 原图 → 服务端下采样/标准化 → 回传 PDF，整条链路在 4G 网络下 15s 远远不够（[Issue #22](https://github.com/hanxi/cups-web/issues/22)）。如果未来要对个别接口设置更激进的独立超时，建议用 `http.TimeoutHandler` 包住具体子路由，而不是再调低全局值。
 
 ## 🧹 维护任务
 

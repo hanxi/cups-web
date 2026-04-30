@@ -4,20 +4,123 @@ import (
 	"bufio"
 	"errors"
 	"image"
+	"image/color"
 	_ "image/gif"
-	_ "image/jpeg"
+	"image/jpeg"
 	_ "image/png"
 	"io"
+	"log"
 	"math"
 	"mime/multipart"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 
 	"github.com/phpdave11/gofpdf"
+	"golang.org/x/image/draw"
 )
 
 const pdfPageMarginMM = 10.0
+
+// 大图下采样阈值：长边超过 imageDownscaleMaxEdge 时，会先缩放到该值再交给 gofpdf 嵌入，
+// 避免把原始 10+MB 的手机照片整张塞进 PDF —— 移动端下载/预览链路会因此失败或超时（Issue #22）。
+// 打印场景 3000px + JPEG Q85 对 A4/A3 来说分辨率已远超 300dpi，画质损失可忽略。
+const (
+	imageDownscaleMaxEdge = 3000
+	imageDownscaleJPEGQ   = 85
+)
+
+// downscaleSeq 为每个下采样输出文件分配一个进程内单调递增序号，彻底规避同目录文件名碰撞。
+// 使用 atomic 保证并发安全（不同请求可能并发处理）。
+var downscaleSeq uint64
+
+// downscaleImageIfNeeded 在必要时把图片下采样到长边 imageDownscaleMaxEdge 以内并以 JPEG 写出。
+// 返回值：
+//   - outPath：可供 gofpdf 读取的图片路径（当未缩放时为原 inputPath；已缩放时为 tmpDir 下的新 JPEG）
+//   - cfg：最终用于布局计算的尺寸信息（Width/Height 已反映缩放结果）
+//   - err：任何 I/O / 解码 / 编码错误
+//
+// 规则：
+//  1. 只有长边严格大于阈值时才执行缩放；小图原样返回，避免二次有损编码。
+//  2. 为了统一输出格式（减小 PDF 体积、避免 gofpdf 对 PNG 透明度的处理分支），缩放后一律编码为 JPEG。
+//     JPEG 不支持透明通道，因此在绘制前先把目标画布整体填白，再把源图用 draw.Over 合成上去，
+//     这样带 alpha 的 PNG 也能得到"白底 + 前景"的正确打印效果，而不是黑底。
+//  3. 缩放算法使用 CatmullRom（质量 / 性能 折中），比 draw.ApproxBiLinear 锐利，比 draw.BiLinear 清晰。
+func downscaleImageIfNeeded(inputPath string, tmpDir string) (string, image.Config, error) {
+	// 先读尺寸，避免对小图做无谓的整图解码
+	f, err := os.Open(inputPath)
+	if err != nil {
+		return "", image.Config{}, err
+	}
+	cfg, _, err := image.DecodeConfig(f)
+	_ = f.Close()
+	if err != nil {
+		return "", image.Config{}, err
+	}
+	if cfg.Width <= 0 || cfg.Height <= 0 {
+		return "", image.Config{}, errors.New("invalid image dimensions")
+	}
+
+	longEdge := cfg.Width
+	if cfg.Height > longEdge {
+		longEdge = cfg.Height
+	}
+	if longEdge <= imageDownscaleMaxEdge {
+		// 尺寸够小，直接沿用原图，不做任何转码
+		return inputPath, cfg, nil
+	}
+
+	// 需要缩放：先整图解码，再按比例缩到目标尺寸
+	srcFile, err := os.Open(inputPath)
+	if err != nil {
+		return "", image.Config{}, err
+	}
+	srcImg, _, err := image.Decode(srcFile)
+	_ = srcFile.Close()
+	if err != nil {
+		return "", image.Config{}, err
+	}
+
+	scale := float64(imageDownscaleMaxEdge) / float64(longEdge)
+	dstW := int(math.Round(float64(cfg.Width) * scale))
+	dstH := int(math.Round(float64(cfg.Height) * scale))
+	if dstW < 1 {
+		dstW = 1
+	}
+	if dstH < 1 {
+		dstH = 1
+	}
+
+	// 目标画布先整体填白：这样 PNG 透明区域在 JPEG 输出里会表现为白色，符合打印预期。
+	dstImg := image.NewRGBA(image.Rect(0, 0, dstW, dstH))
+	draw.Draw(dstImg, dstImg.Bounds(), &image.Uniform{C: color.White}, image.Point{}, draw.Src)
+	// 再把缩放后的源图以 Over 模式叠加到白底上，透明像素透出白色
+	draw.CatmullRom.Scale(dstImg, dstImg.Bounds(), srcImg, srcImg.Bounds(), draw.Over, nil)
+
+	seq := atomic.AddUint64(&downscaleSeq, 1)
+	outPath := filepath.Join(tmpDir, "downscaled_"+itoa(int(seq))+".jpg")
+	outFile, err := os.Create(outPath)
+	if err != nil {
+		return "", image.Config{}, err
+	}
+	if err := jpeg.Encode(outFile, dstImg, &jpeg.Options{Quality: imageDownscaleJPEGQ}); err != nil {
+		_ = outFile.Close()
+		_ = os.Remove(outPath)
+		return "", image.Config{}, err
+	}
+	if err := outFile.Close(); err != nil {
+		_ = os.Remove(outPath)
+		return "", image.Config{}, err
+	}
+
+	log.Printf("downscaleImage: %s %dx%d -> %dx%d (jpeg q=%d)",
+		filepath.Base(inputPath), cfg.Width, cfg.Height, dstW, dstH, imageDownscaleJPEGQ)
+
+	// 返回更新后的尺寸，供上层布局计算使用
+	newCfg := image.Config{Width: dstW, Height: dstH, ColorModel: cfg.ColorModel}
+	return outPath, newCfg, nil
+}
 
 // paperSizeToGofpdf 将纸张大小名称映射到 gofpdf 参数
 // 返回：gofpdf 认识的标准名称（或空字符串表示自定义）、自定义尺寸（如果是自定义纸张）
@@ -74,20 +177,11 @@ func convertImageToPDF(inputPath string, orientation string, paperSize string) (
 	}
 	cleanup := func() { _ = os.RemoveAll(tmpDir) }
 
-	f, err := os.Open(inputPath)
+	// 大图先下采样再嵌入，避免 PDF 体积过大导致移动端预览/下载失败（Issue #22）。
+	imgPath, cfg, err := downscaleImageIfNeeded(inputPath, tmpDir)
 	if err != nil {
 		cleanup()
 		return "", nil, err
-	}
-	cfg, _, err := image.DecodeConfig(f)
-	_ = f.Close()
-	if err != nil {
-		cleanup()
-		return "", nil, err
-	}
-	if cfg.Width <= 0 || cfg.Height <= 0 {
-		cleanup()
-		return "", nil, errors.New("invalid image dimensions")
 	}
 
 	// 处理方向和纸张大小
@@ -124,7 +218,7 @@ func convertImageToPDF(inputPath string, orientation string, paperSize string) (
 	y := (pageH - h) / 2
 
 	opts := gofpdf.ImageOptions{ImageType: "", ReadDpi: true}
-	pdf.ImageOptions(inputPath, x, y, w, h, false, opts, 0, "")
+	pdf.ImageOptions(imgPath, x, y, w, h, false, opts, 0, "")
 
 	outPath := filepath.Join(tmpDir, "image.pdf")
 	if err := pdf.OutputFileAndClose(outPath); err != nil {
@@ -254,23 +348,13 @@ func convertImagesMultiToPDF(fileHeaders []*multipart.FileHeader, orientation st
 		dst.Close()
 		src.Close()
 
-		// 读尺寸
-		f, err := os.Open(imgPath)
+		// 大图下采样：移动端合并若干张 10M+ 原图时最容易卡在这一步
+		finalPath, cfg, err := downscaleImageIfNeeded(imgPath, tmpDir)
 		if err != nil {
 			cleanup()
 			return "", nil, err
 		}
-		cfg, _, err := image.DecodeConfig(f)
-		_ = f.Close()
-		if err != nil {
-			cleanup()
-			return "", nil, err
-		}
-		if cfg.Width <= 0 || cfg.Height <= 0 {
-			cleanup()
-			return "", nil, errors.New("invalid image dimensions: " + fh.Filename)
-		}
-		saved = append(saved, savedImage{path: imgPath, cfg: cfg})
+		saved = append(saved, savedImage{path: finalPath, cfg: cfg})
 	}
 
 	// 构造 PDF

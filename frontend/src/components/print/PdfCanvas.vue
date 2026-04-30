@@ -44,6 +44,14 @@ let resizeObserver = null
 let lastWidth = 0
 let lastHeight = 0
 
+// requestToken 用于区分多次并发的 renderPdf 调用。
+// 场景：父组件（PrintView）在 PDF 分支会"先用本地 blob 出预览，再异步用后端标准化 blob 替换"，
+// 两次 props.src 变化会在极短时间内触发两次 renderPdf。第一次的 blob 一旦被 URL.revokeObjectURL
+// 立即吊销，pdf.js 的 fetch 会 abort 并 reject，若此时直接写入 error/loading，会污染掉第二次成功请求
+// 的状态（尤其在 iPhone Safari 下更容易踩到，见 issue 截图中红色的 blob 请求）。
+// 规则：renderPdf 入口自增 token，仅当捕获异常时 token 仍为当前值才写状态；过期请求静默丢弃。
+let requestToken = 0
+
 async function renderPage(pageNum) {
   if (!pdfDoc || !canvas.value) return
 
@@ -91,6 +99,9 @@ async function renderPage(pageNum) {
 async function renderPdf() {
   if (!props.src || !canvas.value) return
 
+  // 每次进入都分配一个独立 token；并发场景下只有最后一次调用的 token 等于 requestToken
+  const myToken = ++requestToken
+
   loading.value = true
   error.value = false
 
@@ -109,7 +120,7 @@ async function renderPdf() {
     // - standardFontDataUrl + useSystemFonts：预览未嵌入字体的 PDF 时用系统兜底字体
     // - disableFontFace=false：允许用 @font-face 注入字体（默认就是 false，显式保留以防升级回归）
     // - isEvalSupported=false：CSP/严格 Worker 环境下避免 eval 被拦截
-    pdfDoc = await pdfjsLib.getDocument({
+    const doc = await pdfjsLib.getDocument({
       url: props.src,
       cMapUrl: '/pdfjs/cmaps/',
       cMapPacked: true,
@@ -118,6 +129,14 @@ async function renderPdf() {
       useSystemFonts: true,
       isEvalSupported: false
     }).promise
+
+    // 加载过程中又被更新的请求超车了（如父组件很快换了 src），直接丢弃当前结果
+    if (myToken !== requestToken) {
+      doc.destroy()
+      return
+    }
+
+    pdfDoc = doc
     totalPages.value = pdfDoc.numPages
     currentPage.value = 1
 
@@ -125,10 +144,15 @@ async function renderPdf() {
     await nextTick()
     await new Promise(resolve => requestAnimationFrame(resolve))
 
+    if (myToken !== requestToken) return
+
     await renderPage(1)
+    if (myToken !== requestToken) return
     loading.value = false
   } catch (e) {
     if (e?.name === 'RenderingCancelledException') return
+    // 过期请求的失败不污染最新状态（常见于 blob URL 在第一次 fetch 进行中被 revoke）
+    if (myToken !== requestToken) return
     console.error('PDF render error:', e)
     error.value = true
     loading.value = false

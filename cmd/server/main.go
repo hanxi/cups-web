@@ -115,11 +115,15 @@ func main() {
 	serverFS := server.NewEmbeddedServer(frontend.FS)
 	r.PathPrefix("/").Handler(serverFS)
 
+	// 超时放宽：打印 / 转换接口需要在服务端处理大图（下采样 + gofpdf 合成）+
+	// 回传 PDF 到移动端，15s 在 4G 上传 10M+ 照片时很容易超时（Issue #22）。
+	// 为简化起见这里统一放到 2 分钟，业务上限比 Ghostscript 标准化管线的超时还要长一些。
 	srv := &http.Server{
 		Addr:         addr,
 		Handler:      r,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  120 * time.Second,
+		WriteTimeout: 120 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
 
 	startMaintenance(appStore, uploadDir)

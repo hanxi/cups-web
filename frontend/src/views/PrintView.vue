@@ -265,34 +265,19 @@ const paperDimText = computed(() => {
   return `${dim.width}×${dim.height}mm`
 })
 
+// 纸张预览：宽度撑满容器，高度由 aspect-ratio 根据纸张真实比例自动算出。
+// 不再限制 maxWidth —— 预览区域宽度始终等于容器宽度，这样"预览区的形状"
+// 就能精确同步当前纸张（纵向 / 横向 / 5寸 ... 10寸）的真实比例。
 const paperPreviewStyle = computed(() => {
   const dim = paperDimensionsMap[paperSize.value]
   if (!dim) return {}
   const isLandscape = orientation.value === 'landscape'
   const width = isLandscape ? dim.height : dim.width
   const height = isLandscape ? dim.width : dim.height
-  const ratio = width / height
-  const maxW = 380
-  const maxH = 480
-  let displayWidth, displayHeight
-  if (ratio > 1) {
-    // Landscape: width-constrained
-    displayWidth = maxW
-    displayHeight = displayWidth / ratio
-    if (displayHeight > maxH) {
-      displayHeight = maxH
-      displayWidth = displayHeight * ratio
-    }
-  } else {
-    // Portrait: height-constrained
-    displayHeight = maxH
-    displayWidth = displayHeight * ratio
-    if (displayWidth > maxW) {
-      displayWidth = maxW
-      displayHeight = displayWidth / ratio
-    }
+  return {
+    aspectRatio: `${width} / ${height}`,
+    width: '100%'
   }
-  return { width: `${Math.round(displayWidth)}px`, height: `${Math.round(displayHeight)}px`, maxHeight: '70vh' }
 })
 
 // ─── 文件操作 ─────────────────────────────────────────────
@@ -332,15 +317,36 @@ function processFile(f) {
     converted.value = true
     // 2) 异步走 /api/convert 拿后端标准化后的 PDF（gs/libreoffice），
     //    把预览和最终打印链路统一到同一份文件；失败静默回退到本地 blob
+    //
+    // 关键并发处理：pdfjs.getDocument 是异步加载的，下面这段 clearPreviewUrl + createObjectURL
+    // 会在 PdfCanvas 第一次 fetch 进行中把旧 blob 立即 revoke，导致 Safari / 某些环境下 fetch
+    // 被 abort，进而 pdf.js 抛错污染预览状态。这里做两件事避免竞态：
+    //   a) passthrough 场景（后端没装 gs/libreoffice）blob 大小与原文件完全一致，直接复用
+    //      现有预览，不替换 URL，也不触发 PdfCanvas 重载；
+    //   b) 必须替换时，先挂新 URL 让 PdfCanvas 接管，再延后到下一个微任务 revoke 旧 URL，
+    //      让可能仍在进行的第一次 fetch 有机会优雅失败（此时 PdfCanvas 已用最新 token 守卫）。
     const originalFile = f
+    const prevUrl = previewUrl.value
     ;(async () => {
       try {
         const blob = await convertOfficeToPdf(originalFile)
         if (selectedFile.value !== originalFile) return
+
+        // passthrough：字节大小相同说明后端直接返回了原文件，没必要重载预览
+        if (blob.size === originalFile.size) {
+          pdfBlob.value = blob
+          return
+        }
+
         pdfBlob.value = blob
-        clearPreviewUrl()
         previewUrl.value = URL.createObjectURL(blob)
         previewType.value = 'pdf'
+        // 延后 revoke 旧 URL，让 PdfCanvas 的第一次 getDocument 有时间被 token 守卫优雅终止
+        if (prevUrl) {
+          setTimeout(() => {
+            try { URL.revokeObjectURL(prevUrl) } catch (_) { /* 忽略 */ }
+          }, 0)
+        }
       } catch (_) {
         // 静默失败：继续使用本地 blob，打印走 /api/print 时后端会再次标准化
       }

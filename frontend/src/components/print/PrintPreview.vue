@@ -26,14 +26,15 @@
         </span>
       </div>
     </template>
+    <!-- 外层 bg-elevated 提供浅灰底 + padding，使白纸比容器略小一圈更耐看；
+         内层白纸宽度 = 容器内容区宽度，高度由 aspect-ratio 按纸张真实比例自动决定。 -->
     <div
       v-if="selectedFile || isMultiImage"
-      class="flex justify-center items-center py-3 sm:py-4 bg-elevated rounded-lg"
-      style="min-height: 180px;"
+      class="bg-elevated rounded-lg p-3 sm:p-4"
     >
       <div
         :style="adjustedPreviewStyle"
-        class="bg-white shadow-lg border border-default overflow-hidden transition-all duration-300 ease-in-out relative"
+        class="bg-white shadow-lg border border-default overflow-hidden transition-all duration-300 ease-in-out relative mx-auto"
       >
         <img v-if="previewType === 'image'" :src="previewUrl" class="w-full h-full object-contain" />
         <PdfCanvas v-else-if="previewType === 'pdf'" :src="previewUrl" @preview-failed="onPreviewFailed" />
@@ -98,18 +99,9 @@ onUnmounted(() => {
   mediaQuery?.removeEventListener('change', updateMobile)
 })
 
-const adjustedPreviewStyle = computed(() => {
-  if (!isMobile.value || !props.paperPreviewStyle) return props.paperPreviewStyle
-  const style = { ...props.paperPreviewStyle }
-  const w = parseInt(style.width) || 380
-  const h = parseInt(style.height) || 480
-  const maxW = 280
-  const maxH = 280
-  const scale = Math.min(maxW / w, maxH / h, 1)
-  if (scale < 1) {
-    style.width = `${Math.round(w * scale)}px`
-    style.height = `${Math.round(h * scale)}px`
-  }
-  return style
-})
+// paperPreviewStyle 已由父组件基于纸张真实比例生成（width: 100% + aspect-ratio）；
+// 直接透传，不再在组件内做任何尺寸修正，保证预览区宽度 === 容器宽度、高度按比例。
+const adjustedPreviewStyle = computed(() => props.paperPreviewStyle)
+// isMobile 状态仍保留以备将来使用
+void isMobile
 </script>

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,11 +11,25 @@ import (
 	"time"
 )
 
+// errBinaryNotInstalled 是一个跨模块共享的哨兵错误，表示某个**外部命令行工具**
+// （gs / libreoffice 等）在本机 PATH 中找不到。
+//
+// 该错误**仅用于日志措辞**：PDF 标准化管线拿到它可以打友好的"已跳过"日志，
+// 而不是把一大串 `exec: "xxx": executable file not found in $PATH` 噪声丢给运维/开发看。
+// 降级控制流不受影响——不论是"未安装"还是"执行失败"，上层都会继续尝试下一级 fallback。
+//
+// 注意：返回这个错误时，error message 的前缀（"libreoffice" / "ghostscript"）由各
+// 包装函数自行决定，errors.Is 只用于识别"工具未安装"这一类型。
+var errBinaryNotInstalled = errors.New("not installed")
+
 // runLibreOfficeConvert 调用 libreoffice --headless --convert-to <filter> 做通用文档转换，
 // 返回生成的 PDF 绝对路径、清理函数与错误。filter 为空时默认使用 "pdf"。
+//
+// libreoffice 不在 PATH 中时，返回的错误可被 errors.Is(err, errBinaryNotInstalled) 识别，
+// 供 PDF 标准化管线做"友好跳过"日志处理；Office 文档转换场景则正常向上报错即可。
 func runLibreOfficeConvert(ctx context.Context, inputPath string, filter string) (string, func(), error) {
 	if _, err := exec.LookPath("libreoffice"); err != nil {
-		return "", nil, fmt.Errorf("libreoffice not found in PATH: %w", err)
+		return "", nil, fmt.Errorf("libreoffice %w", errBinaryNotInstalled)
 	}
 
 	tmpDir, err := os.MkdirTemp("", "convert-")
