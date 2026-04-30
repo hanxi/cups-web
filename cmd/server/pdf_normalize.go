@@ -135,15 +135,15 @@ func runGhostscriptNormalize(ctx context.Context, inputPath string) (string, fun
 	// lenient：去掉 /prepress（避免 PDF/X 严格校验触发 syntaxerror），
 	// 退回 gs 旧解析器，允许忽略非致命错误；嵌入字体仍然保留以解决乱码问题
 	lenientArgs := []string{
-		"-dNOPAUSE", "-dBATCH", "-dQUIET", "-dSAFER",
-		"-sDEVICE=pdfwrite",
-		"-dCompatibilityLevel=1.4",
-		"-dEmbedAllFonts=true",
-		"-dSubsetFonts=true",
-		"-dAutoRotatePages=/None",
-		"-dPDFSTOPONERROR=false",
-		"-dNEWPDF=false",
-	}
+    "-dNOPAUSE", "-dBATCH", "-dQUIET", "-dSAFER",
+    "-sDEVICE=pdfwrite",
+    "-dCompatibilityLevel=1.4",
+    "-dPDFSETTINGS=/prepress",
+    "-dCIDFontFallback=true",
+    "-dNOPLATFONTS", // 防止选错字体
+    "-dEmbedAllFonts=true",
+    "-dSubsetFonts=true",
+}
 
 	if path, cleanup, err := tryGhostscriptRun(ctx, gsBin, strictArgs, inputPath, "strict"); err == nil {
 		return path, cleanup, "strict", nil
