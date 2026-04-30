@@ -43,6 +43,7 @@ RUN apt-get update && \
       printer-driver-gutenprint \
       printer-driver-all \
       printer-driver-cups-pdf \
+      printer-driver-escpr \
       printer-driver-foo2zjs \
       foomatic-db-compressed-ppds \
       openprinting-ppds \
