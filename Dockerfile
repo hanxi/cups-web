@@ -31,11 +31,18 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV MAVEN_VERSION=3.9.9
 ENV MAVEN_HOME=/opt/maven
 ENV PATH=/opt/maven/bin:$PATH
+# Maven tarball 来源策略：
+# 1) 优先 dlcdn.apache.org（Apache CDN，快）—— 但它只保留 current release，
+#    一旦官方发布 3.9.10+，3.9.9 会立即 404，CI 会挂（exit code 22）。
+# 2) Fallback 到 archive.apache.org/dist/maven/...（永久归档，所有历史版本都在）。
+# 这样日常走 CDN 快，被 dlcdn 抛弃后自动用归档也能跑通，升级 Maven 时只需改 MAVEN_VERSION。
 RUN apt-get update && apt-get install -y --no-install-recommends \
       openjdk-17-jdk-headless ca-certificates curl \
     && rm -rf /var/lib/apt/lists/* \
-    && curl -fsSL "https://dlcdn.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" \
-        -o /tmp/maven.tar.gz \
+    && ( \
+        curl -fsSL "https://dlcdn.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" -o /tmp/maven.tar.gz \
+        || curl -fsSL "https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" -o /tmp/maven.tar.gz \
+       ) \
     && mkdir -p "${MAVEN_HOME}" \
     && tar -xzf /tmp/maven.tar.gz -C "${MAVEN_HOME}" --strip-components=1 \
     && rm -f /tmp/maven.tar.gz \
