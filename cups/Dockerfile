@@ -176,23 +176,36 @@ RUN ( set -e; \
 # libgnutls30、libssl3、libusb-1.0-0 等），它们是 cupsd 运行期必需的。
 #
 # ⚠️ 陷阱：源码编译出来的 cupsd 不在 apt 依赖图里，`apt-get autoremove` 不知道
-# 它依赖这些运行时库，purge *-dev 后有概率把 libgnutls30 / libldap-2.5-0 /
+# 它依赖这些运行时库，purge *-dev 后有概率把 libgnutls30 / libldap-* /
 # libdbus-1-3 等作为"孤儿"一起删掉，导致 cupsd 启动时 dlopen 失败。
 # 解决：先 `apt-mark manual` 把这些运行时库标记为用户显式安装，autoremove
 # 就不会碰它们了。
-RUN apt-mark manual \
+#
+# ⚠️ 包名跨版本差异：Debian trixie 升级了 OpenLDAP（libldap-2.5-0 → libldap-2.6-0）
+# 并做了 t64 ABI 迁移，部分包名带 t64 后缀；不同架构（amd64/arm64/armhf）
+# 实际装到的包名可能也不同。所以用 for 循环逐个 apt-mark，用
+# `dpkg-query` 先检查"包已安装"再 mark，不存在的包静默跳过，保证
+# 整条命令在任意 Debian 版本 / 架构下都不会因为找不到某个包而整体 exit 100。
+RUN set -eux; \
+    for pkg in \
       libavahi-client3 \
       libavahi-common3 \
       libdbus-1-3 \
       libgnutls30 \
       libkrb5-3 \
-      libldap-2.5-0 \
-      libpam0g \
-      libssl3 \
+      libldap-2.5-0 libldap-2.6-0 libldap-2.6-0t64 \
+      libpam0g libpam0t64 \
+      libssl3 libssl3t64 \
       libsystemd0 \
       libusb-1.0-0 \
-      zlib1g && \
-    apt-get purge -y \
+      zlib1g \
+    ; do \
+      if dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q "install ok installed"; then \
+        apt-mark manual "$pkg"; \
+      fi; \
+    done; \
+    # purge 同样用循环，避免某个 -dev 包在当前架构缺失时整批 abort
+    for pkg in \
       build-essential \
       autoconf \
       automake \
@@ -203,13 +216,18 @@ RUN apt-mark manual \
       libdbus-1-dev \
       libgnutls28-dev \
       libkrb5-dev \
-      libldap-dev \
+      libldap-dev libldap2-dev \
       libpam0g-dev \
       libssl-dev \
       libsystemd-dev \
       libusb-1.0-0-dev \
-      zlib1g-dev && \
-    apt-get autoremove -y && \
+      zlib1g-dev \
+    ; do \
+      if dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q "install ok installed"; then \
+        apt-get purge -y "$pkg"; \
+      fi; \
+    done; \
+    apt-get autoremove -y; \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # printer-driver-gutenprint 在 trixie armhf 上没有 binary 包（gutenprint 的
