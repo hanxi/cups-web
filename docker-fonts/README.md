@@ -1,48 +1,35 @@
 # docker-fonts - 自定义字体目录
 
-本目录用于存放 Docker 构建时使用的中文字体。项目已自带 Noto 开源字体（思源宋体 + 思源黑体），
-开箱即用；如果有 Windows 原版字体可以替换以获得更精确的渲染效果。
+本目录存放 Docker 构建时使用的中文 TrueType 字体，用于 Ghostscript cidfmap 映射。
 
-## 已自带的开源字体
+## 当前包含的字体
 
-| 文件名 | 字体名称 | 用途 | 许可 |
+| 文件名 | 字体名称 | 格式 | 大小 |
 |---------|----------|------|------|
-| `NotoSerifSC-Regular.otf` | 思源宋体 Regular | 替代宋体/仿宋 Regular | OFL |
-| `NotoSerifSC-Bold.otf` | 思源宋体 Bold | 替代宋体/仿宋 Bold | OFL |
-| `NotoSansSC-Regular.otf` | 思源黑体 Regular | 替代黑体 Regular | OFL |
-| `NotoSansSC-Bold.otf` | 思源黑体 Bold | 替代黑体 Bold | OFL |
+| `simsun.ttc` | 宋体 (SimSun) | TrueType Collection | ~10 MB |
+| `simhei.ttf` | 黑体 (SimHei) | TrueType | ~9.3 MB |
+| `simkai.ttf` | 楷体 (SimKai) | TrueType | ~11 MB |
+| `simfang.ttf` | 仿宋 (SimFang) | TrueType | ~10 MB |
 
-这些字体由 Google/Adobe 联合开发，采用 SIL Open Font License (OFL) 许可，可自由分发。
-来源：[noto-cjk](https://github.com/notofonts/noto-cjk)
+这些是 Windows 系统中文字体，与 Ghostscript cidfmap `/FileType /TrueType` 映射完全兼容。
 
-## 可选：使用 Windows 原版字体（优先级更高）
+## 为什么必须是 TrueType 格式
 
-如果需要更精确的字体渲染效果（例如与 Windows 上的 PDF 完全一致），可以将 Windows 字体放入本目录。
-构建时 Windows 字体会**优先于** Noto 字体生效。
+Ghostscript 的 cidfmap 使用 `/FileType /TrueType` 声明字体类型。如果提供 OTF (CFF) 格式字体，
+gs 无法正确解析字形数据，会导致输出 PDF 中文字变成乱码方块。因此本目录**只接受 `.ttf` 或 `.ttc` 格式**。
 
-| 文件名 | 字体名称 | 说明 |
-|---------|----------|------|
-| `simsun.ttc` | 宋体 (SimSun) | Windows 默认中文衬线字体 |
-| `simhei.ttf` | 黑体 (SimHei) | Windows 默认中文无衬线字体 |
-| `simkai.ttf` | 楷体 (SimKai) | 手写风格字体 |
-| `simfang.ttf` | 仿宋 (SimFang) | 印刷风格字体 |
+## 字体映射关系
 
-从 Windows 系统复制：
+构建时 Dockerfile 会自动将这些字体映射到 `/etc/ghostscript/cidfmap.local`：
 
-```
-C:\Windows\Fonts\simsun.ttc
-C:\Windows\Fonts\simhei.ttf
-C:\Windows\Fonts\simkai.ttf
-C:\Windows\Fonts\simfang.ttf
-```
-
-## 字体优先级
-
-构建时 Ghostscript cidfmap 映射的优先级（从高到低）：
-
-1. **Windows 原版字体**（simsun/simhei/simkai/simfang）—— 最精确
-2. **Noto 开源字体**（NotoSerifSC/NotoSansSC）—— 已自带，质量优秀
-3. **系统默认字体**（arphic-uming/arphic-ukai/wqy-zenhei）—— 兜底
+| GBK 名称 | 映射字体 |
+|-----------|----------|
+| 宋体 (CB CE CC E5) Regular | simsun.ttc |
+| 宋体 Bold | simhei.ttf |
+| 黑体 (BA DA CC E5) Regular/Bold | simhei.ttf |
+| 楷体 (BF AC CC E5) Regular/Bold | simkai.ttf |
+| 仿宋 (B7 C2 CB CE) Regular | simfang.ttf |
+| 仿宋 Bold | simhei.ttf |
 
 ## 使用
 
@@ -51,6 +38,6 @@ C:\Windows\Fonts\simfang.ttf
 
 ## 注意事项
 
-- Noto 字体为 OFL 许可，可以自由分发和提交到 Git
 - **SimSun/SimHei 等 Windows 字体为微软版权所有**，仅限个人/内部使用，请勿将包含这些字体的 Docker 镜像公开分发
-- 支持的字体格式：`.ttf`、`.ttc`、`.otf`
+- 仅支持 TrueType 格式（`.ttf` / `.ttc`），不要放 `.otf` 文件
+- 如果缺少某个字体文件，Dockerfile 会自动跳过对应映射，退回到系统 arphic/wqy 兜底字体
