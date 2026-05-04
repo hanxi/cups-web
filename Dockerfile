@@ -202,23 +202,24 @@ RUN test -s /etc/ghostscript/cidfmap.local \
 
 # 如果用户提供了 SimSun/SimHei/SimKai/SimFang 字体，更新 cidfmap.local 映射，
 # 用真实 Windows 字体替换 arphic/wqy 的 fallback 映射，获得更精确的渲染效果。
-# 注意：仿宋和宋体的 Regular 都映射到 uming.ttc，sed 替换时通过匹配完整行来区分。
+# 注意：宋体(Regular+Bold)和仿宋(Regular+Bold)的基准路径都是 uming.ttc，
+# simsun.ttf 先做全局替换，simfang.ttf 再通过行匹配 /^#b7#c2#cb#ce/ 精确覆盖仿宋行。
 RUN if [ -f /usr/share/fonts/truetype/custom/simsun.ttf ]; then \
       sed -i 's|/usr/share/fonts/truetype/arphic/uming.ttc) /SubfontID 0|/usr/share/fonts/truetype/custom/simsun.ttf) /SubfontID 0|g' /etc/ghostscript/cidfmap.local; \
-      echo "[dockerfile] cidfmap: simsun.ttf mapped (宋体 Regular + 仿宋 Regular)"; \
+      echo "[dockerfile] cidfmap: simsun.ttf mapped (宋体 Regular+Bold, 仿宋 pending)"; \
     fi && \
     if [ -f /usr/share/fonts/truetype/custom/simhei.ttf ]; then \
       sed -i 's|/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc) /SubfontID 0|/usr/share/fonts/truetype/custom/simhei.ttf) /SubfontID 0|g' /etc/ghostscript/cidfmap.local; \
-      echo "[dockerfile] cidfmap: simhei.ttf mapped (黑体 + Bold variants)"; \
+      echo "[dockerfile] cidfmap: simhei.ttf mapped (黑体 Regular+Bold)"; \
     fi && \
     if [ -f /usr/share/fonts/truetype/custom/simkai.ttf ]; then \
       sed -i 's|/usr/share/fonts/truetype/arphic/ukai.ttc) /SubfontID 0|/usr/share/fonts/truetype/custom/simkai.ttf) /SubfontID 0|g' /etc/ghostscript/cidfmap.local; \
-      echo "[dockerfile] cidfmap: simkai.ttf mapped (楷体)"; \
+      echo "[dockerfile] cidfmap: simkai.ttf mapped (楷体 Regular+Bold)"; \
     fi && \
     if [ -f /usr/share/fonts/truetype/custom/simfang.ttf ]; then \
-      sed -i '/^\/#b7#c2#cb#ce /s|/usr/share/fonts/truetype/custom/simsun.ttf) /SubfontID 0|/usr/share/fonts/truetype/custom/simfang.ttf) /SubfontID 0|' /etc/ghostscript/cidfmap.local; \
-      sed -i '/^\/#b7#c2#cb#ce /s|/usr/share/fonts/truetype/arphic/uming.ttc) /SubfontID 0|/usr/share/fonts/truetype/custom/simfang.ttf) /SubfontID 0|' /etc/ghostscript/cidfmap.local; \
-      echo "[dockerfile] cidfmap: simfang.ttf mapped (仿宋 Regular)"; \
+      sed -i '/^\/#b7#c2#cb#ce[, ]/s|/usr/share/fonts/truetype/custom/simsun.ttf) /SubfontID 0|/usr/share/fonts/truetype/custom/simfang.ttf) /SubfontID 0|' /etc/ghostscript/cidfmap.local; \
+      sed -i '/^\/#b7#c2#cb#ce[, ]/s|/usr/share/fonts/truetype/arphic/uming.ttc) /SubfontID 0|/usr/share/fonts/truetype/custom/simfang.ttf) /SubfontID 0|' /etc/ghostscript/cidfmap.local; \
+      echo "[dockerfile] cidfmap: simfang.ttf mapped (仿宋 Regular+Bold)"; \
     fi
 
 # 将 cidfmap.local 作为 gs 的默认 cidfmap 安装到 Resource/Init/

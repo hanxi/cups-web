@@ -7,13 +7,14 @@
 % 默认的 DroidSansFallback（唯一无衬线字重）。
 %
 % 策略说明：arphic / wqy 是单字重字库，没有 Bold 配套文件，gs 也不会做 synthetic bold。
-% 因此 Bold 变体通过"映射到另一套更粗的字体"来制造视觉粗细差（宋体 Bold → wqy，
-% 仿宋 Bold → wqy）；wqy-zenhei 本身就是本镜像里最粗的中文字体，没有更粗的可换，
-% 所以黑体/楷体的 Bold 与 Regular 视觉相同，属于字库本身的限制。
+% Bold 变体映射到与 Regular 相同的字体文件，保持字形风格一致——虽然没有真正的粗体字重，
+% 但 PDF 渲染器可根据 FontDescriptor 中的 StemV/Weight 信息做合成加粗（synthetic bold），
+% 这比映射到完全不同风格的字体（如宋体 Bold → 黑体）要好得多。
+% 黑体/楷体的 Bold 与 Regular 同源、视觉一致，属字库本身限制。
 
 % 宋体 (CB CE CC E5)
 /#cb#ce#cc#e5 << /FileType /TrueType /Path (/usr/share/fonts/truetype/arphic/uming.ttc) /SubfontID 0 /CSI [(GB1) 2] >> ;
-/#cb#ce#cc#e5,Bold << /FileType /TrueType /Path (/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc) /SubfontID 0 /CSI [(GB1) 2] >> ;
+/#cb#ce#cc#e5,Bold << /FileType /TrueType /Path (/usr/share/fonts/truetype/arphic/uming.ttc) /SubfontID 0 /CSI [(GB1) 2] >> ;
 
 % 黑体 (BA DA CC E5)
 /#ba#da#cc#e5 << /FileType /TrueType /Path (/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc) /SubfontID 0 /CSI [(GB1) 2] >> ;
@@ -25,4 +26,4 @@
 
 % 仿宋 (B7 C2 CB CE)
 /#b7#c2#cb#ce << /FileType /TrueType /Path (/usr/share/fonts/truetype/arphic/uming.ttc) /SubfontID 0 /CSI [(GB1) 2] >> ;
-/#b7#c2#cb#ce,Bold << /FileType /TrueType /Path (/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc) /SubfontID 0 /CSI [(GB1) 2] >> ;
+/#b7#c2#cb#ce,Bold << /FileType /TrueType /Path (/usr/share/fonts/truetype/arphic/uming.ttc) /SubfontID 0 /CSI [(GB1) 2] >> ;
