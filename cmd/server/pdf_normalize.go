@@ -210,16 +210,48 @@ func tryGhostscriptRun(ctx context.Context, gsBin string, extraArgs []string, in
 	cmd := exec.CommandContext(ctx, gsBin, args...)
 	cmd.Env = append(os.Environ(), "LANG=C.UTF-8", "LC_ALL=C.UTF-8")
 	out, err := cmd.CombinedOutput()
+	combinedStr := string(out)
 	if err != nil {
 		cleanup()
-		return "", nil, fmt.Errorf("gs pdfwrite(%s) failed: %w - %s", label, err, firstErrorLine(string(out)))
+		return "", nil, fmt.Errorf("gs pdfwrite(%s) failed: %w - %s", label, err, firstErrorLine(combinedStr))
 	}
 	if st, err := os.Stat(outPath); err != nil || st.Size() == 0 {
 		cleanup()
 		return "", nil, fmt.Errorf("gs pdfwrite(%s) produced empty output: %v", label, err)
 	}
+	// gs exit code 0 但 stderr 含字体错误时，输出 PDF 文本可能是乱码，
+	// 视为失败让调用方降级到 LibreOffice。
+	if fontErr := detectGhostscriptFontErrors(combinedStr); fontErr != "" {
+		log.Printf("[pdf-normalize] ghostscript %s has font errors, falling through to libreoffice: %s", label, fontErr)
+		cleanup()
+		return "", nil, fmt.Errorf("gs pdfwrite(%s) succeeded but has font errors: %s", label, fontErr)
+	}
 	log.Printf("[pdf-normalize] ghostscript mode=%s elapsed=%s out=%s", label, time.Since(start).Round(time.Millisecond), filepath.Base(outPath))
 	return outPath, cleanup, nil
+}
+
+// detectGhostscriptFontErrors 检查 gs 的 combined output 中是否包含字体相关错误。
+// gs 处理某些编码缺陷的 PDF 时，虽然 exit code 为 0，但 stderr 中会输出字体错误
+// （如 "error reading a stream"、"missing or bad /FontName"），此时输出 PDF 的文本
+// 很可能是乱码。返回首个匹配到的错误摘要（用于日志），无错误则返回空串。
+func detectGhostscriptFontErrors(output string) string {
+	lower := strings.ToLower(output)
+	fontErrorPatterns := []string{
+		"error reading a stream",
+		"missing or bad /fontname",
+	}
+	for _, pattern := range fontErrorPatterns {
+		if idx := strings.Index(lower, pattern); idx != -1 {
+			// 取匹配位置所在行作为摘要
+			lineStart := strings.LastIndex(lower[:idx], "\n") + 1
+			lineEnd := strings.Index(lower[idx:], "\n")
+			if lineEnd < 0 {
+				lineEnd = len(output) - idx
+			}
+			return truncate(strings.TrimSpace(output[lineStart:idx+lineEnd]), 200)
+		}
+	}
+	return ""
 }
 
 // firstErrorLine 从外部工具（gs 等）的 CombinedOutput 中抽取首行含 "Error" 的内容

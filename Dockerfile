@@ -175,7 +175,7 @@ RUN mkdir -p /usr/share/fonts/truetype/custom && \
 
 # 安装 fontconfig 中文字体别名配置（从 docker-fonts/fontconfig-chinese.conf 复制）
 # 原因：LibreOffice fallback 渲染路径依赖 fontconfig 查找"宋体""黑体"等中文字体名
-# simsun.ttc 因 fontconfig 兼容性问题无法被索引，宋体回退到 SimHei
+# simsun.ttf 用于宋体映射（已从 TTC 替换为 TTF 单体格式，解决 gs 10.x 和 fontconfig 兼容性问题）
 RUN cp /tmp/docker-fonts/fontconfig-chinese.conf /etc/fonts/conf.d/05-custom-chinese-fonts.conf 2>/dev/null || true
 RUN fc-cache -f 2>/dev/null || true
 
@@ -203,9 +203,9 @@ RUN test -s /etc/ghostscript/cidfmap.local \
 # 如果用户提供了 SimSun/SimHei/SimKai/SimFang 字体，更新 cidfmap.local 映射，
 # 用真实 Windows 字体替换 arphic/wqy 的 fallback 映射，获得更精确的渲染效果。
 # 注意：仿宋和宋体的 Regular 都映射到 uming.ttc，sed 替换时通过匹配完整行来区分。
-RUN if [ -f /usr/share/fonts/truetype/custom/simsun.ttc ]; then \
-      sed -i 's|/usr/share/fonts/truetype/arphic/uming.ttc) /SubfontID 0|/usr/share/fonts/truetype/custom/simsun.ttc) /SubfontID 0|g' /etc/ghostscript/cidfmap.local; \
-      echo "[dockerfile] cidfmap: simsun.ttc mapped (宋体 Regular + 仿宋 Regular)"; \
+RUN if [ -f /usr/share/fonts/truetype/custom/simsun.ttf ]; then \
+      sed -i 's|/usr/share/fonts/truetype/arphic/uming.ttc) /SubfontID 0|/usr/share/fonts/truetype/custom/simsun.ttf) /SubfontID 0|g' /etc/ghostscript/cidfmap.local; \
+      echo "[dockerfile] cidfmap: simsun.ttf mapped (宋体 Regular + 仿宋 Regular)"; \
     fi && \
     if [ -f /usr/share/fonts/truetype/custom/simhei.ttf ]; then \
       sed -i 's|/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc) /SubfontID 0|/usr/share/fonts/truetype/custom/simhei.ttf) /SubfontID 0|g' /etc/ghostscript/cidfmap.local; \
@@ -216,7 +216,7 @@ RUN if [ -f /usr/share/fonts/truetype/custom/simsun.ttc ]; then \
       echo "[dockerfile] cidfmap: simkai.ttf mapped (楷体)"; \
     fi && \
     if [ -f /usr/share/fonts/truetype/custom/simfang.ttf ]; then \
-      sed -i '/^\/#b7#c2#cb#ce /s|/usr/share/fonts/truetype/custom/simsun.ttc) /SubfontID 0|/usr/share/fonts/truetype/custom/simfang.ttf) /SubfontID 0|' /etc/ghostscript/cidfmap.local; \
+      sed -i '/^\/#b7#c2#cb#ce /s|/usr/share/fonts/truetype/custom/simsun.ttf) /SubfontID 0|/usr/share/fonts/truetype/custom/simfang.ttf) /SubfontID 0|' /etc/ghostscript/cidfmap.local; \
       sed -i '/^\/#b7#c2#cb#ce /s|/usr/share/fonts/truetype/arphic/uming.ttc) /SubfontID 0|/usr/share/fonts/truetype/custom/simfang.ttf) /SubfontID 0|' /etc/ghostscript/cidfmap.local; \
       echo "[dockerfile] cidfmap: simfang.ttf mapped (仿宋 Regular)"; \
     fi

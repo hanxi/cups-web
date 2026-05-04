@@ -6,7 +6,7 @@
 
 | 文件名 | 字体名称 | 格式 | 大小 |
 |---------|----------|------|------|
-| `simsun.ttc` | 宋体 (SimSun) | TrueType Collection | ~10 MB |
+| `simsun.ttf` | 宋体 (SimSun) | TrueType | ~11 MB |
 | `simhei.ttf` | 黑体 (SimHei) | TrueType | ~9.3 MB |
 | `simkai.ttf` | 楷体 (SimKai) | TrueType | ~11 MB |
 | `simfang.ttf` | 仿宋 (SimFang) | TrueType | ~10 MB |
@@ -24,7 +24,7 @@ gs 无法正确解析字形数据，会导致输出 PDF 中文字变成乱码方
 
 | GBK 名称 | 映射字体 |
 |-----------|----------|
-| 宋体 (CB CE CC E5) Regular | simsun.ttc |
+| 宋体 (CB CE CC E5) Regular | simsun.ttf |
 | 宋体 Bold | simhei.ttf |
 | 黑体 (BA DA CC E5) Regular/Bold | simhei.ttf |
 | 楷体 (BF AC CC E5) Regular/Bold | simkai.ttf |
