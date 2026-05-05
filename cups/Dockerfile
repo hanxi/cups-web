@@ -198,6 +198,15 @@ RUN set -eo pipefail; \
     }; \
     mkdir src && cd src && \
     tar xzf ../escpr2.tar.gz --strip-components=1 && \
+    # ⚠️ Debian trixie 的 automake 已经升级到 1.17，而 Epson 这份 tarball 是用\
+    # automake-1.16 打出来的——tar 解包会保留原始 mtime，make 检测到 Makefile.am\
+    # 比 Makefile.in 新（或 aclocal.m4 比 configure 新）时会触发 automake 重跑，\
+    # 此时 autotools 的 `missing` 脚本发现系统里只有 `automake-1.17`、没有\
+    # `automake-1.16`，直接 exit 127，make 以 `Error 127` 失败。\
+    # 修复：在 configure 之前用当前安装的 autotools（autoconf/automake/libtool\
+    # 都在上游阶段的 build-essential 链里装过）重新生成 configure + Makefile.in\
+    # + aclocal.m4，让构建系统绑定到容器里实际存在的 automake-1.17。\
+    autoreconf -fi && \
     # ⚠️ gcc 15（Debian trixie 起）默认 C23，escpr2 源码里还保留了 C89/C99 风格的\
     # 隐式函数声明（例如 bug_x86_64.patch 里声明 SendStartJob() 不带形参）、\
     # 隐式 int 返回值等，在 C23 下由警告升级为硬错误，make 会以 exit 2 失败。\
