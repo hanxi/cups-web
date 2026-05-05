@@ -12,7 +12,7 @@ ARG TARGETARCH
 ARG TARGETVARIANT
 
 LABEL maintainer="涵曦 <im.hanxi@gmail.com>"
-LABEL description="Debian-based CUPS server (compiled from OpenPrinting/cups source) with Epson L380 official driver preinstalled"
+LABEL description="Debian-based CUPS server (compiled from OpenPrinting/cups source) with Epson L380 official driver + Brother driverless/laser support preinstalled"
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asia/Shanghai
@@ -69,10 +69,25 @@ RUN apt-get update && \
       cups-filters \
       cups-client \
       cups-daemon \
+      cups-ipp-utils \
       printer-driver-all \
       printer-driver-cups-pdf \
       printer-driver-escpr \
       printer-driver-foo2zjs \
+      # ── Brother 兼容驱动 ──
+      # Brother 官方未把任何 Linux 驱动上传 Debian 主仓库，用户常见的 Brother 打印机
+      # （含新款 DCP-T425W、HL-Lxxxx 等）在 CUPS 里出现 "IPP Everywhere (color)" 选项
+      # 靠的是 **driverless** 路径（IPP Get-Printer-Attributes 自动生成 PPD），
+      # 需要两个关键组件：
+      #   ① ipp-usb —— 把 USB 连接的 IPP Everywhere 打印机暴露为本地 http://localhost
+      #     的 IPP 端点，让 CUPS/avahi 像网络打印机一样发现它（USB 直连机型必须）；
+      #   ② cups-filters 内置的 cups-browsed + CUPS 自带的 everywhere 模型（已在上面
+      #     --enable-avahi --enable-dbus 编译进 cupsd）。
+      # 同时补上社区维护的 printer-driver-brlaser，覆盖大量老 Brother 激光机（HL-L2300D
+      # 等），对 DCP-T425W 这类新墨仓机型虽然用不上（它们走 driverless），但能同时
+      # 改善其他 Brother 用户体验，包体很小，issue #32。
+      ipp-usb \
+      printer-driver-brlaser \
       foomatic-db-compressed-ppds \
       openprinting-ppds \
       hpijs-ppds \
