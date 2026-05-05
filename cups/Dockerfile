@@ -139,34 +139,52 @@ RUN mkdir -p /tmp/cups-build && cd /tmp/cups-build && \
 # 避免 apt 版 -dev 包回踩覆盖源码装好的 /usr/include/cups/*.h。
 #
 # ⚠️ Best-effort 策略：
-# Epson 下载中心（download-center.epson.com）的 UUID 会定期轮换，对非浏览器 UA
-# 也会做拦截，历史上出现过 wget 返回 HTTP 403/404（exit code 8）的情况；
-# 而 ESCPR2 仅对个别新款机型必需，老机型用 Debian 自带 printer-driver-escpr
-# 就能覆盖。所以这里做成"失败不中断 build"——下载/编译任一步失败时仅打印
-# WARNING，让整个镜像继续往下装其他驱动与配置，最终产物对非 ESCPR2 型号不受影响。
-# 排查思路：若 CI 构建日志里看到 "escpr2 build skipped"，多半是 Epson 又换
-# UUID 了，去 https://download-center.epson.com 下载页按 F12 看 "下载" 按钮
-# 指向的新 UUID，更新 ESCPR2_UUID/ESCPR2_VERSION 重新构建即可。
+# Epson 下载中心（download-center.epson.com）挂在 Akamai CDN 后面，会对请求做
+# UA/Header/TLS 指纹等多维度风控，出现 HTTP 403 Forbidden 的概率不低——Arch AUR
+# 的 `epson-inkjet-printer-escpr2` PKGBUILD 评论区也一直有人反馈"同一链路换个工具/换个
+# UA 就能下载成功"。所以这里**依次尝试多种下载策略**（wget-Chrome → wget-Firefox
+# → curl-Firefox-qgb），任一成功即进入编译；全部失败再降级为 WARNING，让整体 build
+# 继续走完（非 ESCPR2 机型不受影响，老 Epson 机型 Debian printer-driver-escpr 已覆盖）。
+# 同时 UUID 会被 Epson 定期轮换，若新版本发布后下载仍稳定 403，去
+# https://download-center.epson.com 下载页按 F12 抓新 UUID 更新 ESCPR2_UUID/
+# ESCPR2_VERSION 即可。
 ARG ESCPR2_VERSION=1.2.39
 ARG ESCPR2_UUID=12bbe234-329d-4b3c-922c-e497f25f5e32
-# 用完整的 Chrome UA 串，比单一 "Firefox" 更不容易被 Epson CDN 的 UA 过滤规则拦
-ARG ESCPR2_UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+# Chrome UA 串作为首选；若被 Akamai 拦截再回退到简化 Firefox UA（AUR 维护者经验：
+# 有时长 UA 比短 UA 更容易被拦，反之亦然，两个都试）。
+ARG ESCPR2_UA_CHROME="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+ARG ESCPR2_UA_FIREFOX="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0"
 # 用 subshell 隔离 set -e 语境：子 shell 内任何一步失败就整个失败，
 # 外层用 `|| echo WARNING` 捕获并降级为警告，不让 docker build 整体 abort。
 RUN ( set -e; \
       mkdir -p /tmp/escpr2-build && cd /tmp/escpr2-build && \
       ESCPR2_URL="https://download-center.epson.com/f/module/${ESCPR2_UUID}/epson-inkjet-printer-escpr2-${ESCPR2_VERSION}-1.tar.gz" && \
       echo "[escpr2] downloading ${ESCPR2_URL}" && \
-      wget --tries=3 --timeout=60 --retry-connrefused \
-           --user-agent="${ESCPR2_UA}" \
-           -O escpr2.tar.gz "${ESCPR2_URL}" && \
+      # 依次尝试三种下载策略，任一成功立即跳出；全部失败才让 subshell 整体失败 \
+      ( \
+        echo "[escpr2] attempt 1: wget + Chrome UA" && \
+        wget --tries=3 --timeout=60 --retry-connrefused \
+             --user-agent="${ESCPR2_UA_CHROME}" \
+             -O escpr2.tar.gz "${ESCPR2_URL}" \
+      ) || ( \
+        echo "[escpr2] attempt 2: wget + Firefox UA" && \
+        wget --tries=3 --timeout=60 --retry-connrefused \
+             --user-agent="${ESCPR2_UA_FIREFOX}" \
+             -O escpr2.tar.gz "${ESCPR2_URL}" \
+      ) || ( \
+        # 与 AUR PKGBUILD 对齐的 curl 调用：-qgb "" 忽略 ~/.curlrc 且用空 cookie jar，\
+        # -fL 在遇到 4xx/重定向时表现更贴近浏览器；不少反馈 curl 比 wget 更能过 Akamai。\
+        echo "[escpr2] attempt 3: curl + Firefox UA" && \
+        curl --user-agent "Firefox" -qgb "" -fL --retry 3 --retry-delay 3 \
+             -o escpr2.tar.gz "${ESCPR2_URL}" \
+      ) && \
       mkdir src && cd src && \
       tar xzf ../escpr2.tar.gz --strip-components=1 && \
       ./configure --prefix=/usr --disable-static && \
       make -j"$(nproc)" && \
       make install && \
       echo "[escpr2] installed version ${ESCPR2_VERSION}" \
-    ) || echo "[escpr2] WARNING: ESC/P-R 2 driver build skipped (download or compile failed). Non-ESCPR2 Epson printers are unaffected; Debian printer-driver-escpr still covers most older models. Update ESCPR2_UUID/ESCPR2_VERSION build args if newer models are required."; \
+    ) || echo "[escpr2] WARNING: ESC/P-R 2 driver build skipped (all download attempts failed with HTTP 403 or compile error). Non-ESCPR2 Epson printers are unaffected; Debian printer-driver-escpr still covers most older models. If newer ET/L/WF models are required, either retry the build (Akamai CDN blocks are often transient) or update ESCPR2_UUID/ESCPR2_VERSION per https://download-center.epson.com."; \
     rm -rf /tmp/escpr2-build
 
 # ────────────────────────────────────────────────────────────────────────────
