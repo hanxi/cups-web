@@ -155,6 +155,17 @@ RUN /tmp/build-scripts/install-canon-ufr2.sh
 # 详见 scripts/install-konica-bizhub.sh（镜像 URL/.deb 文件名硬编码在脚本里）
 RUN /tmp/build-scripts/install-konica-bizhub.sh
 
+# ────────────────────────────────────────────────────────────────────
+# HP LaserJet 1020 / 1020 Plus 固件：下载 sihp1020.dl 到 foo2zjs 标准路径。
+# ────────────────────────────────────────────────────────────────────
+# issue #40。HP 1020 系列是 host-based 打印机，每次上电需由主机上传固件。
+# Debian 的 printer-driver-foo2zjs 已提供驱动过滤器，但固件文件因版权不含在
+# Debian 包内。本脚本从本仓库 GitHub Releases 镜像下载固件并放到
+# /usr/share/foo2zjs/firmware/，entrypoint.sh 在容器启动时负责检测 USB
+# 设备并上传固件。全架构通用（固件是二进制 blob，与 CPU 架构无关）。
+# 详见 scripts/install-hp-laserjet1020.sh
+RUN /tmp/build-scripts/install-hp-laserjet1020.sh
+
 # 构建脚本使命完成，清理临时目录
 RUN rm -rf /tmp/build-scripts
 
