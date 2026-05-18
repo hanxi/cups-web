@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"image"
 	"image/color"
 	_ "image/gif"
@@ -12,8 +13,10 @@ import (
 	"log"
 	"math"
 	"mime/multipart"
+	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync/atomic"
 
@@ -22,6 +25,35 @@ import (
 )
 
 const pdfPageMarginMM = 10.0
+
+// parseFormMargins 从表单值解析四边页边距(mm)，未提供时使用默认值。
+func parseFormMargins(r *http.Request) (top, right, bottom, left float64) {
+	top = pdfPageMarginMM
+	right = pdfPageMarginMM
+	bottom = pdfPageMarginMM
+	left = pdfPageMarginMM
+	if v := r.FormValue("margin_top"); v != "" {
+		if n, err := strconv.ParseFloat(v, 64); err == nil && n >= 0 {
+			top = n
+		}
+	}
+	if v := r.FormValue("margin_right"); v != "" {
+		if n, err := strconv.ParseFloat(v, 64); err == nil && n >= 0 {
+			right = n
+		}
+	}
+	if v := r.FormValue("margin_bottom"); v != "" {
+		if n, err := strconv.ParseFloat(v, 64); err == nil && n >= 0 {
+			bottom = n
+		}
+	}
+	if v := r.FormValue("margin_left"); v != "" {
+		if n, err := strconv.ParseFloat(v, 64); err == nil && n >= 0 {
+			left = n
+		}
+	}
+	return
+}
 
 // 大图下采样阈值：长边超过 imageDownscaleMaxEdge 时，会先缩放到该值再交给 gofpdf 嵌入，
 // 避免把原始 10+MB 的手机照片整张塞进 PDF —— 移动端下载/预览链路会因此失败或超时（Issue #22）。
@@ -122,6 +154,31 @@ func downscaleImageIfNeeded(inputPath string, tmpDir string) (string, image.Conf
 	return outPath, newCfg, nil
 }
 
+// parseCustomPaperSize 解析 custom_WxHmm 格式的自定义纸张尺寸，返回宽高(mm)。
+func parseCustomPaperSize(size string) (float64, float64, bool) {
+	if !strings.HasPrefix(size, "custom_") {
+		return 0, 0, false
+	}
+	rest := size[len("custom_"):]
+	// 格式: WxHmm (如 150x200mm)
+	idx := strings.Index(rest, "x")
+	if idx <= 0 {
+		return 0, 0, false
+	}
+	var w, h float64
+	if _, err := fmt.Sscanf(rest[:idx], "%f", &w); err != nil || w <= 0 {
+		return 0, 0, false
+	}
+	hPart := rest[idx+1:]
+	if strings.HasSuffix(hPart, "mm") {
+		hPart = hPart[:len(hPart)-2]
+	}
+	if _, err := fmt.Sscanf(hPart, "%f", &h); err != nil || h <= 0 {
+		return 0, 0, false
+	}
+	return w, h, true
+}
+
 // paperSizeToGofpdf 将纸张大小名称映射到 gofpdf 参数
 // 返回：gofpdf 认识的标准名称（或空字符串表示自定义）、自定义尺寸（如果是自定义纸张）
 func paperSizeToGofpdf(size string) (string, gofpdf.SizeType) {
@@ -156,6 +213,10 @@ func paperSizeToGofpdf(size string) (string, gofpdf.SizeType) {
 		// 203×254 mm
 		return "", gofpdf.SizeType{Wd: 203, Ht: 254}
 	default:
+		// 尝试解析 custom_WxHmm 格式
+		if w, h, ok := parseCustomPaperSize(size); ok {
+			return "", gofpdf.SizeType{Wd: w, Ht: h}
+		}
 		// 默认使用 A4
 		return "A4", gofpdf.SizeType{}
 	}
@@ -170,7 +231,7 @@ func getOrientationCode(orientation string) string {
 	return "P"
 }
 
-func convertImageToPDF(inputPath string, orientation string, paperSize string) (string, func(), error) {
+func convertImageToPDF(inputPath string, orientation string, paperSize string, marginTop, marginRight, marginBottom, marginLeft float64) (string, func(), error) {
 	tmpDir, err := os.MkdirTemp("", "convert-img-")
 	if err != nil {
 		return "", nil, err
@@ -201,13 +262,13 @@ func convertImageToPDF(inputPath string, orientation string, paperSize string) (
 		})
 	}
 
-	pdf.SetMargins(pdfPageMarginMM, pdfPageMarginMM, pdfPageMarginMM)
-	pdf.SetAutoPageBreak(false, pdfPageMarginMM)
+	pdf.SetMargins(marginLeft, marginTop, marginRight)
+	pdf.SetAutoPageBreak(false, marginBottom)
 	pdf.AddPage()
 
 	pageW, pageH := pdf.GetPageSize()
-	maxW := pageW - 2*pdfPageMarginMM
-	maxH := pageH - 2*pdfPageMarginMM
+	maxW := pageW - marginLeft - marginRight
+	maxH := pageH - marginTop - marginBottom
 	scale := math.Min(maxW/float64(cfg.Width), maxH/float64(cfg.Height))
 	if scale <= 0 {
 		scale = 1
@@ -228,7 +289,7 @@ func convertImageToPDF(inputPath string, orientation string, paperSize string) (
 	return outPath, cleanup, nil
 }
 
-func convertTextToPDF(inputPath string, orientation string, paperSize string) (string, func(), error) {
+func convertTextToPDF(inputPath string, orientation string, paperSize string, marginTop, marginRight, marginBottom, marginLeft float64) (string, func(), error) {
 	tmpDir, err := os.MkdirTemp("", "convert-text-")
 	if err != nil {
 		return "", nil, err
@@ -259,8 +320,8 @@ func convertTextToPDF(inputPath string, orientation string, paperSize string) (s
 		})
 	}
 
-	pdf.SetMargins(pdfPageMarginMM, pdfPageMarginMM, pdfPageMarginMM)
-	pdf.SetAutoPageBreak(false, pdfPageMarginMM)
+	pdf.SetMargins(marginLeft, marginTop, marginRight)
+	pdf.SetAutoPageBreak(false, marginBottom)
 	pdf.AddPage()
 	if err := setPdfTextFont(pdf, 10); err != nil {
 		cleanup()
@@ -268,13 +329,13 @@ func convertTextToPDF(inputPath string, orientation string, paperSize string) (s
 	}
 
 	_, pageH := pdf.GetPageSize()
-	lineHeight := (pageH - 2*pdfPageMarginMM) / float64(textLinesPerPage)
+	lineHeight := (pageH - marginTop - marginBottom) / float64(textLinesPerPage)
 	if lineHeight <= 0 {
 		lineHeight = 4
 	}
 
 	pageW, _ := pdf.GetPageSize()
-	cellW := pageW - 2*pdfPageMarginMM
+	cellW := pageW - marginLeft - marginRight
 
 	scanner := bufio.NewScanner(f)
 	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
@@ -284,8 +345,8 @@ func convertTextToPDF(inputPath string, orientation string, paperSize string) (s
 			pdf.AddPage()
 			lineIndex = 0
 		}
-		y := pdfPageMarginMM + lineHeight*float64(lineIndex)
-		pdf.SetXY(pdfPageMarginMM, y)
+		y := marginTop + lineHeight*float64(lineIndex)
+		pdf.SetXY(marginLeft, y)
 		pdf.CellFormat(cellW, lineHeight, scanner.Text(), "", 0, "LM", false, 0, "")
 		lineIndex++
 	}
@@ -305,7 +366,7 @@ func convertTextToPDF(inputPath string, orientation string, paperSize string) (s
 // convertImagesMultiToPDF 将多张图片合并为单个 PDF。
 // 每张图片占据一页，按等比例缩放居中绘制，页面大小与方向由 orientation / paperSize 决定。
 // 调用方负责在使用完输出 PDF 后调用返回的 cleanup 清理临时目录。
-func convertImagesMultiToPDF(fileHeaders []*multipart.FileHeader, orientation string, paperSize string) (string, func(), error) {
+func convertImagesMultiToPDF(fileHeaders []*multipart.FileHeader, orientation string, paperSize string, marginTop, marginRight, marginBottom, marginLeft float64) (string, func(), error) {
 	if len(fileHeaders) == 0 {
 		return "", nil, errors.New("no image files provided")
 	}
@@ -371,14 +432,14 @@ func convertImagesMultiToPDF(fileHeaders []*multipart.FileHeader, orientation st
 			OrientationStr: orientCode,
 		})
 	}
-	pdf.SetMargins(pdfPageMarginMM, pdfPageMarginMM, pdfPageMarginMM)
-	pdf.SetAutoPageBreak(false, pdfPageMarginMM)
+	pdf.SetMargins(marginLeft, marginTop, marginRight)
+	pdf.SetAutoPageBreak(false, marginBottom)
 
 	for _, img := range saved {
 		pdf.AddPage()
 		pageW, pageH := pdf.GetPageSize()
-		maxW := pageW - 2*pdfPageMarginMM
-		maxH := pageH - 2*pdfPageMarginMM
+		maxW := pageW - marginLeft - marginRight
+		maxH := pageH - marginTop - marginBottom
 		scale := math.Min(maxW/float64(img.cfg.Width), maxH/float64(img.cfg.Height))
 		if scale <= 0 {
 			scale = 1

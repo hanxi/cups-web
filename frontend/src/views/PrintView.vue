@@ -127,6 +127,7 @@
           v-model:pageSet="pageSet"
           v-model:mirror="mirror"
           :printing="printing"
+          @update:margins="margins = $event"
         />
       </div>
 
@@ -181,6 +182,7 @@ const printScaling = ref('fit')
 const pageRange = ref('')
 const pageSet = ref('all')
 const mirror = ref(false)
+const margins = ref(null)
 
 // ─── 状态 ─────────────────────────────────────────────────
 const printing = ref(false)
@@ -209,6 +211,24 @@ const paperDimensionsMap = {
   '10inch': { width: 203, height: 254 },
   'Letter': { width: 216, height: 279 },
   'Legal': { width: 216, height: 356 },
+}
+
+// 解析自定义纸张尺寸
+function parseCustomPaperSize(size) {
+  if (!size || !size.startsWith('custom_')) return null
+  const match = size.match(/custom_(\d+)x(\d+)mm/)
+  if (match) {
+    return { width: Number(match[1]), height: Number(match[2]) }
+  }
+  return null
+}
+
+// 获取纸张尺寸（支持自定义）
+function getPaperDimensions(size) {
+  if (paperDimensionsMap[size]) {
+    return paperDimensionsMap[size]
+  }
+  return parseCustomPaperSize(size)
 }
 
 // ─── 选项列表（供 PrintOptions 内部的 paperSizeLabel 等计算使用） ──
@@ -251,7 +271,13 @@ const canConvert = computed(() => {
 
 const paperSizeLabel = computed(() => {
   const item = paperSizeItems.find(i => i.value === paperSize.value)
-  return item?.label || paperSize.value
+  if (item) return item.label
+  // 自定义尺寸
+  const customDim = parseCustomPaperSize(paperSize.value)
+  if (customDim) {
+    return `自定义 (${customDim.width}×${customDim.height}mm)`
+  }
+  return paperSize.value
 })
 
 const orientationLabel = computed(() => {
@@ -260,7 +286,7 @@ const orientationLabel = computed(() => {
 })
 
 const paperDimText = computed(() => {
-  const dim = paperDimensionsMap[paperSize.value]
+  const dim = getPaperDimensions(paperSize.value)
   if (!dim) return ''
   if (orientation.value === 'landscape') {
     return `${dim.height}×${dim.width}mm`
@@ -272,7 +298,7 @@ const paperDimText = computed(() => {
 // 不再限制 maxWidth —— 预览区域宽度始终等于容器宽度，这样"预览区的形状"
 // 就能精确同步当前纸张（纵向 / 横向 / 5寸 ... 10寸）的真实比例。
 const paperPreviewStyle = computed(() => {
-  const dim = paperDimensionsMap[paperSize.value]
+  const dim = getPaperDimensions(paperSize.value)
   if (!dim) return {}
   const isLandscape = orientation.value === 'landscape'
   const width = isLandscape ? dim.height : dim.width
@@ -508,6 +534,16 @@ function removeImage(idx) {
   }
 }
 
+// 将自定义页边距追加到 FormData
+function appendMarginsToForm(fd) {
+  if (margins.value) {
+    fd.append('margin_top', String(margins.value.top))
+    fd.append('margin_right', String(margins.value.right))
+    fd.append('margin_bottom', String(margins.value.bottom))
+    fd.append('margin_left', String(margins.value.left))
+  }
+}
+
 // 通过后端 /api/convert 将一或多张图片合成为单个 PDF。
 // - 单图时传 `file` 字段；多图时传多个 `files` 字段，由后端 convertImagesMultiToPDF 合并。
 // - HEIC 已由 processFile / processMultipleImages 提前转换为 JPEG，这里无需特殊处理。
@@ -530,6 +566,7 @@ async function convertImagesToPdfViaServer(files, orient, pSize, name) {
   }
   if (orient) fd.append('orientation', orient)
   if (pSize) fd.append('paper_size', pSize)
+  appendMarginsToForm(fd)
   const resp = await apiFetch('/api/convert', { method: 'POST', body: fd }, () => emit('logout'))
   if (!resp.ok) throw new Error('服务端转换失败：' + await readError(resp))
   return resp.blob()
@@ -541,6 +578,7 @@ async function convertTextViaServer(file, orient, pSize) {
   fd.append('file', file, file.name)
   if (orient) fd.append('orientation', orient)
   if (pSize) fd.append('paper_size', pSize)
+  appendMarginsToForm(fd)
   const resp = await apiFetch('/api/convert', { method: 'POST', body: fd }, () => emit('logout'))
   if (!resp.ok) throw new Error('服务端转换失败：' + await readError(resp))
   return resp.blob()
@@ -614,6 +652,7 @@ async function uploadAndPrint() {
   if (pageRange.value.trim()) form.append('page_range', pageRange.value.trim())
   if (pageSet.value && pageSet.value !== 'all') form.append('page_set', pageSet.value)
   if (mirror.value) form.append('mirror', 'true')
+  appendMarginsToForm(form)
 
   printing.value = true
   try {

@@ -63,7 +63,14 @@
             <!-- 纸张大小 + 纸张类型 -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <UFormField label="纸张大小">
-                <USelect :model-value="paperSize" :items="paperSizeItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:paperSize', $event)" />
+                <div class="space-y-2">
+                  <USelect :model-value="paperSize" :items="paperSizeOptions" value-key="value" label-key="label" class="w-full" @update:model-value="onPaperSizeChange" />
+                  <!-- 管理自定义大小 + 已保存预设快捷选择 -->
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <PaperSizeManager ref="paperSizeManagerRef" @select="onCustomSizeSelect" />
+                    <span v-if="customMarginsText" class="text-[11px] text-muted">{{ customMarginsText }}</span>
+                  </div>
+                </div>
               </UFormField>
               <UFormField label="纸张类型">
                 <USelect :model-value="paperType" :items="paperTypeItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:paperType', $event)" />
@@ -120,7 +127,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import PaperSizeManager from './PaperSizeManager.vue'
 
 const props = defineProps({
   isColor: { type: Boolean, default: true },
@@ -138,14 +146,64 @@ const props = defineProps({
 const emit = defineEmits([
   'update:isColor', 'update:duplex', 'update:copies',
   'update:paperSize', 'update:paperType', 'update:printScaling', 'update:pageRange',
-  'update:pageSet', 'update:mirror'
+  'update:pageSet', 'update:mirror', 'update:margins'
 ])
 
 const showAdvanced = ref(false)
 const pageRangeError = ref('')
+const paperSizeManagerRef = ref(null)
+
+// 当前自定义纸张的页边距（选择自定义预设时由 PaperSizeManager 设置）
+const customMargins = ref(null)
+
+// 自定义纸张大小选项（由 PaperSizeManager 提供）
+const customPresetOptions = computed(() => {
+  const mgr = paperSizeManagerRef.value
+  if (!mgr || !mgr.presets || mgr.presets.length === 0) return []
+  return mgr.presets.map(p => ({
+    label: p.name
+      ? `${p.name} (${p.width}×${p.height}mm)`
+      : `${p.width}×${p.height}mm`,
+    value: `custom_${p.width}x${p.height}mm`,
+    preset: p
+  }))
+})
+
+// 纸张大小选项（包含自定义预设）
+const paperSizeItems = [
+  { label: 'A5 (148×210mm)', value: 'A5' },
+  { label: 'A4 (210×297mm)', value: 'A4' },
+  { label: 'A3 (297×420mm)', value: 'A3' },
+  { label: 'A2 (420×594mm)', value: 'A2' },
+  { label: 'A1 (594×841mm)', value: 'A1' },
+  { label: '5寸 (89×127mm)', value: '5inch' },
+  { label: '6寸 (102×152mm)', value: '6inch' },
+  { label: '7寸 (127×178mm)', value: '7inch' },
+  { label: '8寸 (152×203mm)', value: '8inch' },
+  { label: '10寸 (203×254mm)', value: '10inch' },
+  { label: 'Letter (8.5×11in)', value: 'Letter' },
+  { label: 'Legal (8.5×14in)', value: 'Legal' }
+]
+
+const paperSizeOptions = computed(() => {
+  const items = [...paperSizeItems]
+  if (customPresetOptions.value.length > 0) {
+    items.push(...customPresetOptions.value)
+  }
+  return items
+})
+
+// 当前自定义纸张的页边距提示文字
+const customMarginsText = computed(() => {
+  if (!props.paperSize.startsWith('custom_') || !customMargins.value) return ''
+  const m = customMargins.value
+  if (m.top === 10 && m.right === 10 && m.bottom === 10 && m.left === 10) return ''
+  return `页边距 ${m.top}/${m.right}/${m.bottom}/${m.left}mm`
+})
 
 const advancedSummary = computed(() => {
-  const sizeLabel = paperSizeItems.find(i => i.value === props.paperSize)?.label?.split(' ')[0] || props.paperSize
+  const sizeLabel = paperSizeOptions.value.find(i => i.value === props.paperSize)?.label?.split(' (')[0] ||
+    (props.paperSize.startsWith('custom_') ? '自定义' : props.paperSize)
   const typeLabel = paperTypeItems.find(i => i.value === props.paperType)?.label || props.paperType
   const scaleLabel = scalingItems.find(i => i.value === props.printScaling)?.label || props.printScaling
   const parts = [sizeLabel, typeLabel, scaleLabel]
@@ -165,21 +223,6 @@ const duplexItems = [
   { label: '单面打印', value: 'one-sided' },
   { label: '双面（长边翻页）', value: 'two-sided-long-edge' },
   { label: '双面（短边翻页）', value: 'two-sided-short-edge' }
-]
-
-const paperSizeItems = [
-  { label: 'A5 (148×210mm)', value: 'A5' },
-  { label: 'A4 (210×297mm)', value: 'A4' },
-  { label: 'A3 (297×420mm)', value: 'A3' },
-  { label: 'A2 (420×594mm)', value: 'A2' },
-  { label: 'A1 (594×841mm)', value: 'A1' },
-  { label: '5寸 (89×127mm)', value: '5inch' },
-  { label: '6寸 (102×152mm)', value: '6inch' },
-  { label: '7寸 (127×178mm)', value: '7inch' },
-  { label: '8寸 (152×203mm)', value: '8inch' },
-  { label: '10寸 (203×254mm)', value: '10inch' },
-  { label: 'Letter (8.5×11in)', value: 'Letter' },
-  { label: 'Legal (8.5×14in)', value: 'Legal' }
 ]
 
 const paperTypeItems = [
@@ -206,6 +249,61 @@ const pageSetItems = [
   { label: '仅奇数页', value: 'odd', icon: 'i-lucide-list-ordered' },
   { label: '仅偶数页', value: 'even', icon: 'i-lucide-list-ordered' }
 ]
+
+// 纸张大小变化处理
+function onPaperSizeChange(val) {
+  emit('update:paperSize', val)
+  // 切换到非自定义纸张时清除自定义页边距
+  if (!val.startsWith('custom_')) {
+    customMargins.value = null
+    emit('update:margins', null)
+  }
+}
+
+// 从 PaperSizeManager 选择自定义纸张
+function onCustomSizeSelect({ value, margins }) {
+  emit('update:paperSize', value)
+  customMargins.value = margins
+  emit('update:margins', margins)
+}
+
+// 检测当前 paperSize 是否匹配某个已保存的自定义预设，同步页边距
+function syncMarginsFromPaperSize(size) {
+  if (!size.startsWith('custom_')) {
+    customMargins.value = null
+    emit('update:margins', null)
+    return
+  }
+  // 尝试从已保存预设中找到匹配项
+  const mgr = paperSizeManagerRef.value
+  if (mgr && mgr.presets) {
+    const match = mgr.presets.find(p => `custom_${p.width}x${p.height}mm` === size)
+    if (match) {
+      customMargins.value = {
+        top: match.marginTop,
+        right: match.marginRight,
+        bottom: match.marginBottom,
+        left: match.marginLeft
+      }
+      emit('update:margins', customMargins.value)
+      return
+    }
+  }
+  // 没有匹配的预设，使用默认页边距
+  customMargins.value = null
+  emit('update:margins', null)
+}
+
+// 监听 paperSize 变化（外部设置时同步页边距）
+watch(() => props.paperSize, (val) => {
+  syncMarginsFromPaperSize(val)
+})
+
+// 初始化
+onMounted(() => {
+  // 初始同步
+  setTimeout(() => syncMarginsFromPaperSize(props.paperSize), 0)
+})
 
 function onPageRangeInput(val) {
   emit('update:pageRange', val)

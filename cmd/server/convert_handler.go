@@ -17,6 +17,7 @@ func convertHandler(w http.ResponseWriter, r *http.Request) {
 	// 读取方向和纸张大小参数
 	orientation := r.FormValue("orientation")
 	paperSize := r.FormValue("paper_size")
+	marginTop, marginRight, marginBottom, marginLeft := parseFormMargins(r)
 
 	var outPath string
 	var outCleanup func()
@@ -26,7 +27,7 @@ func convertHandler(w http.ResponseWriter, r *http.Request) {
 	// 优先处理多文件字段（图片合并场景）
 	if r.MultipartForm != nil {
 		if headers, ok := r.MultipartForm.File["files"]; ok && len(headers) > 0 {
-			outPath, outCleanup, err = convertImagesMultiToPDF(headers, orientation, paperSize)
+			outPath, outCleanup, err = convertImagesMultiToPDF(headers, orientation, paperSize, marginTop, marginRight, marginBottom, marginLeft)
 			if err != nil {
 				http.Error(w, "conversion failed: "+err.Error(), http.StatusInternalServerError)
 				return
@@ -65,9 +66,9 @@ func convertHandler(w http.ResponseWriter, r *http.Request) {
 	kind := detectFileKind(inPath, fh.Filename)
 	switch kind {
 	case fileKindImage:
-		outPath, outCleanup, err = convertImageToPDF(inPath, orientation, paperSize)
+		outPath, outCleanup, err = convertImageToPDF(inPath, orientation, paperSize, marginTop, marginRight, marginBottom, marginLeft)
 	case fileKindText:
-		outPath, outCleanup, err = convertTextToPDF(inPath, orientation, paperSize)
+		outPath, outCleanup, err = convertTextToPDF(inPath, orientation, paperSize, marginTop, marginRight, marginBottom, marginLeft)
 	case fileKindOFD:
 		outPath, outCleanup, err = convertOFDToPDF(ctx, inPath)
 	case fileKindPDF:

@@ -61,6 +61,7 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 	pageRange := r.FormValue("page_range")
 	pageSet := r.FormValue("page_set")
 	mirror := r.FormValue("mirror") == "true"
+	marginTop, marginRight, marginBottom, marginLeft := parseFormMargins(r)
 
 	storedRel, storedAbs, err := saveUploadedFile(file, fh.Filename, uploadDir)
 	if err != nil {
@@ -162,7 +163,7 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 		printCleanup = cleanup
 		printMime = "application/pdf"
 	case fileKindImage:
-		outPath, cleanup, err := convertImageToPDF(storedAbs, orientation, paperSize)
+		outPath, cleanup, err := convertImageToPDF(storedAbs, orientation, paperSize, marginTop, marginRight, marginBottom, marginLeft)
 		if err != nil {
 			_ = os.Remove(storedAbs)
 			writeJSONError(w, http.StatusBadRequest, "conversion failed")
@@ -187,7 +188,7 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 			writeJSONError(w, http.StatusBadRequest, "failed to read pages")
 			return
 		}
-		outPath, cleanup, err := convertTextToPDF(storedAbs, orientation, paperSize)
+		outPath, cleanup, err := convertTextToPDF(storedAbs, orientation, paperSize, marginTop, marginRight, marginBottom, marginLeft)
 		if err != nil {
 			_ = os.Remove(storedAbs)
 			writeJSONError(w, http.StatusBadRequest, "conversion failed")
