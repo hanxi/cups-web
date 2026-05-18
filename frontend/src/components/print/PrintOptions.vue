@@ -188,6 +188,7 @@ const paperSizeItems = [
 const paperSizeOptions = computed(() => {
   const items = [...paperSizeItems]
   if (customPresetOptions.value.length > 0) {
+    items.push({ type: 'separator' })
     items.push(...customPresetOptions.value)
   }
   return items
