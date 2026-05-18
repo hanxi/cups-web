@@ -125,6 +125,18 @@ func (s *Store) migrate(ctx context.Context) error {
 			completed_at TEXT,
 			FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 		)`,
+		`CREATE TABLE IF NOT EXISTS custom_paper_sizes (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL DEFAULT '',
+			width REAL NOT NULL,
+			height REAL NOT NULL,
+			margin_top REAL NOT NULL DEFAULT 10,
+			margin_right REAL NOT NULL DEFAULT 10,
+			margin_bottom REAL NOT NULL DEFAULT 10,
+			margin_left REAL NOT NULL DEFAULT 10,
+			created_at TEXT NOT NULL,
+			updated_at TEXT NOT NULL
+		)`,
 	}
 
 	for _, stmt := range stmts {

@@ -11,7 +11,11 @@
         </div>
 
         <!-- 已保存列表 -->
-        <div v-if="presets.length > 0" class="space-y-1.5 max-h-48 overflow-y-auto">
+        <div v-if="loading" class="text-sm text-muted text-center py-4">
+          <UIcon name="i-lucide-loader-2" class="w-4 h-4 animate-spin inline-block" />
+          加载中...
+        </div>
+        <div v-else-if="presets.length > 0" class="space-y-1.5 max-h-48 overflow-y-auto">
           <div
             v-for="preset in presets"
             :key="preset.id"
@@ -33,6 +37,7 @@
               size="xs"
               variant="ghost"
               color="error"
+              :loading="deletingId === preset.id"
               @click.stop="deletePreset(preset.id)"
             />
           </div>
@@ -106,6 +111,7 @@
                 variant="soft"
                 size="sm"
                 icon="i-lucide-save"
+                :loading="saving"
                 :disabled="!form.width || !form.height"
                 @click="savePreset"
               >
@@ -121,13 +127,16 @@
 
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
+import { apiFetch, readError } from '../../utils/api'
 
-const emit = defineEmits(['select'])
+const emit = defineEmits(['select', 'logout'])
 
-const STORAGE_KEY = 'custom_paper_presets'
 const showDialog = ref(false)
 const presets = ref([])
 const selectedId = ref(null)
+const loading = ref(false)
+const saving = ref(false)
+const deletingId = ref(null)
 
 const form = reactive({
   name: '',
@@ -139,7 +148,6 @@ const form = reactive({
   marginLeft: 10
 })
 
-// 纸张预览样式（最大 120px 高）
 const previewStyle = computed(() => {
   const maxH = 100
   const ratio = form.width / form.height
@@ -165,27 +173,17 @@ const marginPreviewStyle = computed(() => {
   }
 })
 
-function loadPresets() {
+async function loadPresets() {
+  loading.value = true
   try {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      // 兼容旧格式（无 margin 字段）
-      presets.value = parsed.map(p => ({
-        ...p,
-        marginTop: p.marginTop ?? 10,
-        marginRight: p.marginRight ?? 10,
-        marginBottom: p.marginBottom ?? 10,
-        marginLeft: p.marginLeft ?? 10
-      }))
-    }
+    const resp = await apiFetch('/api/paper-sizes', {}, () => emit('logout'))
+    if (!resp.ok) throw new Error(await readError(resp))
+    presets.value = await resp.json()
   } catch (e) {
     console.error('加载自定义纸张预设失败:', e)
+  } finally {
+    loading.value = false
   }
-}
-
-function persistPresets() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(presets.value))
 }
 
 function selectPreset(preset) {
@@ -210,28 +208,11 @@ function resetForm() {
   form.marginLeft = 10
 }
 
-function savePreset() {
+async function savePreset() {
   if (!form.width || !form.height) return
-
-  if (selectedId.value) {
-    // 编辑
-    const idx = presets.value.findIndex(p => p.id === selectedId.value)
-    if (idx >= 0) {
-      presets.value[idx] = {
-        id: selectedId.value,
-        name: form.name.trim(),
-        width: Number(form.width),
-        height: Number(form.height),
-        marginTop: Number(form.marginTop) || 0,
-        marginRight: Number(form.marginRight) || 0,
-        marginBottom: Number(form.marginBottom) || 0,
-        marginLeft: Number(form.marginLeft) || 0
-      }
-    }
-  } else {
-    // 新建
-    presets.value.push({
-      id: Date.now().toString(),
+  saving.value = true
+  try {
+    const body = {
       name: form.name.trim(),
       width: Number(form.width),
       height: Number(form.height),
@@ -239,19 +220,49 @@ function savePreset() {
       marginRight: Number(form.marginRight) || 0,
       marginBottom: Number(form.marginBottom) || 0,
       marginLeft: Number(form.marginLeft) || 0
-    })
+    }
+    let resp
+    if (selectedId.value) {
+      resp = await apiFetch(`/api/paper-sizes/${selectedId.value}`, {
+        method: 'PUT',
+        body: JSON.stringify(body)
+      }, () => emit('logout'))
+    } else {
+      resp = await apiFetch('/api/paper-sizes', {
+        method: 'POST',
+        body: JSON.stringify(body)
+      }, () => emit('logout'))
+    }
+    if (!resp.ok) throw new Error(await readError(resp))
+    const saved = await resp.json()
+    if (selectedId.value) {
+      const idx = presets.value.findIndex(p => p.id === selectedId.value)
+      if (idx >= 0) presets.value[idx] = saved
+    } else {
+      presets.value.push(saved)
+    }
+    resetForm()
+  } catch (e) {
+    console.error('保存纸张预设失败:', e)
+  } finally {
+    saving.value = false
   }
-  persistPresets()
-  resetForm()
 }
 
-function deletePreset(id) {
-  presets.value = presets.value.filter(p => p.id !== id)
-  if (selectedId.value === id) resetForm()
-  persistPresets()
+async function deletePreset(id) {
+  deletingId.value = id
+  try {
+    const resp = await apiFetch(`/api/paper-sizes/${id}`, { method: 'DELETE' }, () => emit('logout'))
+    if (!resp.ok) throw new Error(await readError(resp))
+    presets.value = presets.value.filter(p => p.id !== id)
+    if (selectedId.value === id) resetForm()
+  } catch (e) {
+    console.error('删除纸张预设失败:', e)
+  } finally {
+    deletingId.value = null
+  }
 }
 
-// 供外部调用：选择某个预设用于打印
 function selectForPrint(preset) {
   emit('select', {
     value: `custom_${preset.width}x${preset.height}mm`,
@@ -264,12 +275,10 @@ function selectForPrint(preset) {
   })
 }
 
-// 打开时加载
 watch(showDialog, (val) => {
   if (val) loadPresets()
 })
 
-// 初始化
 loadPresets()
 
 defineExpose({ presets, loadPresets, selectForPrint })
