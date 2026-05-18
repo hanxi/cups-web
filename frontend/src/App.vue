@@ -25,6 +25,15 @@
               <span class="hidden sm:inline">打印</span>
             </UButton>
             <UButton
+              :variant="route.path === '/scan' ? 'soft' : 'ghost'"
+              :color="route.path === '/scan' ? 'primary' : 'neutral'"
+              size="xs"
+              icon="i-lucide-scan"
+              @click="router.push('/scan')"
+            >
+              <span class="hidden sm:inline">扫描</span>
+            </UButton>
+            <UButton
               :variant="route.path === '/admin' ? 'soft' : 'ghost'"
               :color="route.path === '/admin' ? 'primary' : 'neutral'"
               size="xs"

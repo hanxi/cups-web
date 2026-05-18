@@ -108,6 +108,23 @@ func (s *Store) migrate(ctx context.Context) error {
 			created_at TEXT NOT NULL,
 			FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 		)`,
+		`CREATE TABLE IF NOT EXISTS scan_jobs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL,
+			scanner_device TEXT NOT NULL,
+			filename TEXT NOT NULL,
+			stored_path TEXT NOT NULL,
+			status TEXT NOT NULL DEFAULT 'pending',
+		 resolution INTEGER NOT NULL DEFAULT 300,
+			color_mode TEXT NOT NULL DEFAULT 'color',
+			paper_size TEXT NOT NULL DEFAULT 'A4',
+			scan_area TEXT,
+			job_id TEXT,
+			error_message TEXT,
+			created_at TEXT NOT NULL,
+			completed_at TEXT,
+			FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+		)`,
 	}
 
 	for _, stmt := range stmts {

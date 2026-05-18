@@ -32,6 +32,11 @@ declare module 'vue' {
     UPrintOptions: typeof import('./src/components/print/PrintOptions.vue')['default']
     UPrintPreview: typeof import('./src/components/print/PrintPreview.vue')['default']
     UPrintRecordList: typeof import('./src/components/print/PrintRecordList.vue')['default']
+    UProgress: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/Progress.vue')['default']
+    UScannerSelector: typeof import('./src/components/scan/ScannerSelector.vue')['default']
+    UScanOptions: typeof import('./src/components/scan/ScanOptions.vue')['default']
+    UScanPreview: typeof import('./src/components/scan/ScanPreview.vue')['default']
+    UScanRecordList: typeof import('./src/components/scan/ScanRecordList.vue')['default']
     USelect: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/Select.vue')['default']
     UTable: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/Table.vue')['default']
   }
