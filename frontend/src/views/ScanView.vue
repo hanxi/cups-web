@@ -143,10 +143,13 @@ async function startScan() {
 }
 
 async function pollScanStatus(jobId) {
+  let retryCount = 0
+  const maxRetries = 10
   const pollInterval = setInterval(async () => {
     try {
       const response = await fetch(`/api/scan/${jobId}/status`)
       if (response.ok) {
+        retryCount = 0
         const status = await response.json()
         currentScanJob.value = { ...currentScanJob.value, ...status }
         
@@ -154,9 +157,24 @@ async function pollScanStatus(jobId) {
           clearInterval(pollInterval)
           fetchScanRecords()
         }
+      } else {
+        retryCount++
+        if (retryCount >= maxRetries) {
+          clearInterval(pollInterval)
+          if (currentScanJob.value) {
+            currentScanJob.value = { ...currentScanJob.value, status: 'failed', errorMessage: '轮询失败，请刷新重试' }
+          }
+        }
       }
     } catch (error) {
+      retryCount++
       console.error('Error polling scan status:', error)
+      if (retryCount >= maxRetries) {
+        clearInterval(pollInterval)
+        if (currentScanJob.value) {
+          currentScanJob.value = { ...currentScanJob.value, status: 'failed', errorMessage: '网络错误，请刷新重试' }
+        }
+      }
     }
   }, 1000)
 }

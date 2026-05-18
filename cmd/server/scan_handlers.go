@@ -321,7 +321,9 @@ func executeScanJob(job *store.ScanJob, req scanRequest) {
 	scanDir := filepath.Join(uploadDir, "scans", time.Now().Format("20060102"))
 	if err := os.MkdirAll(scanDir, 0755); err != nil {
 		log.Printf("[scan] failed to create scan directory: %v", err)
-		appStore.UpdateScanJobStatus(context.Background(), job.ID, "failed", "failed to create scan directory")
+		if e := appStore.UpdateScanJobStatus(context.Background(), job.ID, "failed", "failed to create scan directory"); e != nil {
+			log.Printf("[scan] failed to update scan job %d status: %v", job.ID, e)
+		}
 		return
 	}
 
@@ -339,8 +341,9 @@ func executeScanJob(job *store.ScanJob, req scanRequest) {
 
 	// Add paper size if specified
 	if req.PaperSize != "" {
-		args = append(args, "-x", paperSizeToScanArea(req.PaperSize))
-		args = append(args, "-y", paperSizeToScanArea(req.PaperSize))
+		x, y := paperSizeToScanArea(req.PaperSize)
+		args = append(args, "-x", x)
+		args = append(args, "-y", y)
 	}
 
 	// Execute scan
@@ -348,33 +351,40 @@ func executeScanJob(job *store.ScanJob, req scanRequest) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Printf("[scan] scanimage failed: %v, output: %s", err, string(output))
-		appStore.UpdateScanJobStatus(context.Background(), job.ID, "failed", fmt.Sprintf("scan failed: %v", err))
+		if e := appStore.UpdateScanJobStatus(context.Background(), job.ID, "failed", fmt.Sprintf("scan failed: %v", err)); e != nil {
+			log.Printf("[scan] failed to update scan job %d status: %v", job.ID, e)
+		}
 		return
 	}
 
 	// Update job with file path
 	if err := appStore.UpdateScanJobFilePath(context.Background(), job.ID, outputPath); err != nil {
 		log.Printf("[scan] failed to update scan job file path: %v", err)
-		appStore.UpdateScanJobStatus(context.Background(), job.ID, "failed", "failed to update job")
+		if e := appStore.UpdateScanJobStatus(context.Background(), job.ID, "failed", "failed to update job"); e != nil {
+			log.Printf("[scan] failed to update scan job %d status: %v", job.ID, e)
+		}
 		return
 	}
 
 	// Mark as completed
-	appStore.UpdateScanJobStatus(context.Background(), job.ID, "completed", "")
+	if err := appStore.UpdateScanJobStatus(context.Background(), job.ID, "completed", ""); err != nil {
+		log.Printf("[scan] failed to update scan job %d status to completed: %v", job.ID, err)
+		return
+	}
 	log.Printf("[scan] scan job %d completed: %s", job.ID, outputPath)
 }
 
-func paperSizeToScanArea(paperSize string) string {
+func paperSizeToScanArea(paperSize string) (string, string) {
 	switch paperSize {
 	case "A4":
-		return "210mm"
+		return "210mm", "297mm"
 	case "A3":
-		return "297mm"
+		return "297mm", "420mm"
 	case "Letter":
-		return "215.9mm"
+		return "215.9mm", "279.4mm"
 	case "Legal":
-		return "215.9mm"
+		return "215.9mm", "355.6mm"
 	default:
-		return "210mm"
+		return "210mm", "297mm"
 	}
 }

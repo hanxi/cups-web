@@ -107,13 +107,21 @@ func (s *Store) ListScanJobsByUserID(ctx context.Context, userID int64) ([]ScanJ
 func scanScanJob(row *sql.Row) (*ScanJob, error) {
 	var job ScanJob
 	var completedAt sql.NullString
+	var createdAt sql.NullString
+	var jobID sql.NullString
 	err := row.Scan(
 		&job.ID, &job.UserID, &job.ScannerDevice, &job.Filename, &job.StoredPath,
 		&job.Status, &job.Resolution, &job.ColorMode, &job.PaperSize, &job.ScanArea,
-		&job.JobID, &job.ErrorMessage, &job.CreatedAt, &completedAt,
+		&jobID, &job.ErrorMessage, &createdAt, &completedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("scan scan job: %w", err)
+	}
+	if jobID.Valid {
+		job.JobID = jobID.String
+	}
+	if createdAt.Valid {
+		job.CreatedAt, _ = time.Parse(time.RFC3339, createdAt.String)
 	}
 	if completedAt.Valid {
 		t, _ := time.Parse(time.RFC3339, completedAt.String)
@@ -125,13 +133,21 @@ func scanScanJob(row *sql.Row) (*ScanJob, error) {
 func scanScanJobRows(rows *sql.Rows) (*ScanJob, error) {
 	var job ScanJob
 	var completedAt sql.NullString
+	var createdAt sql.NullString
+	var jobID sql.NullString
 	err := rows.Scan(
 		&job.ID, &job.UserID, &job.ScannerDevice, &job.Filename, &job.StoredPath,
 		&job.Status, &job.Resolution, &job.ColorMode, &job.PaperSize, &job.ScanArea,
-		&job.JobID, &job.ErrorMessage, &job.CreatedAt, &completedAt,
+		&jobID, &job.ErrorMessage, &createdAt, &completedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("scan scan job: %w", err)
+	}
+	if jobID.Valid {
+		job.JobID = jobID.String
+	}
+	if createdAt.Valid {
+		job.CreatedAt, _ = time.Parse(time.RFC3339, createdAt.String)
 	}
 	if completedAt.Valid {
 		t, _ := time.Parse(time.RFC3339, completedAt.String)

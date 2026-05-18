@@ -21,9 +21,9 @@
     </template>
     <div
       class="transition-all duration-300 ease-in-out overflow-hidden"
-      :style="{ maxHeight: listExpanded ? '24rem' : '0px', visibility: listExpanded ? 'visible' : 'hidden' }"
+      :style="{ maxHeight: listExpanded ? '60rem' : '0px', visibility: listExpanded ? 'visible' : 'hidden' }"
     >
-      <div class="space-y-2 max-h-96 overflow-y-auto">
+      <div class="space-y-2 max-h-[56rem] overflow-y-auto">
         <div v-if="loading" class="text-center py-4">
           <UIcon name="i-lucide-loader-circle" class="w-5 h-5 animate-spin mx-auto text-muted" />
         </div>
@@ -47,20 +47,36 @@
             </UBadge>
           </div>
           <!-- 展开详情 -->
-          <div v-if="expandedRecords.has(rec.id)" class="mt-2 pt-2 border-t grid grid-cols-2 gap-1 text-xs text-muted">
-            <div>
-              <span class="text-muted">颜色模式：</span>
-              <span>{{ colorModeText(rec.colorMode) }}</span>
+          <div v-if="expandedRecords.has(rec.id)" class="mt-2 pt-2 border-t text-xs text-muted">
+            <div class="grid grid-cols-2 gap-1">
+              <div>
+                <span class="text-muted">颜色模式：</span>
+                <span>{{ colorModeText(rec.colorMode) }}</span>
+              </div>
+              <div>
+                <span class="text-muted">纸张大小：</span>
+                <span>{{ rec.paperSize }}</span>
+              </div>
+              <div v-if="rec.completedAt">
+                <span class="text-muted">完成时间：</span>
+                <span>{{ formatTime(rec.completedAt) }}</span>
+              </div>
             </div>
-            <div>
-              <span class="text-muted">纸张大小：</span>
-              <span>{{ rec.paperSize }}</span>
+            <!-- 预览图片 -->
+            <div v-if="rec.status === 'completed' && rec.storedPath" class="mt-2">
+              <div
+                class="bg-elevated rounded-lg overflow-hidden border border-default cursor-zoom-in"
+                @click.stop="openViewer(`/api/scan/${rec.id}/file`, rec.filename)"
+              >
+                <img
+                  :src="`/api/scan/${rec.id}/file`"
+                  :alt="rec.filename"
+                  class="w-full h-auto object-contain max-h-80"
+                  loading="lazy"
+                />
+              </div>
             </div>
-            <div v-if="rec.completedAt">
-              <span class="text-muted">完成时间：</span>
-              <span>{{ formatTime(rec.completedAt) }}</span>
-            </div>
-            <div v-if="rec.status === 'completed' && rec.storedPath" class="col-span-2 mt-1">
+            <div v-if="rec.status === 'completed' && rec.storedPath" class="mt-2">
               <UButton
                 size="xs"
                 variant="outline"
@@ -75,10 +91,46 @@
       </div>
     </div>
   </UCard>
+
+  <!-- 全屏图片查看器 -->
+  <Teleport to="body">
+    <Transition name="fade">
+      <div
+        v-if="viewerVisible"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+        @click="closeViewer"
+      >
+        <div class="relative max-w-[95vw] max-h-[95vh]">
+          <img
+            :src="viewerSrc"
+            :alt="viewerAlt"
+            class="max-w-full max-h-[95vh] object-contain rounded-lg shadow-2xl"
+            @click.stop
+          />
+          <UButton
+            icon="i-lucide-x"
+            color="neutral"
+            variant="solid"
+            size="sm"
+            class="absolute top-3 right-3"
+            @click="closeViewer"
+          />
+          <UButton
+            icon="i-lucide-download"
+            color="neutral"
+            variant="solid"
+            size="sm"
+            class="absolute top-3 right-14"
+            @click.stop="downloadViewerImage"
+          />
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
   records: { type: Array, default: () => [] },
@@ -89,6 +141,31 @@ defineEmits(['refresh'])
 
 const listExpanded = ref(false)
 const expandedRecords = ref(new Set())
+
+const viewerVisible = ref(false)
+const viewerSrc = ref('')
+const viewerAlt = ref('')
+
+function openViewer(src, alt) {
+  viewerSrc.value = src
+  viewerAlt.value = alt || ''
+  viewerVisible.value = true
+}
+
+function closeViewer() {
+  viewerVisible.value = false
+}
+
+function downloadViewerImage() {
+  if (viewerSrc.value) {
+    const link = document.createElement('a')
+    link.href = viewerSrc.value
+    link.download = viewerAlt.value || 'scan.png'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+}
 
 function toggleRecord(id) {
   if (expandedRecords.value.has(id)) {
@@ -143,4 +220,29 @@ function downloadScan(rec) {
     document.body.removeChild(link)
   }
 }
+
+function onKeydown(e) {
+  if (e.key === 'Escape' && viewerVisible.value) {
+    closeViewer()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', onKeydown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', onKeydown)
+})
 </script>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
