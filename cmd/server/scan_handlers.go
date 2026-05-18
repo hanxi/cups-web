@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -320,7 +321,7 @@ func executeScanJob(job *store.ScanJob, req scanRequest) {
 	scanDir := filepath.Join(uploadDir, "scans", time.Now().Format("20060102"))
 	if err := os.MkdirAll(scanDir, 0755); err != nil {
 		log.Printf("[scan] failed to create scan directory: %v", err)
-		appStore.UpdateScanJobStatus(nil, job.ID, "failed", "failed to create scan directory")
+		appStore.UpdateScanJobStatus(context.Background(), job.ID, "failed", "failed to create scan directory")
 		return
 	}
 
@@ -347,19 +348,19 @@ func executeScanJob(job *store.ScanJob, req scanRequest) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Printf("[scan] scanimage failed: %v, output: %s", err, string(output))
-		appStore.UpdateScanJobStatus(nil, job.ID, "failed", fmt.Sprintf("scan failed: %v", err))
+		appStore.UpdateScanJobStatus(context.Background(), job.ID, "failed", fmt.Sprintf("scan failed: %v", err))
 		return
 	}
 
 	// Update job with file path
-	if err := appStore.UpdateScanJobFilePath(nil, job.ID, outputPath); err != nil {
+	if err := appStore.UpdateScanJobFilePath(context.Background(), job.ID, outputPath); err != nil {
 		log.Printf("[scan] failed to update scan job file path: %v", err)
-		appStore.UpdateScanJobStatus(nil, job.ID, "failed", "failed to update job")
+		appStore.UpdateScanJobStatus(context.Background(), job.ID, "failed", "failed to update job")
 		return
 	}
 
 	// Mark as completed
-	appStore.UpdateScanJobStatus(nil, job.ID, "completed", "")
+	appStore.UpdateScanJobStatus(context.Background(), job.ID, "completed", "")
 	log.Printf("[scan] scan job %d completed: %s", job.ID, outputPath)
 }
 
