@@ -146,9 +146,23 @@ type scanner interface {
 
 func scanUser(s scanner) (User, error) {
 	var user User
+	var contactName, phone, email sql.NullString
 	err := s.Scan(
-		&user.ID, &user.Username, &user.PasswordHash, &user.Role, &user.Protected, &user.ContactName, &user.Phone, &user.Email,
+		&user.ID, &user.Username, &user.PasswordHash, &user.Role, &user.Protected,
+		&contactName, &phone, &email,
 		&user.CreatedAt, &user.UpdatedAt,
 	)
-	return user, err
+	if err != nil {
+		return user, err
+	}
+	if contactName.Valid {
+		user.ContactName = contactName.String
+	}
+	if phone.Valid {
+		user.Phone = phone.String
+	}
+	if email.Valid {
+		user.Email = email.String
+	}
+	return user, nil
 }
