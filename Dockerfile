@@ -161,7 +161,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libreoffice-core libreoffice-writer libreoffice-calc libreoffice-impress openjdk-21-jre \
     ghostscript fonts-droid-fallback \
     fonts-dejavu-core fonts-noto-cjk fonts-arphic-uming fonts-arphic-ukai fonts-wqy-zenhei \
-    sane-utils libsane \
+    sane-utils libsane1 \
+    jq \
     ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
@@ -248,7 +249,12 @@ ENV HOME=/home/nonroot
 ENV XDG_CACHE_HOME=/home/nonroot/.cache
 
 COPY --from=builder /out/cups-web /cups-web
-COPY --from=java-builder /src/ofd-converter/target/ofd-converter.jar /ofd-converter.jar
+
+# 扫描仪配置：COPY 提供默认值，运行时可通过 volume 挂载 ./scan:/scan 覆盖
+COPY scan/config.json /scan/config.json
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 8080
 USER nonroot
-ENTRYPOINT ["/cups-web"]
+ENTRYPOINT ["/entrypoint.sh"]

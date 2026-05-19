@@ -21,6 +21,7 @@ services:
     volumes:
       - ./.data:/data
       - ./.uploads:/uploads
+      - ./scan:/scan
     ports:
       - "1180:8080"
     depends_on:
