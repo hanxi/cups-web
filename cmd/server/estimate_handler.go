@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"path/filepath"
 )
 
 type estimateResp struct {
@@ -21,7 +22,7 @@ func estimateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	tmpPath, cleanup, err := saveTempUpload(file, fh.Filename)
+	tmpPath, cleanup, err := saveTempUpload(file, filepath.Base(fh.Filename))
 	if err != nil {
 		writeJSONError(w, http.StatusInternalServerError, "failed to save file")
 		return
