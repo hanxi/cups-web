@@ -178,7 +178,14 @@ async function logout() {
   onLogout()
 }
 
+function detectOS() {
+  if (navigator.userAgent.indexOf('Windows') !== -1) {
+    document.documentElement.classList.add('is-windows')
+  }
+}
+
 onMounted(() => {
+  detectOS()
   loadSession()
   loadVersion()
 })
