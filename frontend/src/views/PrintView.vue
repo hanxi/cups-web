@@ -186,6 +186,8 @@
           v-model:copies="copies"
           v-model:paperSize="paperSize"
           v-model:paperType="paperType"
+          v-model:mediaSource="mediaSource"
+          :media-source-supported="printerInfo?.mediaSourceSupported || []"
           v-model:printScaling="printScaling"
           v-model:pageRange="pageRange"
           v-model:pageSet="pageSet"
@@ -284,6 +286,7 @@ const orientation = ref('portrait')
 const copies = ref(1)
 const paperSize = ref('A4')
 const paperType = ref('plain')
+const mediaSource = ref('auto')
 const printScaling = ref('fit')
 const pageRange = ref('')
 const pageSet = ref('all')
@@ -667,6 +670,7 @@ async function uploadAndPrintBatch() {
       form.append('orientation', orientation.value)
       form.append('paper_size', paperSize.value)
       form.append('paper_type', paperType.value)
+      if (mediaSource.value && mediaSource.value !== 'auto') form.append('media_source', mediaSource.value)
       form.append('print_scaling', printScaling.value)
       if (pageRange.value.trim()) form.append('page_range', pageRange.value.trim())
       if (pageSet.value && pageSet.value !== 'all') form.append('page_set', pageSet.value)
@@ -841,6 +845,7 @@ async function uploadAndPrint() {
   form.append('orientation', orientation.value)
   form.append('paper_size', paperSize.value)
   form.append('paper_type', paperType.value)
+  if (mediaSource.value && mediaSource.value !== 'auto') form.append('media_source', mediaSource.value)
   form.append('print_scaling', printScaling.value)
   if (pageRange.value.trim()) form.append('page_range', pageRange.value.trim())
   if (pageSet.value && pageSet.value !== 'all') form.append('page_set', pageSet.value)
@@ -946,6 +951,11 @@ async function loadPrinterInfo(silent = false) {
     )
     if (resp.ok) {
       printerInfo.value = await resp.json()
+      // 若当前所选纸盒不在这台打印机的可用列表里，回退到「自动」
+      const trays = printerInfo.value?.mediaSourceSupported || []
+      if (mediaSource.value !== 'auto' && !trays.includes(mediaSource.value)) {
+        mediaSource.value = 'auto'
+      }
     } else if (resp.status !== 401) {
       printerInfoError.value = await readError(resp)
     }
@@ -959,6 +969,7 @@ async function loadPrinterInfo(silent = false) {
 function onPrinterChange() {
   printerInfo.value = null
   printerInfoError.value = ''
+  mediaSource.value = 'auto'
   loadPrinterInfo()
 }
 

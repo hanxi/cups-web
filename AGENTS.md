@@ -173,6 +173,7 @@ cups-web/
 | `orientation` | `portrait` / `landscape` | 页面方向 |
 | `paper_size` | `A4` / `A3` / `5inch` / `6inch` / `7inch` / `8inch` / `10inch` | 纸张尺寸 |
 | `paper_type` | `plain` / `photo` / `glossy` / `matte` / `envelope` / `cardstock` / `labels` / `auto` | 纸张类型 |
+| `media_source` | string（打印机上报的纸盒关键字，如 `tray-1` / `main` / `manual`） | 进纸盒（对应 IPP `media-source`，映射到 CUPS 驱动 PPD 的 `InputSlot`）；可选值由 `/api/printer-info` 返回的 `mediaSourceSupported` 动态决定，`auto`（默认）不发送到 IPP（Issue #75） |
 | `print_scaling` | `auto` / `auto-fit` / `fit` / `fill` / `none` | 缩放策略 |
 | `page_range` | string | 页码范围，如 `1-5 8 10-12` |
 | `page_set` | `all` / `odd` / `even` | 页面子集（仅打奇数页 / 仅打偶数页）；在 `page_range` 截出的页序基础上再过滤，典型场景是**手动双面打印**——先打奇数页，把纸翻面放回后再打偶数页。对应 CUPS 的 `page-set` 属性（由 `pdftopdf` filter 处理），`all` 视为默认值、不会发送到 IPP 请求。前端留空或选「全部页」等同于 `all` |

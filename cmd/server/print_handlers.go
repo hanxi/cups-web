@@ -60,6 +60,7 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 	paperSize := r.FormValue("paper_size")
 	paperType := r.FormValue("paper_type")
 	printScaling := r.FormValue("print_scaling")
+	mediaSource := r.FormValue("media_source")
 	pageRange := r.FormValue("page_range")
 	pageSet := r.FormValue("page_set")
 	mirror := r.FormValue("mirror") == "true"
@@ -318,6 +319,7 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 		PaperSize:    paperSize,
 		PaperType:    paperType,
 		PrintScaling: printScaling,
+		MediaSource:  mediaSource,
 		PageRange:    pageRange,
 		PageSet:      pageSet,
 		Mirror:       mirror,

@@ -23,6 +23,7 @@ type PrintJobOptions struct {
 	PaperSize    string // "A4" | "A3" | "5inch" | "6inch" | "7inch" | "8inch" | "10inch"
 	PaperType    string // "plain" | "photo" | "glossy" | "matte" | "envelope" | "cardstock" | "labels" | "auto"
 	PrintScaling string // "auto" | "auto-fit" | "fit" | "fill" | "none"
+	MediaSource  string // input tray / paper source, e.g. "tray-1" | "main" | "manual" | "auto" (Issue #75)
 	PageRange    string // e.g. "1-5 8 10-12"
 	PageSet      string // "all" | "odd" | "even" – CUPS page-set filter (typical use: manual duplex)
 	Mirror       bool   // mirror / horizontal flip
@@ -109,6 +110,14 @@ func SendPrintJob(printerURI string, r io.Reader, mime string, username string, 
 		if mediaType != "" {
 			req.Job.Add(goipp.MakeAttribute("media-type", goipp.TagKeyword, goipp.String(mediaType)))
 		}
+	}
+
+	// Media source (input tray). Maps to the PPD "InputSlot" option via the CUPS
+	// filters. "auto" (or empty) lets the printer pick, so it is a no-op and not
+	// sent on the wire. Available tray keywords are printer-specific and are
+	// surfaced to the UI via media-source-supported (Issue #75).
+	if opts.MediaSource != "" && opts.MediaSource != "auto" {
+		req.Job.Add(goipp.MakeAttribute("media-source", goipp.TagKeyword, goipp.String(opts.MediaSource)))
 	}
 
 	// Print scaling
@@ -342,6 +351,7 @@ type PrinterInfo struct {
 	MarkerLevels         []int             `json:"markerLevels"`
 	MarkerColors         []string          `json:"markerColors"`
 	MediaReady           []string          `json:"mediaReady"`
+	MediaSourceSupported []string          `json:"mediaSourceSupported"`
 	Attributes           map[string]string `json:"attributes"`
 }
 
@@ -471,6 +481,10 @@ func GetPrinterAttributes(printerURI string) (*PrinterInfo, error) {
 		case "media-ready":
 			for _, v := range a.Values {
 				info.MediaReady = append(info.MediaReady, v.V.String())
+			}
+		case "media-source-supported":
+			for _, v := range a.Values {
+				info.MediaSourceSupported = append(info.MediaSourceSupported, v.V.String())
 			}
 		default:
 			vals := make([]string, 0, len(a.Values))
