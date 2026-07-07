@@ -98,6 +98,33 @@
                 <span class="text-sm">双面</span>
               </label>
             </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">每张页数</label>
+              <USelect
+                v-model="reprintForm.numberUp"
+                :items="numberUpItems"
+                value-key="value"
+                label-key="label"
+              />
+            </div>
+            <div v-if="reprintForm.numberUp > 1" class="space-y-3">
+              <div>
+                <label class="block text-sm font-medium mb-1">页面顺序</label>
+                <USelect
+                  v-model="reprintForm.numberUpLayout"
+                  :items="numberUpLayoutItems"
+                  value-key="value"
+                  label-key="label"
+                />
+              </div>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <UCheckbox
+                  :model-value="reprintForm.pageBorder === 'single'"
+                  @update:model-value="reprintForm.pageBorder = $event ? 'single' : 'none'"
+                />
+                <span class="text-sm">为每个小页添加边框</span>
+              </label>
+            </div>
           </div>
           <div class="flex justify-end gap-2">
             <UButton variant="ghost" @click="showReprintModal = false">取消</UButton>
@@ -132,8 +159,27 @@ const reprintForm = ref({
   printer: '',
   duplex: false,
   color: true,
-  copies: 1
+  copies: 1,
+  numberUp: 1,
+  numberUpLayout: 'lrtb',
+  pageBorder: 'none'
 })
+
+const numberUpItems = [
+  { label: '1 页/张（不缩排）', value: 1 },
+  { label: '2 页/张', value: 2 },
+  { label: '4 页/张', value: 4 },
+  { label: '6 页/张', value: 6 },
+  { label: '9 页/张', value: 9 },
+  { label: '16 页/张', value: 16 }
+]
+
+const numberUpLayoutItems = [
+  { label: '横向 Z 形（左→右，上→下）', value: 'lrtb' },
+  { label: '横向 Z 形（右→左，上→下）', value: 'rltb' },
+  { label: '纵向 N 形（上→下，左→右）', value: 'tblr' },
+  { label: '纵向 N 形（上→下，右→左）', value: 'tbrl' }
+]
 
 const printerSelectItems = computed(() =>
   props.printers.map(p => ({ label: `${p.name} — ${p.uri}`, value: p.uri }))
@@ -152,7 +198,10 @@ function openReprintDialog(rec) {
     printer: props.currentPrinter || rec.printerUri,
     duplex: rec.isDuplex,
     color: rec.isColor,
-    copies: 1
+    copies: 1,
+    numberUp: 1,
+    numberUpLayout: 'lrtb',
+    pageBorder: 'none'
   }
   showReprintModal.value = true
 }
@@ -167,7 +216,10 @@ function submitReprint() {
     printer: reprintForm.value.printer,
     duplex: reprintForm.value.duplex,
     color: reprintForm.value.color,
-    copies: reprintForm.value.copies
+    copies: reprintForm.value.copies,
+    numberUp: reprintForm.value.numberUp,
+    numberUpLayout: reprintForm.value.numberUpLayout,
+    pageBorder: reprintForm.value.pageBorder
   })
 }
 

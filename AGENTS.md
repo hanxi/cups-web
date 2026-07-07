@@ -177,6 +177,9 @@ cups-web/
 | `page_range` | string | 页码范围，如 `1-5 8 10-12` |
 | `page_set` | `all` / `odd` / `even` | 页面子集（仅打奇数页 / 仅打偶数页）；在 `page_range` 截出的页序基础上再过滤，典型场景是**手动双面打印**——先打奇数页，把纸翻面放回后再打偶数页。对应 CUPS 的 `page-set` 属性（由 `pdftopdf` filter 处理），`all` 视为默认值、不会发送到 IPP 请求。前端留空或选「全部页」等同于 `all` |
 | `mirror` | `"true"` / `"false"` | 镜像打印 |
+| `number_up` | `1` / `2` / `4` / `6` / `9` / `16` | 一张多页（N-up），每张纸缩排的逻辑页数；`1`（默认）= 关闭，不发送到 IPP。由 CUPS `pdftopdf` filter 原生处理，对应 IPP `number-up`（Issue #78） |
+| `number_up_layout` | `lrtb` / `rltb` / `tblr` / `tbrl` | N-up 的页面排布顺序（横向 Z 形 / 纵向 N 形），对应 IPP `number-up-layout`；仅 `number_up > 1` 时生效 |
+| `page_border` | `single` / `none` | N-up 时是否为每个小页绘制边框，对应 IPP `page-border`；仅 `number_up > 1` 时生效 |
 
 ## 🗄️ 数据库
 

@@ -191,6 +191,9 @@
           v-model:pageSet="pageSet"
           v-model:mirror="mirror"
           v-model:watermarkText="watermarkText"
+          v-model:numberUp="numberUp"
+          v-model:numberUpLayout="numberUpLayout"
+          v-model:pageBorder="pageBorder"
           :printing="printing"
         />
 
@@ -286,6 +289,9 @@ const pageRange = ref('')
 const pageSet = ref('all')
 const mirror = ref(false)
 const watermarkText = ref('')
+const numberUp = ref(1)
+const numberUpLayout = ref('lrtb')
+const pageBorder = ref('none')
 
 // ─── 打印模式 ─────────────────────────────────────────────
 const printMode = ref(localStorage.getItem('print_mode') || 'standard')
@@ -666,6 +672,11 @@ async function uploadAndPrintBatch() {
       if (pageSet.value && pageSet.value !== 'all') form.append('page_set', pageSet.value)
       if (mirror.value) form.append('mirror', 'true')
       if (watermarkText.value.trim()) form.append('watermark_text', watermarkText.value.trim())
+      if (numberUp.value > 1) {
+        form.append('number_up', String(numberUp.value))
+        form.append('number_up_layout', numberUpLayout.value)
+        form.append('page_border', pageBorder.value)
+      }
 
       const resp = await apiFetch('/api/print', { method: 'POST', body: form }, () => emit('logout'))
       if (!resp.ok) throw new Error(await readError(resp))
@@ -835,6 +846,11 @@ async function uploadAndPrint() {
   if (pageSet.value && pageSet.value !== 'all') form.append('page_set', pageSet.value)
   if (mirror.value) form.append('mirror', 'true')
   if (watermarkText.value.trim()) form.append('watermark_text', watermarkText.value.trim())
+  if (numberUp.value > 1) {
+    form.append('number_up', String(numberUp.value))
+    form.append('number_up_layout', numberUpLayout.value)
+    form.append('page_border', pageBorder.value)
+  }
 
   printing.value = true
   try {
@@ -881,7 +897,7 @@ async function loadPrintRecords(silent = false) {
   }
 }
 
-async function handleReprint({ id, printer: reprintPrinter, duplex: reprintDuplex, color: reprintColor, copies: reprintCopies }) {
+async function handleReprint({ id, printer: reprintPrinter, duplex: reprintDuplex, color: reprintColor, copies: reprintCopies, numberUp: reprintNumberUp, numberUpLayout: reprintNumberUpLayout, pageBorder: reprintPageBorder }) {
   try {
     const resp = await apiFetch(`/api/print-records/${id}/reprint`, {
       method: 'POST',
@@ -893,7 +909,10 @@ async function handleReprint({ id, printer: reprintPrinter, duplex: reprintDuple
         orientation: orientation.value,
         paperSize: paperSize.value,
         paperType: paperType.value,
-        printScaling: printScaling.value
+        printScaling: printScaling.value,
+        numberUp: reprintNumberUp,
+        numberUpLayout: reprintNumberUpLayout,
+        pageBorder: reprintPageBorder
       })
     }, () => emit('logout'))
     if (!resp.ok) {

@@ -213,6 +213,10 @@ type reprintRequest struct {
 	PageRange    string `json:"pageRange"`
 	PageSet      string `json:"pageSet"`
 	Mirror       bool   `json:"mirror"`
+
+	NumberUp       int    `json:"numberUp"`
+	NumberUpLayout string `json:"numberUpLayout"`
+	PageBorder     string `json:"pageBorder"`
 }
 
 func reprintHandler(w http.ResponseWriter, r *http.Request) {
@@ -240,6 +244,12 @@ func reprintHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Copies < 1 {
 		req.Copies = 1
+	}
+	switch req.NumberUp {
+	case 1, 2, 4, 6, 9, 16:
+		// valid
+	default:
+		req.NumberUp = 1
 	}
 
 	var record store.PrintRecord
@@ -477,6 +487,10 @@ func reprintHandler(w http.ResponseWriter, r *http.Request) {
 		PageSet:      pageSet,
 		Mirror:       req.Mirror,
 		Pages:        pages,
+
+		NumberUp:       req.NumberUp,
+		NumberUpLayout: req.NumberUpLayout,
+		PageBorder:     req.PageBorder,
 	}
 
 	job, err := ipp.SendPrintJob(req.Printer, f, mimeType, sess.Username, record.Filename, printOpts)

@@ -86,6 +86,24 @@
               </UFormField>
             </div>
 
+            <!-- 一张多页（N-up） -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <UFormField label="每张页数" hint="将多页缩排到一张纸上">
+                <USelect :model-value="numberUp" :items="numberUpItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:numberUp', Number($event))" />
+              </UFormField>
+              <UFormField v-if="numberUp > 1" label="页面顺序">
+                <USelect :model-value="numberUpLayout" :items="numberUpLayoutItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:numberUpLayout', $event)" />
+              </UFormField>
+            </div>
+            <UFormField v-if="numberUp > 1" label="打印边框">
+              <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer transition hover:bg-elevated w-fit"
+                :class="pageBorder === 'single' ? 'border-primary bg-primary/5' : 'border-muted'">
+                <UCheckbox :model-value="pageBorder === 'single'" @update:model-value="$emit('update:pageBorder', $event ? 'single' : 'none')" />
+                <UIcon name="i-lucide-square" class="w-4 h-4" />
+                <span class="text-sm">为每个小页添加边框</span>
+              </label>
+            </UFormField>
+
             <!-- 页面子集（手动双面 / 分册排版） -->
             <UFormField label="页面子集" hint="配合页面范围使用；手动双面可先打奇数页，翻面后再打偶数页">
               <div class="flex rounded-lg border border-muted overflow-hidden">
@@ -143,13 +161,17 @@ const props = defineProps({
   pageSet: { type: String, default: 'all' },
   mirror: { type: Boolean, default: false },
   watermarkText: { type: String, default: '' },
+  numberUp: { type: Number, default: 1 },
+  numberUpLayout: { type: String, default: 'lrtb' },
+  pageBorder: { type: String, default: 'none' },
   printing: { type: Boolean, default: false }
 })
 
 const emit = defineEmits([
   'update:isColor', 'update:duplex', 'update:copies',
   'update:paperSize', 'update:paperType', 'update:printScaling', 'update:pageRange',
-  'update:pageSet', 'update:mirror', 'update:watermarkText'
+  'update:pageSet', 'update:mirror', 'update:watermarkText',
+  'update:numberUp', 'update:numberUpLayout', 'update:pageBorder'
 ])
 
 const showAdvanced = ref(localStorage.getItem('print_options_expanded') === '1')
@@ -164,6 +186,10 @@ const advancedSummary = computed(() => {
   if (props.pageRange) parts.push(`页码: ${props.pageRange}`)
   const pageSetLabel = pageSetItems.find(i => i.value === props.pageSet)?.label
   if (props.pageSet && props.pageSet !== 'all' && pageSetLabel) parts.push(pageSetLabel)
+  if (props.numberUp > 1) {
+    parts.push(`${props.numberUp} 页/张`)
+    if (props.pageBorder === 'single') parts.push('带边框')
+  }
   if (props.mirror) parts.push('镜像')
   if (props.watermarkText) parts.push(`水印: ${props.watermarkText}`)
   return parts.join(' / ')
@@ -219,6 +245,22 @@ const pageSetItems = [
   { label: '奇数页', value: 'odd', icon: 'i-lucide-list-ordered' },
   { label: '偶数页', value: 'even', icon: 'i-lucide-list-ordered' },
   { label: '偶数页(倒序)', value: 'even-reverse', icon: 'i-lucide-arrow-down-up' }
+]
+
+const numberUpItems = [
+  { label: '1 页/张（不缩排）', value: 1 },
+  { label: '2 页/张', value: 2 },
+  { label: '4 页/张', value: 4 },
+  { label: '6 页/张', value: 6 },
+  { label: '9 页/张', value: 9 },
+  { label: '16 页/张', value: 16 }
+]
+
+const numberUpLayoutItems = [
+  { label: '横向 Z 形（左→右，上→下）', value: 'lrtb' },
+  { label: '横向 Z 形（右→左，上→下）', value: 'rltb' },
+  { label: '纵向 N 形（上→下，左→右）', value: 'tblr' },
+  { label: '纵向 N 形（上→下，右→左）', value: 'tbrl' }
 ]
 
 function onPageRangeInput(val) {

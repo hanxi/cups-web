@@ -27,6 +27,12 @@ type PrintJobOptions struct {
 	PageSet      string // "all" | "odd" | "even" – CUPS page-set filter (typical use: manual duplex)
 	Mirror       bool   // mirror / horizontal flip
 	Pages        int    // total document pages (for job-impressions hint)
+
+	// N-up (multiple document pages per physical sheet), handled natively by the
+	// CUPS pdftopdf filter (Issue #78).
+	NumberUp       int    // 1/2/4/6/9/16; 0 or 1 means off (one page per sheet)
+	NumberUpLayout string // "lrtb" | "rltb" | "tblr" | "tbrl" (page ordering across the grid)
+	PageBorder     string // "single" | "none" – border drawn around each sub-page
 }
 
 // SendPrintJob sends data to the printer via IPP using goipp to build the
@@ -135,6 +141,20 @@ func SendPrintJob(printerURI string, r io.Reader, mime string, username string, 
 	// Mirror (best-effort)
 	if opts.Mirror {
 		req.Job.Add(goipp.MakeAttribute("mirror", goipp.TagBoolean, goipp.Boolean(true)))
+	}
+
+	// N-up – place multiple document pages on a single physical sheet. Handled
+	// by the CUPS pdftopdf filter. number-up=1 is the default (one page per
+	// sheet) and is a no-op, so it is not sent on the wire; number-up-layout and
+	// page-border only make sense when more than one page shares a sheet.
+	if opts.NumberUp > 1 {
+		req.Job.Add(goipp.MakeAttribute("number-up", goipp.TagInteger, goipp.Integer(opts.NumberUp)))
+		if layout := normalizeNumberUpLayout(opts.NumberUpLayout); layout != "" {
+			req.Job.Add(goipp.MakeAttribute("number-up-layout", goipp.TagKeyword, goipp.String(layout)))
+		}
+		if border := normalizePageBorder(opts.PageBorder); border != "" {
+			req.Job.Add(goipp.MakeAttribute("page-border", goipp.TagKeyword, goipp.String(border)))
+		}
 	}
 
 	// Job impressions hint – tells CUPS the expected page count so that its
@@ -250,6 +270,34 @@ func normalizePageSet(s string) string {
 		return "even"
 	case "even-reverse":
 		return "even-reverse"
+	default:
+		return ""
+	}
+}
+
+// normalizeNumberUpLayout maps user input to a CUPS number-up-layout keyword.
+// Only the four common orderings are exposed to the UI; the vertical-major
+// variants (btlr/btrl/lrbt/rlbt) are rarely useful for N-up handouts. Unknown
+// or empty input falls back to "lrtb" (left-to-right, top-to-bottom), which is
+// the CUPS default and matches WPS's default Z ordering.
+func normalizeNumberUpLayout(s string) string {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "lrtb", "rltb", "tblr", "tbrl":
+		return strings.ToLower(strings.TrimSpace(s))
+	default:
+		return "lrtb"
+	}
+}
+
+// normalizePageBorder maps user input to a CUPS page-border keyword. Empty input
+// means "no explicit border requested" and returns an empty string so the caller
+// can omit the attribute (CUPS then defaults to no border).
+func normalizePageBorder(s string) string {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "single", "single-thick", "double", "double-thick":
+		return strings.ToLower(strings.TrimSpace(s))
+	case "none":
+		return "none"
 	default:
 		return ""
 	}
