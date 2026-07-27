@@ -130,6 +130,8 @@ services:
   cups:
     image: hanxi/cups:latest
     user: root
+    security_opt:
+      - apparmor:unconfined
     environment:
       - CUPSADMIN=${CUPSADMIN}
       - CUPSPASSWORD=${CUPSPASSWORD}
@@ -149,6 +151,8 @@ services:
   web:
     image: hanxi/cups-web:latest
     user: root
+    security_opt:
+      - apparmor:unconfined
     environment:
       - CUPS_HOST=cups:631
     volumes:
@@ -388,6 +392,19 @@ docker-compose down && docker-compose up -d
 ```
 
 之后先启动容器、再开打印机也能被识别。若你的 Docker 环境不支持 `device_cgroup_rules`（部分旧版本 / rootless / cgroup v1）,删掉该字段并改用 `privileged: true` 即可,效果相同、权限更宽。
+
+### 在 PVE (Proxmox VE) LXC 容器中部署时，打印或文件转换失败？（AppArmor DENIED）
+
+从 **PVE 7.0** 及以上版本（如 PVE 7.x / 8.x，基于 Linux 内核 5.11+ / 6.x）开始，PVE 在 LXC 嵌套 Docker 环境下启用了更严格的 AppArmor 限制。系统的 Docker 默认 AppArmor 配置文件 (`docker-default`) 会拦截容器内的 Unix Socket 创建与进程间通信，表现为 dmesg / audit 日志中出现类似 `apparmor="DENIED" operation="create" profile="docker-default" comm="jobs.cgi" family="unix"` 的报错，导致 CUPS 的 `jobs.cgi` 无法提交打印或 Web 端 LibreOffice / OFD 转换服务无法正常运行。
+
+**解决方法**：
+
+1. 按照最新版 `docker-compose.yml`，在 `cups` 与 `web` 服务中添加 `security_opt`:
+   ```yaml
+   security_opt:
+     - apparmor:unconfined
+   ```
+2. 如果是在 **PVE LXC 容器**内运行 Docker，请确保在 PVE 后台放开了 LXC 的嵌套容器权限（PVE 网页控制台 → LXC 容器 → Options → Features → 勾选 `Nesting` 和 `Keyctl`，或在 `/etc/pve/lxc/<ID>.conf` 中配置 `features: nesting=1,keyctl=1`）。
 
 ### Office / OFD 转换失败？
 

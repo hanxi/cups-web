@@ -2,6 +2,10 @@ services:
   cups:
     image: hanxi/cups:latest
     user: root
+    # 解除 AppArmor 限制，防止在 PVE (Proxmox VE) LXC 或部分 Linux 系统中出现
+    # apparmor="DENIED" operation="create" comm="jobs.cgi" family="unix" 导致打印失败
+    security_opt:
+      - apparmor:unconfined
     environment:
       - CUPSADMIN=${CUPSADMIN}
       - CUPSPASSWORD=${CUPSPASSWORD}
@@ -26,6 +30,9 @@ services:
   web:
     image: hanxi/cups-web:master
     user: root
+    # 解除 AppArmor 限制，防止 LibreOffice / OFD 转换子进程被 AppArmor 拦截
+    security_opt:
+      - apparmor:unconfined
     environment:
       - CUPS_HOST=cups:631
     volumes:
