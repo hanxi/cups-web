@@ -12,16 +12,16 @@
       >
         <input ref="fileInput" type="file" class="hidden" multiple @change="onFileChange" />
         <div v-if="!selectedFile && !displayName">
-          <!-- 移动端：单行紧凑 -->
+          <!-- Мобильная версия -->
           <div class="flex sm:hidden items-center justify-center gap-2 text-sm text-muted py-1">
             <UIcon name="i-lucide-upload-cloud" class="w-4 h-4" />
-            <span>点击或拖拽上传文件</span>
+            <span>Нажмите или перетащите файл</span>
           </div>
-          <!-- 桌面端：维持原样 -->
+          <!-- Десктоп -->
           <div class="hidden sm:block">
             <UIcon name="i-lucide-upload-cloud" class="w-8 h-8 sm:w-10 sm:h-10 mx-auto text-muted mb-2" />
-            <p class="text-sm text-muted">点击或拖拽文件上传</p>
-            <p class="text-xs text-muted mt-1">支持 PDF、Word、Excel、PPT、OFD、图片等格式（可多选图片）</p>
+            <p class="text-sm text-muted">Нажмите или перетащите файл</p>
+            <p class="text-xs text-muted mt-1">Поддержка PDF, Word, Excel, PPT, OFD, изображений и др. (можно выбрать несколько)</p>
           </div>
         </div>
         <div v-else class="flex items-center gap-2 sm:gap-3 w-full">
@@ -29,7 +29,7 @@
           <div class="flex-1 min-w-0 text-left">
             <p class="text-sm font-medium break-all line-clamp-2 leading-snug">{{ displayName || (selectedFile && selectedFile.name) }}</p>
             <p v-if="selectedFile" class="text-xs text-muted mt-0.5">{{ formatFileSize(selectedFile.size) }}</p>
-            <p v-else-if="isMultiImage && totalSize > 0" class="text-xs text-muted mt-0.5">共 {{ formatFileSize(totalSize) }}</p>
+            <p v-else-if="isMultiImage && totalSize > 0" class="text-xs text-muted mt-0.5">Всего {{ formatFileSize(totalSize) }}</p>
           </div>
           <UButton
             variant="ghost"
@@ -42,23 +42,23 @@
         </div>
       </div>
 
-      <!-- 状态 + 操作合并成一行；仅在需要时显示 -->
+      <!-- Статус и действия -->
       <div
         v-if="selectedFile || isMultiImage || converting"
         class="flex items-center justify-between gap-2 text-xs"
       >
-        <!-- 左侧：状态文字 -->
+        <!-- Лево: Текст статуса -->
         <div class="flex items-center gap-1.5 min-w-0 text-muted">
           <UIcon v-if="converting" name="i-lucide-loader-circle" class="w-3.5 h-3.5 animate-spin text-info shrink-0" />
           <UIcon v-else-if="converted" name="i-lucide-check-circle" class="w-3.5 h-3.5 text-success shrink-0" />
           <UIcon v-else name="i-lucide-clock" class="w-3.5 h-3.5 shrink-0" />
           <span class="truncate">
             {{ converting
-              ? (isMultiImage ? '正在合并图片…' : '正在转换为 PDF…')
-              : (converted ? '已转换为 PDF，可以打印' : '等待转换') }}
+              ? (isMultiImage ? 'Объединение изображений...' : 'Преобразование в PDF...')
+              : (converted ? 'Готово к печати' : 'Ожидание') }}
           </span>
         </div>
-        <!-- 右侧：按钮 -->
+        <!-- Право: Кнопки -->
         <div class="flex items-center gap-1 shrink-0">
           <UButton
             v-if="canConvert"
@@ -67,11 +67,9 @@
             icon="i-lucide-file-text"
             :loading="converting"
             @click="$emit('convert')"
-          >{{ isMultiImage ? '合并' : '转 PDF' }}</UButton>
+          >{{ isMultiImage ? 'Объединить' : 'В PDF' }}</UButton>
           <!--
-            "应用 GS 规范化"按钮：仅在已上传 PDF 时显示。点击后调用
-            /api/convert?normalize=true 走 Ghostscript 重写 PDF（嵌入所有字体、统一为 1.4 版本），
-            用于修复 CJK 字体外挂 CMap 导致的乱码等问题。
+            Кнопка "Нормализация GS": только для PDF.
           -->
           <UButton
             v-if="isPdf"
@@ -81,7 +79,7 @@
             :loading="gsApplying"
             :disabled="gsApplied || gsApplying"
             @click="$emit('apply-gs')"
-          >{{ gsApplied ? '已规范化' : '应用 GS 规范化' }}</UButton>
+          >{{ gsApplied ? 'Нормализовано' : 'Нормализация GS' }}</UButton>
           <UButton
             v-if="converted && pdfBlob && previewUrl"
             variant="ghost"
@@ -90,7 +88,7 @@
             :href="previewUrl"
             :download="downloadName"
             tag="a"
-          >下载</UButton>
+          >Скачать</UButton>
         </div>
       </div>
     </div>

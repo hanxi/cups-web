@@ -12,19 +12,19 @@ type estimateResp struct {
 
 func estimateHandler(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(512 << 20); err != nil {
-		writeJSONError(w, http.StatusBadRequest, "invalid multipart form")
+		writeJSONError(w, http.StatusBadRequest, "неверная форма multipart")
 		return
 	}
 	file, fh, err := r.FormFile("file")
 	if err != nil {
-		writeJSONError(w, http.StatusBadRequest, "missing file field")
+		writeJSONError(w, http.StatusBadRequest, "отсутствует поле file")
 		return
 	}
 	defer file.Close()
 
 	tmpPath, cleanup, err := saveTempUpload(file, filepath.Base(fh.Filename))
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "failed to save file")
+		writeJSONError(w, http.StatusInternalServerError, "не удалось сохранить файл")
 		return
 	}
 	defer cleanup()
@@ -33,7 +33,7 @@ func estimateHandler(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	pages, estimated, err := countPages(countCtx, tmpPath, fh.Filename)
 	if err != nil {
-		writeJSONError(w, http.StatusBadRequest, "failed to read pages")
+		writeJSONError(w, http.StatusBadRequest, "не удалось определить количество страниц")
 		return
 	}
 	if pages < 1 {

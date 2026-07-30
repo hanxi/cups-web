@@ -4,10 +4,10 @@
       <div class="flex items-center justify-between cursor-pointer select-none" @click="expanded = !expanded">
         <div class="flex items-center gap-2 font-semibold min-w-0">
           <UIcon name="i-lucide-activity" class="w-5 h-5 shrink-0" />
-          <span class="truncate">打印机状态</span>
+          <span class="truncate">Статус принтера</span>
           <!-- 折叠时显示摘要 -->
           <template v-if="!expanded && printerInfo">
-            <span class="text-xs text-muted truncate">{{ printerInfo.name || '未知' }}</span>
+            <span class="text-xs text-muted truncate">{{ printerInfo.name || 'Неизвестно' }}</span>
             <UBadge :color="printerStateColor(printerInfo.state)" variant="subtle" size="xs" class="shrink-0">
               {{ printerStateText(printerInfo.state) }}
             </UBadge>
@@ -29,7 +29,7 @@
     >
     <div>
       <div v-if="!printerUri" class="text-center py-6 text-muted text-sm">
-        请先选择打印机
+        Пожалуйста, выберите принтер
       </div>
       <div v-else-if="loading && !printerInfo" class="text-center py-4">
         <UIcon name="i-lucide-loader-circle" class="w-5 h-5 animate-spin mx-auto text-muted" />
@@ -43,7 +43,7 @@
         <div class="flex items-center justify-between p-2 bg-elevated rounded-lg">
           <div class="flex items-center gap-2">
             <UIcon name="i-lucide-info" class="w-4 h-4 text-info" />
-            <span class="text-sm font-medium">打印机状态</span>
+            <span class="text-sm font-medium">Статус принтера</span>
           </div>
           <UBadge :color="printerStateColor(printerInfo.state)" variant="subtle" size="xs">
             {{ printerStateText(printerInfo.state) }}
@@ -54,7 +54,7 @@
         <div class="flex items-center justify-between p-2 bg-elevated rounded-lg">
           <div class="flex items-center gap-2">
             <UIcon name="i-lucide-list-ordered" class="w-4 h-4 text-primary" />
-            <span class="text-sm font-medium">队列任务数</span>
+            <span class="text-sm font-medium">Задач в очереди</span>
           </div>
           <span class="text-sm font-bold">{{ printerInfo.queuedJobs }}</span>
         </div>
@@ -63,7 +63,7 @@
         <div v-if="printerInfo.stateDurationSeconds > 0 || (printerInfo.attributes && printerInfo.attributes['printer-state-change-date-time'])" class="flex items-center justify-between p-2 bg-elevated rounded-lg">
           <div class="flex items-center gap-2">
             <UIcon name="i-lucide-clock" class="w-4 h-4 text-success" />
-            <span class="text-sm font-medium">状态持续</span>
+            <span class="text-sm font-medium">Длительность статуса</span>
           </div>
           <span class="text-sm">{{ printerInfo.stateDurationSeconds > 0 ? formatDurationSeconds(printerInfo.stateDurationSeconds) : formatStateDuration(printerInfo.attributes['printer-state-change-date-time']) }}</span>
         </div>
@@ -72,7 +72,7 @@
         <div v-if="printerInfo.firmwareVersion" class="flex items-center justify-between p-2 bg-elevated rounded-lg">
           <div class="flex items-center gap-2">
             <UIcon name="i-lucide-cpu" class="w-4 h-4 text-secondary" />
-            <span class="text-sm font-medium">固件版本</span>
+            <span class="text-sm font-medium">Версия прошивки</span>
           </div>
           <span class="text-xs text-muted truncate max-w-32">{{ printerInfo.firmwareVersion }}</span>
         </div>
@@ -86,7 +86,7 @@
         <div v-if="printerInfo.markerNames && printerInfo.markerNames.length > 0">
           <div class="flex items-center gap-2 mb-2">
             <UIcon name="i-lucide-droplets" class="w-4 h-4 text-primary" />
-            <span class="text-sm font-semibold">墨盒信息</span>
+            <span class="text-sm font-semibold">Информация о чернилах</span>
           </div>
           <div class="space-y-2">
             <div v-for="(name, i) in printerInfo.markerNames" :key="i" class="space-y-1">
@@ -111,7 +111,7 @@
         <div v-if="printerInfo.mediaReady && printerInfo.mediaReady.length > 0">
           <div class="flex items-center gap-2 mb-2">
             <UIcon name="i-lucide-layers" class="w-4 h-4 text-secondary" />
-            <span class="text-sm font-semibold">纸盒信息</span>
+            <span class="text-sm font-semibold">Информация о лотках</span>
           </div>
           <div class="space-y-1">
             <div v-for="(media, i) in printerInfo.mediaReady" :key="i"
@@ -126,7 +126,7 @@
         <div v-if="printerInfo.stateReasons && printerInfo.stateReasons.filter(r => r !== 'none').length > 0">
           <div class="flex items-center gap-2 mb-1">
             <UIcon name="i-lucide-alert-triangle" class="w-4 h-4 text-warning" />
-            <span class="text-sm font-semibold">警报</span>
+            <span class="text-sm font-semibold">Предупреждения</span>
           </div>
           <div class="space-y-1">
             <div v-for="reason in printerInfo.stateReasons.filter(r => r !== 'none')" :key="reason"

@@ -4,11 +4,11 @@
       <template #header>
         <h2 class="text-xl font-bold flex items-center gap-2">
           <UIcon name="i-lucide-user" class="w-5 h-5" />
-          登录
+          Вход
         </h2>
       </template>
       
-      <!-- 错误提示 -->
+      <!-- Ошибка -->
       <UAlert
         v-if="error"
         icon="i-lucide-triangle-alert"
@@ -19,10 +19,10 @@
       />
       
       <UForm @submit="login" :state="state" class="space-y-6">
-        <UFormField label="用户名" name="username" required>
+        <UFormField label="Имя пользователя" name="username" required>
           <UInput v-model="state.username" icon="i-lucide-user" size="lg" class="w-full" />
         </UFormField>
-        <UFormField label="密码" name="password" required>
+        <UFormField label="Пароль" name="password" required>
           <UInput v-model="state.password" type="password" icon="i-lucide-lock" size="lg" class="w-full" />
         </UFormField>
         
@@ -35,7 +35,7 @@
             class="w-full"
             :loading="loading"
           >
-            登录
+            Войти
           </UButton>
         </div>
       </UForm>
@@ -68,9 +68,9 @@ async function login() {
     if (!resp.ok) {
       try {
         const data = await resp.json()
-        error.value = data.error || data.message || '用户名或密码错误'
+        error.value = data.error || data.message || 'Неверное имя пользователя или пароль'
       } catch {
-        error.value = '用户名或密码错误'
+        error.value = 'Неверное имя пользователя или пароль'
       }
       return
     }

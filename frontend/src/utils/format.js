@@ -8,7 +8,7 @@ export function formatFileSize(bytes) {
 export function formatTime(iso) {
   if (!iso) return ''
   try {
-    return new Date(iso).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+    return new Date(iso).toLocaleString('ru-RU', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
   } catch { return iso }
 }
 
@@ -19,31 +19,31 @@ export function formatPrinterName(uri) {
 }
 
 export function formatDurationSeconds(totalSeconds) {
-  if (!totalSeconds || totalSeconds < 0) return '未知'
+  if (!totalSeconds || totalSeconds < 0) return 'Неизвестно'
   const d = Math.floor(totalSeconds / 86400)
   const h = Math.floor((totalSeconds % 86400) / 3600)
   const m = Math.floor((totalSeconds % 3600) / 60)
-  if (d > 0) return `${d}天${h}小时`
-  if (h > 0) return `${h}小时${m}分钟`
-  if (m > 0) return `${m}分钟`
-  return `${totalSeconds}秒`
+  if (d > 0) return `${d} д. ${h} ч.`
+  if (h > 0) return `${h} ч. ${m} мин.`
+  if (m > 0) return `${m} мин.`
+  return `${totalSeconds} сек.`
 }
 
-// formatStateDuration 计算从 ISO 时间字符串到现在经过了多久
+// formatStateDuration вычисляет сколько времени прошло с указанной даты (ISO) до текущего момента
 export function formatStateDuration(isoStr) {
-  if (!isoStr) return '未知'
+  if (!isoStr) return 'Неизвестно'
   const past = new Date(isoStr)
-  if (isNaN(past.getTime())) return '未知'
+  if (isNaN(past.getTime())) return 'Неизвестно'
   const diffMs = Date.now() - past.getTime()
-  if (diffMs < 0) return '未知'
+  if (diffMs < 0) return 'Неизвестно'
   const totalSeconds = Math.floor(diffMs / 1000)
   const d = Math.floor(totalSeconds / 86400)
   const h = Math.floor((totalSeconds % 86400) / 3600)
   const m = Math.floor((totalSeconds % 3600) / 60)
-  if (d > 0) return `${d}天${h}小时`
-  if (h > 0) return `${h}小时${m}分钟`
-  if (m > 0) return `${m}分钟`
-  return `${totalSeconds}秒`
+  if (d > 0) return `${d} д. ${h} ч.`
+  if (h > 0) return `${h} ч. ${m} мин.`
+  if (m > 0) return `${m} мин.`
+  return `${totalSeconds} сек.`
 }
 
 export function statusColor(status) {
@@ -52,7 +52,7 @@ export function statusColor(status) {
 }
 
 export function statusText(status) {
-  const map = { queued: '排队中', printed: '已打印', failed: '失败', cancelled: '已取消' }
+  const map = { queued: 'В очереди', printed: 'Готово', failed: 'Ошибка', cancelled: 'Отменено' }
   return map[status] || status
 }
 
@@ -62,8 +62,8 @@ export function printerStateColor(state) {
 }
 
 export function printerStateText(state) {
-  const map = { idle: '空闲', processing: '打印中', stopped: '已停止' }
-  return map[state] || state || '未知'
+  const map = { idle: 'Свободен', processing: 'Печать...', stopped: 'Остановлен' }
+  return map[state] || state || 'Неизвестно'
 }
 
 export function markerLevelColor(level) {

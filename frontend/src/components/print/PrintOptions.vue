@@ -3,13 +3,13 @@
     <template #header>
       <div class="flex items-center gap-2 font-semibold">
         <UIcon name="i-lucide-settings-2" class="w-5 h-5" />
-        打印参数
+        Параметры печати
       </div>
     </template>
     <div class="space-y-4">
-      <!-- ═══ 基础选项（始终显示） ═══ -->
-      <!-- 颜色 -->
-      <UFormField label="颜色模式" :hint="isColor ? undefined : '文档中的彩色内容将以灰阶模式打印输出'">
+      <!-- ═══ Основные опции ═══ -->
+      <!-- Цвет -->
+      <UFormField label="Цвет" :hint="isColor ? undefined : 'Цветной контент будет напечатан в оттенках серого'">
         <div class="flex rounded-lg border border-muted overflow-hidden">
           <label v-for="item in colorItems" :key="String(item.value)"
             class="flex-1 flex items-center justify-center gap-1.5 py-2 px-2 cursor-pointer text-sm transition"
@@ -21,13 +21,13 @@
         </div>
       </UFormField>
 
-      <!-- 双面 + 份数 -->
+      <!-- Двусторонняя печать + Копии -->
       <div class="grid grid-cols-2 gap-3">
-        <UFormField label="双面打印">
+        <UFormField label="Двусторонняя печать">
           <USelect :model-value="duplex" :items="duplexItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:duplex', $event)" />
         </UFormField>
 
-        <UFormField label="份数">
+        <UFormField label="Копии">
           <UInput
             :model-value="copies"
             type="number"
@@ -39,7 +39,7 @@
         </UFormField>
       </div>
 
-      <!-- ═══ 高级选项折叠区 ═══ -->
+      <!-- ═══ Расширенные настройки ═══ -->
       <div class="border-t border-default pt-2">
         <button
           type="button"
@@ -51,7 +51,7 @@
             class="w-3.5 h-3.5 transition-transform duration-200 shrink-0"
             :class="showAdvanced ? 'rotate-90' : ''"
           />
-          <span class="font-medium">高级选项</span>
+          <span class="font-medium">Расширенные настройки</span>
           <span v-if="!showAdvanced" class="text-[11px] sm:text-xs text-muted ml-1 truncate">{{ advancedSummary }}</span>
         </button>
 
@@ -60,30 +60,30 @@
           :style="{ maxHeight: showAdvanced ? '1000px' : '0px', opacity: showAdvanced ? 1 : 0, visibility: showAdvanced ? 'visible' : 'hidden' }"
         >
           <div class="space-y-4 pt-3">
-            <!-- 纸张大小 + 纸张类型 -->
+            <!-- Размер бумаги + Тип бумаги -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <UFormField label="纸张大小">
+              <UFormField label="Размер бумаги">
                 <USelect :model-value="paperSize" :items="paperSizeItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:paperSize', $event)" />
               </UFormField>
-              <UFormField label="纸张类型">
+              <UFormField label="Тип бумаги">
                 <USelect :model-value="paperType" :items="paperTypeItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:paperType', $event)" />
               </UFormField>
             </div>
 
-            <!-- 进纸盒（仅当打印机上报可用纸盒时显示） -->
-            <UFormField v-if="mediaSourceItems.length > 1" label="进纸盒" hint="选择从哪个纸盒进纸；「自动」由打印机决定">
+            <!-- Лоток -->
+            <UFormField v-if="mediaSourceItems.length > 1" label="Лоток" hint="Выберите лоток; «Авто» — выбор принтером">
               <USelect :model-value="mediaSource" :items="mediaSourceItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:mediaSource', $event)" />
             </UFormField>
 
-            <!-- 缩放 + 页面范围 -->
+            <!-- Масштаб + Страницы -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <UFormField label="缩放">
+              <UFormField label="Масштаб">
                 <USelect :model-value="printScaling" :items="scalingItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:printScaling', $event)" />
               </UFormField>
-              <UFormField label="页面范围" :hint="pageRangeError || '如：1-5 8'">
+              <UFormField label="Страницы" :hint="pageRangeError || 'Например: 1-5 8'">
                 <UInput
                   :model-value="pageRange"
-                  placeholder="留空=全部"
+                  placeholder="Пусто = все"
                   class="w-full"
                   :color="pageRangeError ? 'error' : undefined"
                   @update:model-value="onPageRangeInput"
@@ -91,26 +91,26 @@
               </UFormField>
             </div>
 
-            <!-- 一张多页（N-up） -->
+            <!-- Страниц на листе (N-up) -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <UFormField label="每张页数" hint="将多页缩排到一张纸上">
+              <UFormField label="Страниц на листе" hint="Разместить несколько страниц на одном листе">
                 <USelect :model-value="numberUp" :items="numberUpItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:numberUp', Number($event))" />
               </UFormField>
-              <UFormField v-if="numberUp > 1" label="页面顺序">
+              <UFormField v-if="numberUp > 1" label="Порядок страниц">
                 <USelect :model-value="numberUpLayout" :items="numberUpLayoutItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:numberUpLayout', $event)" />
               </UFormField>
             </div>
-            <UFormField v-if="numberUp > 1" label="打印边框">
+            <UFormField v-if="numberUp > 1" label="Рамка">
               <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer transition hover:bg-elevated w-fit"
                 :class="pageBorder === 'single' ? 'border-primary bg-primary/5' : 'border-muted'">
                 <UCheckbox :model-value="pageBorder === 'single'" @update:model-value="$emit('update:pageBorder', $event ? 'single' : 'none')" />
                 <UIcon name="i-lucide-square" class="w-4 h-4" />
-                <span class="text-sm">为每个小页添加边框</span>
+                <span class="text-sm">Добавить рамку для каждой страницы</span>
               </label>
             </UFormField>
 
-            <!-- 页面子集（手动双面 / 分册排版） -->
-            <UFormField label="页面子集" hint="配合页面范围使用；手动双面可先打奇数页，翻面后再打偶数页">
+            <!-- Подмножество страниц -->
+            <UFormField label="Подмножество" hint="Для ручной двусторонней печати: сначала нечетные, затем четные">
               <div class="flex rounded-lg border border-muted overflow-hidden">
                 <label
                   v-for="item in pageSetItems"
@@ -125,21 +125,21 @@
               </div>
             </UFormField>
 
-            <!-- 镜像打印 -->
-            <UFormField label="镜像打印">
+            <!-- Зеркальная печать -->
+            <UFormField label="Зеркальная печать">
               <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer transition hover:bg-elevated w-fit"
                 :class="mirror ? 'border-primary bg-primary/5' : 'border-muted'">
                 <UCheckbox :model-value="mirror" @update:model-value="$emit('update:mirror', $event)" />
                 <UIcon name="i-lucide-flip-horizontal" class="w-4 h-4" />
-                <span class="text-sm">水平镜像翻转</span>
+                <span class="text-sm">Отразить по горизонтали</span>
               </label>
             </UFormField>
 
-            <!-- 水印文字 -->
-            <UFormField label="水印文字" hint="留空=不添加水印；如：仅供XX使用">
+            <!-- Водяной знак -->
+            <UFormField label="Водяной знак" hint="Пусто = без знака; Например: КОПИЯ">
               <UInput
                 :model-value="watermarkText"
-                placeholder="留空=不添加水印"
+                placeholder="Пусто = без знака"
                 class="w-full"
                 @update:model-value="$emit('update:watermarkText', $event)"
               />
@@ -188,40 +188,40 @@ const pageRangeError = ref('')
 // IPP media-source keyword → 中文名映射。不同打印机上报的纸盒关键字差异很大，
 // 未命中的关键字（如 tray-3）会走 mediaSourceLabel 的通用规则或原样显示。
 const mediaSourceNames = {
-  'auto': '自动选择',
-  'auto-select': '自动选择',
-  'main': '主纸盒',
-  'alternate': '备用纸盒',
-  'large-capacity': '大容量纸盒',
-  'manual': '手动进纸',
-  'bypass': '旁路进纸',
-  'by-pass-tray': '旁路进纸',
-  'multipurpose': '多功能纸盒',
-  'envelope': '信封纸盒',
-  'top': '上纸盒',
-  'middle': '中纸盒',
-  'bottom': '下纸盒',
-  'left': '左纸盒',
-  'right': '右纸盒',
-  'center': '中央纸盒',
-  'rear': '后纸盒',
-  'side': '侧纸盒',
-  'photo': '照片纸盒',
-  'hagaki': '明信片纸盒',
-  'disc': '光盘托盘'
+  'auto': 'Автоматически',
+  'auto-select': 'Автоматически',
+  'main': 'Основной лоток',
+  'alternate': 'Доп. лоток',
+  'large-capacity': 'Лоток большой емкости',
+  'manual': 'Ручная подача',
+  'bypass': 'Обходной лоток',
+  'by-pass-tray': 'Обходной лоток',
+  'multipurpose': 'Универсальный лоток',
+  'envelope': 'Лоток для конвертов',
+  'top': 'Верхний лоток',
+  'middle': 'Средний лоток',
+  'bottom': 'Нижний лоток',
+  'left': 'Левый лоток',
+  'right': 'Правый лоток',
+  'center': 'Центральный лоток',
+  'rear': 'Задний лоток',
+  'side': 'Боковой лоток',
+  'photo': 'Лоток для фото',
+  'hagaki': 'Лоток для открыток',
+  'disc': 'Лоток для дисков'
 }
 
 function mediaSourceLabel(key) {
   if (mediaSourceNames[key]) return mediaSourceNames[key]
-  // tray-1 / tray-2 ... → 纸盒 1 / 纸盒 2
+  // tray-1 / tray-2 ... → Лоток 1 / Лоток 2
   const m = /^tray-?(\d+)$/i.exec(key)
-  if (m) return `纸盒 ${m[1]}`
+  if (m) return `Лоток ${m[1]}`
   return key
 }
 
 // 供 USelect 使用的纸盒选项：始终含「自动选择」，其余来自打印机上报的 media-source-supported。
 const mediaSourceItems = computed(() => {
-  const items = [{ label: '自动选择', value: 'auto' }]
+  const items = [{ label: 'Автоматически', value: 'auto' }]
   for (const key of props.mediaSourceSupported) {
     if (key === 'auto' || key === 'auto-select') continue
     items.push({ label: mediaSourceLabel(key), value: key })
@@ -235,84 +235,84 @@ const advancedSummary = computed(() => {
   const scaleLabel = scalingItems.find(i => i.value === props.printScaling)?.label || props.printScaling
   const parts = [sizeLabel, typeLabel, scaleLabel]
   if (props.mediaSource && props.mediaSource !== 'auto') parts.push(mediaSourceLabel(props.mediaSource))
-  if (props.pageRange) parts.push(`页码: ${props.pageRange}`)
+  if (props.pageRange) parts.push(`Стр: ${props.pageRange}`)
   const pageSetLabel = pageSetItems.find(i => i.value === props.pageSet)?.label
   if (props.pageSet && props.pageSet !== 'all' && pageSetLabel) parts.push(pageSetLabel)
   if (props.numberUp > 1) {
-    parts.push(`${props.numberUp} 页/张`)
-    if (props.pageBorder === 'single') parts.push('带边框')
+    parts.push(`${props.numberUp} стр/лист`)
+    if (props.pageBorder === 'single') parts.push('с рамкой')
   }
-  if (props.mirror) parts.push('镜像')
-  if (props.watermarkText) parts.push(`水印: ${props.watermarkText}`)
+  if (props.mirror) parts.push('зеркало')
+  if (props.watermarkText) parts.push(`водяной знак: ${props.watermarkText}`)
   return parts.join(' / ')
 })
 
 const colorItems = [
-  { label: '彩色打印', value: true, icon: 'i-lucide-palette' },
-  { label: '黑白打印', value: false, icon: 'i-lucide-contrast' }
+  { label: 'Цветная', value: true, icon: 'i-lucide-palette' },
+  { label: 'Черно-белая', value: false, icon: 'i-lucide-contrast' }
 ]
 
 const duplexItems = [
-  { label: '单面打印', value: 'one-sided' },
-  { label: '双面（长边翻页）', value: 'two-sided-long-edge' },
-  { label: '双面（短边翻页）', value: 'two-sided-short-edge' }
+  { label: 'Односторонняя', value: 'one-sided' },
+  { label: 'Двусторонняя (длинный край)', value: 'two-sided-long-edge' },
+  { label: 'Двусторонняя (короткий край)', value: 'two-sided-short-edge' }
 ]
 
 const paperSizeItems = [
-  { label: 'A5 (148×210mm)', value: 'A5' },
-  { label: 'A4 (210×297mm)', value: 'A4' },
-  { label: 'A3 (297×420mm)', value: 'A3' },
-  { label: 'A2 (420×594mm)', value: 'A2' },
-  { label: 'A1 (594×841mm)', value: 'A1' },
-  { label: '5寸 (89×127mm)', value: '5inch' },
-  { label: '6寸 (102×152mm)', value: '6inch' },
-  { label: '7寸 (127×178mm)', value: '7inch' },
-  { label: '8寸 (152×203mm)', value: '8inch' },
-  { label: '10寸 (203×254mm)', value: '10inch' },
+  { label: 'A5 (148×210мм)', value: 'A5' },
+  { label: 'A4 (210×297мм)', value: 'A4' },
+  { label: 'A3 (297×420мм)', value: 'A3' },
+  { label: 'A2 (420×594мм)', value: 'A2' },
+  { label: 'A1 (594×841мм)', value: 'A1' },
+  { label: '5" (89×127мм)', value: '5inch' },
+  { label: '6" (102×152мм)', value: '6inch' },
+  { label: '7" (127×178мм)', value: '7inch' },
+  { label: '8" (152×203мм)', value: '8inch' },
+  { label: '10" (203×254мм)', value: '10inch' },
   { label: 'Letter (8.5×11in)', value: 'Letter' },
   { label: 'Legal (8.5×14in)', value: 'Legal' }
 ]
 
 const paperTypeItems = [
-  { label: '普通纸', value: 'plain' },
-  { label: '照片纸', value: 'photo' },
-  { label: '光面照片纸', value: 'glossy' },
-  { label: '哑光照片纸', value: 'matte' },
-  { label: '信封', value: 'envelope' },
-  { label: '卡片纸', value: 'cardstock' },
-  { label: '标签纸', value: 'labels' },
-  { label: '自动选择', value: 'auto' }
+  { label: 'Обычная бумага', value: 'plain' },
+  { label: 'Фотобумага', value: 'photo' },
+  { label: 'Глянцевая', value: 'glossy' },
+  { label: 'Матовая', value: 'matte' },
+  { label: 'Конверт', value: 'envelope' },
+  { label: 'Картон', value: 'cardstock' },
+  { label: 'Этикетки', value: 'labels' },
+  { label: 'Автоматически', value: 'auto' }
 ]
 
 const scalingItems = [
-  { label: '自动', value: 'auto' },
-  { label: '自动适应', value: 'auto-fit' },
-  { label: '适应纸张', value: 'fit' },
-  { label: '填充纸张', value: 'fill' },
-  { label: '无缩放', value: 'none' }
+  { label: 'Авто', value: 'auto' },
+  { label: 'Автоподбор', value: 'auto-fit' },
+  { label: 'По размеру', value: 'fit' },
+  { label: 'Заполнить', value: 'fill' },
+  { label: 'Без масштаба', value: 'none' }
 ]
 
 const pageSetItems = [
-  { label: '全部页', value: 'all', icon: 'i-lucide-copy' },
-  { label: '奇数页', value: 'odd', icon: 'i-lucide-list-ordered' },
-  { label: '偶数页', value: 'even', icon: 'i-lucide-list-ordered' },
-  { label: '偶数页(倒序)', value: 'even-reverse', icon: 'i-lucide-arrow-down-up' }
+  { label: 'Все', value: 'all', icon: 'i-lucide-copy' },
+  { label: 'Нечетные', value: 'odd', icon: 'i-lucide-list-ordered' },
+  { label: 'Четные', value: 'even', icon: 'i-lucide-list-ordered' },
+  { label: 'Четные (обратно)', value: 'even-reverse', icon: 'i-lucide-arrow-down-up' }
 ]
 
 const numberUpItems = [
-  { label: '1 页/张（不缩排）', value: 1 },
-  { label: '2 页/张', value: 2 },
-  { label: '4 页/张', value: 4 },
-  { label: '6 页/张', value: 6 },
-  { label: '9 页/张', value: 9 },
-  { label: '16 页/张', value: 16 }
+  { label: '1 стр/лист', value: 1 },
+  { label: '2 стр/лист', value: 2 },
+  { label: '4 стр/лист', value: 4 },
+  { label: '6 стр/лист', value: 6 },
+  { label: '9 стр/лист', value: 9 },
+  { label: '16 стр/лист', value: 16 }
 ]
 
 const numberUpLayoutItems = [
-  { label: '横向 Z 形（左→右，上→下）', value: 'lrtb' },
-  { label: '横向 Z 形（右→左，上→下）', value: 'rltb' },
-  { label: '纵向 N 形（上→下，左→右）', value: 'tblr' },
-  { label: '纵向 N 形（上→下，右→左）', value: 'tbrl' }
+  { label: 'Горизонтально Z (слева направо)', value: 'lrtb' },
+  { label: 'Горизонтально Z (справа налево)', value: 'rltb' },
+  { label: 'Вертикально N (сверху вниз)', value: 'tblr' },
+  { label: 'Вертикально N (сверху вниз, справа налево)', value: 'tbrl' }
 ]
 
 function onPageRangeInput(val) {
@@ -338,6 +338,6 @@ function validatePageRange(val) {
   }
 
   const pattern = /^(\d+(-\d+)?)(\s+\d+(-\d+)?)*$/
-  pageRangeError.value = pattern.test(val) ? '' : '格式无效，例如：1-5 8 10-12'
+  pageRangeError.value = pattern.test(val) ? '' : 'Неверный формат, например: 1-5 8 10-12'
 }
 </script>

@@ -3,7 +3,7 @@
     <template #header>
       <div class="flex items-center gap-2 font-semibold">
         <UIcon name="i-lucide-id-card" class="w-5 h-5" />
-        上传身份证
+        Загрузка ID-карты
       </div>
     </template>
     <div class="grid grid-cols-2 gap-3">
@@ -19,15 +19,15 @@
         <input ref="frontInput" type="file" accept="image/*" class="hidden" @change="onFrontChange" />
         <template v-if="!front">
           <UIcon name="i-lucide-image-plus" class="w-8 h-8 text-muted mb-1" />
-          <p class="text-sm text-muted">正面</p>
-          <p class="text-xs text-muted">点击或拖拽上传</p>
+          <p class="text-sm text-muted">Лицевая сторона</p>
+          <p class="text-xs text-muted">Нажмите или перетащите</p>
         </template>
         <template v-else>
           <img :src="frontPreview" class="max-h-[80px] max-w-full object-contain rounded mb-1" />
           <p class="text-xs text-muted truncate w-full">{{ front.name }}</p>
           <div class="flex gap-1 mt-1">
-            <UButton variant="ghost" size="xs" icon="i-lucide-crop" @click.stop="reCropFront">裁剪</UButton>
-            <UButton variant="ghost" size="xs" color="error" icon="i-lucide-x" @click.stop="removeFront">移除</UButton>
+            <UButton variant="ghost" size="xs" icon="i-lucide-crop" @click.stop="reCropFront">Обрезать</UButton>
+            <UButton variant="ghost" size="xs" color="error" icon="i-lucide-x" @click.stop="removeFront">Удалить</UButton>
           </div>
         </template>
       </div>
@@ -43,15 +43,15 @@
         <input ref="backInput" type="file" accept="image/*" class="hidden" @change="onBackChange" />
         <template v-if="!back">
           <UIcon name="i-lucide-image-plus" class="w-8 h-8 text-muted mb-1" />
-          <p class="text-sm text-muted">反面</p>
-          <p class="text-xs text-muted">点击或拖拽上传</p>
+          <p class="text-sm text-muted">Оборотная сторона</p>
+          <p class="text-xs text-muted">Нажмите или перетащите</p>
         </template>
         <template v-else>
           <img :src="backPreview" class="max-h-[80px] max-w-full object-contain rounded mb-1" />
           <p class="text-xs text-muted truncate w-full">{{ back.name }}</p>
           <div class="flex gap-1 mt-1">
-            <UButton variant="ghost" size="xs" icon="i-lucide-crop" @click.stop="reCropBack">裁剪</UButton>
-            <UButton variant="ghost" size="xs" color="error" icon="i-lucide-x" @click.stop="removeBack">移除</UButton>
+            <UButton variant="ghost" size="xs" icon="i-lucide-crop" @click.stop="reCropBack">Обрезать</UButton>
+            <UButton variant="ghost" size="xs" color="error" icon="i-lucide-x" @click.stop="removeBack">Удалить</UButton>
           </div>
         </template>
       </div>

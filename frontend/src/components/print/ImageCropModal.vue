@@ -4,15 +4,15 @@
       <div class="p-4 space-y-4">
         <h3 class="text-lg font-semibold flex items-center gap-2">
           <UIcon name="i-lucide-crop" class="w-5 h-5" />
-          裁剪身份证
+          Обрезка ID-карты
         </h3>
         <div class="relative bg-elevated rounded-lg overflow-hidden" style="max-height: 60vh;">
           <img ref="imgRef" :src="imageUrl" class="max-w-full block" />
         </div>
         <div class="flex items-center gap-2">
           <div class="flex gap-1 shrink-0">
-            <UButton variant="outline" size="sm" icon="i-lucide-rotate-ccw" @click="rotateLeft">左旋</UButton>
-            <UButton variant="outline" size="sm" icon="i-lucide-rotate-cw" @click="rotateRight">右旋</UButton>
+            <UButton variant="outline" size="sm" icon="i-lucide-rotate-ccw" @click="rotateLeft">Влево</UButton>
+            <UButton variant="outline" size="sm" icon="i-lucide-rotate-cw" @click="rotateRight">Вправо</UButton>
           </div>
           <input
             type="range"
@@ -27,8 +27,8 @@
           <UButton v-if="fineAngle !== 0" variant="ghost" size="xs" icon="i-lucide-undo-2" @click="resetFine" />
         </div>
         <div class="flex justify-end gap-2">
-          <UButton variant="ghost" @click="cancel">取消</UButton>
-          <UButton color="primary" icon="i-lucide-check" @click="confirm">确认裁剪</UButton>
+          <UButton variant="ghost" @click="cancel">Отмена</UButton>
+          <UButton color="primary" icon="i-lucide-check" @click="confirm">Обрезать</UButton>
         </div>
       </div>
     </template>

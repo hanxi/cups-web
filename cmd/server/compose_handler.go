@@ -7,13 +7,13 @@ import (
 
 func composeHandler(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(512 << 20); err != nil {
-		writeJSONError(w, http.StatusBadRequest, "invalid multipart form")
+		writeJSONError(w, http.StatusBadRequest, "неверная форма multipart")
 		return
 	}
 
 	mode := r.FormValue("mode")
 	if mode == "" {
-		writeJSONError(w, http.StatusBadRequest, "missing mode field")
+		writeJSONError(w, http.StatusBadRequest, "отсутствует поле mode")
 		return
 	}
 
@@ -24,7 +24,7 @@ func composeHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if len(headers) == 0 {
-		writeJSONError(w, http.StatusBadRequest, "no files provided")
+		writeJSONError(w, http.StatusBadRequest, "не предоставлено ни одного файла")
 		return
 	}
 
@@ -45,15 +45,15 @@ func composeHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		outPath, cleanup, err = composeIdCard(ctx, headers, paper)
 	default:
-		writeJSONError(w, http.StatusBadRequest, "unsupported mode: "+mode)
+		writeJSONError(w, http.StatusBadRequest, "неподдерживаемый режим: "+mode)
 		return
 	}
 
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "compose failed: "+err.Error())
+		writeJSONError(w, http.StatusInternalServerError, "ошибка компоновки: "+err.Error())
 		return
 	}
 	defer cleanup()
 
-	streamPDF(w, outPath, "composed.pdf")
+	streamPDF(w, outPath, "скомпонованный.pdf")
 }

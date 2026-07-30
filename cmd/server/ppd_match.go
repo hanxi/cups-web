@@ -200,21 +200,21 @@ func ppdSourceRank(s PPDSource) int {
 func ppdSourceLabel(s PPDSource) string {
 	switch s {
 	case PPDSourceCustom:
-		return "管理员上传的 PPD"
+		return "PPD загружен администратором"
 	case PPDSourceVendor:
-		return "厂商原厂驱动"
+		return "Оригинальный драйвер производителя"
 	case PPDSourceHPLIP:
-		return "HP 官方开源驱动 (HPLIP)"
+		return "Официальный драйвер HP (HPLIP)"
 	case PPDSourceEverywhere:
-		return "免驱动 IPP Everywhere（由打印机自报能力）"
+		return "IPP Everywhere (без драйвера)"
 	case PPDSourceFoomatic:
-		return "社区驱动 (Foomatic)"
+		return "Сообщество (Foomatic)"
 	case PPDSourceGutenprint:
-		return "Gutenprint 高质量驱动"
+		return "Высококачественный драйвер Gutenprint"
 	case PPDSourceGeneric:
-		return "通用 PostScript / PCL（功能可能受限）"
+		return "Универсальный PostScript / PCL (ограниченные функции)"
 	}
-	return "未知来源"
+	return "Неизвестный источник"
 }
 
 // ── 厂商别名归一 ───────────────────────────────────────────────────────────────
@@ -948,7 +948,7 @@ func uniquePrinterNameChecked(base string, existing map[string]string) (string, 
 			return candidate, nil
 		}
 	}
-	return "", fmt.Errorf("队列名 %s 的 50 个变体全部被占用", name)
+	return "", fmt.Errorf("Все 50 вариантов имени очереди %s заняты", name)
 }
 
 // ── driverless scheme 门槛（纯函数部分）──────────────────────────────────────
@@ -978,7 +978,7 @@ func driverlessSchemeCheck(uri string, entries []PPDEntry) driverlessInfo {
 	if !driverlessSchemes[scheme] {
 		return driverlessInfo{
 			Available: false,
-			Reason:    fmt.Sprintf("%s 连接不支持免驱动模式（仅 IPP 连接可用）", scheme),
+			Reason:    fmt.Sprintf("Подключение %s не поддерживает режим без драйверов (доступно только для IPP)", scheme),
 		}
 	}
 	hasEverywhere := false
@@ -991,13 +991,13 @@ func driverlessSchemeCheck(uri string, entries []PPDEntry) driverlessInfo {
 	if !hasEverywhere {
 		return driverlessInfo{
 			Available: false,
-			Reason:    "当前 CUPS 不支持 IPP Everywhere（lpinfo -m 中无 everywhere 条目）",
+			Reason:    "Текущий CUPS не поддерживает IPP Everywhere (в lpinfo -m нет записи everywhere)",
 		}
 	}
 	return driverlessInfo{
 		Available: true,
 		Level:     1,
-		Reason:    "IPP 连接，CUPS 支持免驱动模式",
+		Reason:    "IPP соединение, CUPS поддерживает режим без драйверов",
 	}
 }
 

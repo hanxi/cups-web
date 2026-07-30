@@ -177,11 +177,11 @@ func startDriverJob(kind, name string, fn func(ctx context.Context, logBuf *safe
 		if err != nil {
 			job.status = driverJobFailed
 			job.errMsg = err.Error()
-			log.Printf("[driver-job] %s(%s) 失败: %v", job.kind, job.name, err)
+			log.Printf("[driver-job] %s(%s) ошибка: %v", job.kind, job.name, err)
 		} else {
 			job.status = driverJobSucceeded
 			job.result = result
-			log.Printf("[driver-job] %s(%s) 成功", job.kind, job.name)
+			log.Printf("[driver-job] %s(%s) успешно", job.kind, job.name)
 		}
 	}()
 
@@ -203,7 +203,7 @@ func runningDriverJobID() string {
 // writeDriverJobBusy 统一回 409，并带上正在跑的 jobId 供前端直接切过去轮询。
 func writeDriverJobBusy(w http.ResponseWriter, jobID string) {
 	writeJSONStatus(w, http.StatusConflict, map[string]any{
-		"error": "已有驱动任务正在执行，请等待其完成后重试",
+		"error": "Задача драйвера уже выполняется, попробуйте позже",
 		"jobId": jobID,
 	})
 }
@@ -219,7 +219,7 @@ func runDriverCommand(ctx context.Context, logBuf *safeBuffer, name string, args
 	cmd.Stdout = logBuf
 	cmd.Stderr = logBuf
 	if err := cmd.Run(); err != nil {
-		fmt.Fprintf(logBuf, "!! 命令失败: %v\n", err)
+		fmt.Fprintf(logBuf, "!! Ошибка команды: %v\n", err)
 		return err
 	}
 	return nil
@@ -237,7 +237,7 @@ func adminDriverJobHandler(w http.ResponseWriter, r *http.Request) {
 	driverJobsMu.Unlock()
 
 	if view == nil {
-		writeJSONError(w, http.StatusNotFound, "unknown job id")
+		writeJSONError(w, http.StatusNotFound, "неизвестный идентификатор задачи")
 		return
 	}
 	writeJSON(w, view)
@@ -277,7 +277,7 @@ func adminListDriversHandler(w http.ResponseWriter, r *http.Request) {
 		"customDebs":  listCustomDebs(),
 		// 明确告知前端：.deb 的安装副作用（maintainer script）无法用文件清单恢复，
 		// 容器重启后必须手动重新上传，绝不能静默丢失。
-		"customDebNotice": "上传的 .deb 包不会随容器重启自动恢复，重启后需要重新上传安装。",
+		"customDebNotice": "Загруженные .deb пакеты не восстанавливаются автоматически при перезапуске контейнера. Их нужно переустановить вручную.",
 	})
 }
 
@@ -337,22 +337,22 @@ func adminInstallDriverHandler(w http.ResponseWriter, r *http.Request) {
 		Name string `json:"name"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeJSONError(w, http.StatusBadRequest, "invalid request body")
+		writeJSONError(w, http.StatusBadRequest, "неверные данные запроса")
 		return
 	}
 	if payload.Name == "" {
-		writeJSONError(w, http.StatusBadRequest, "driver name is required")
+		writeJSONError(w, http.StatusBadRequest, "имя драйвера обязательно")
 		return
 	}
 	meta := findDriverByName(payload.Name)
 	if meta == nil {
-		writeJSONError(w, http.StatusNotFound, "unknown driver: "+payload.Name)
+		writeJSONError(w, http.StatusNotFound, "неизвестный драйвер: "+payload.Name)
 		return
 	}
 	arch := currentDebArch()
 	if !driverSupportsArch(*meta, arch) {
 		writeJSONError(w, http.StatusBadRequest,
-			fmt.Sprintf("驱动 %s 不支持当前架构 %s", meta.DisplayName, arch))
+			fmt.Sprintf("Драйвер %s не поддерживает текущую архитектуру %s", meta.DisplayName, arch))
 		return
 	}
 
@@ -382,11 +382,11 @@ func adminRemoveDriverHandler(w http.ResponseWriter, r *http.Request) {
 		Name string `json:"name"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeJSONError(w, http.StatusBadRequest, "invalid request body")
+		writeJSONError(w, http.StatusBadRequest, "неверные данные запроса")
 		return
 	}
 	if payload.Name == "" {
-		writeJSONError(w, http.StatusBadRequest, "driver name is required")
+		writeJSONError(w, http.StatusBadRequest, "имя драйвера обязательно")
 		return
 	}
 
@@ -438,16 +438,15 @@ func adminDetectPrintersHandler(w http.ResponseWriter, r *http.Request) {
 	output, err := exec.CommandContext(ctx, "lpinfo", args...).Output()
 	if err != nil {
 		log.Printf("[driver-detect] lpinfo %v failed: %v", args, err)
-		writeJSONError(w, http.StatusInternalServerError, "failed to detect printers")
+		writeJSONError(w, http.StatusInternalServerError, "не удалось обнаружить принтеры")
 		return
 	}
 
 	printers := parseLpinfoDevices(string(output))
 
-	// PPD 列表走缓存（不再每台设备 fork 一次 lpinfo -m）。
 	entries, entriesErr := cachedPPDEntries(ctx)
 	if entriesErr != nil {
-		log.Printf("[driver-detect] lpinfo -m failed (降级为无 PPD 信息): %v", entriesErr)
+		log.Printf("[driver-detect] lpinfo -m failed (сбой получения списка PPD: %v", entriesErr)
 	}
 
 	// 队列快照：一次 lpstat -v 拿到所有已有队列的 device-uri 映射。
@@ -467,7 +466,7 @@ func adminDetectPrintersHandler(w http.ResponseWriter, r *http.Request) {
 				Model:        p.Model,
 				DeviceID:     p.DeviceID,
 				Scheme:       p.Scheme,
-				PreferLang:   "zh",
+				PreferLang:   "ru",
 			}
 			cands := ScorePPDCandidates(entries, in, 5)
 			p.CandidateCount = len(cands)
@@ -529,7 +528,7 @@ func adminListPPDCandidatesHandler(w http.ResponseWriter, r *http.Request) {
 	case ppdQuerySem <- struct{}{}:
 		defer func() { <-ppdQuerySem }()
 	default:
-		writeJSONError(w, http.StatusTooManyRequests, "候选查询繁忙，请稍后重试")
+		writeJSONError(w, http.StatusTooManyRequests, "запрос списка драйверов занят, попробуйте позже")
 		return
 	}
 
@@ -551,7 +550,7 @@ func adminListPPDCandidatesHandler(w http.ResponseWriter, r *http.Request) {
 	cands, dlInfo, driverdMatched, err := matchPPDCandidates(ctx, nil,
 		manufacturer, model, deviceID, deviceURI, true, limit)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("PPD 匹配失败: %v", err))
+		writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("сбой подбора PPD: %v", err))
 		return
 	}
 
@@ -779,45 +778,44 @@ func adminSetupPrinterHandler(w http.ResponseWriter, r *http.Request) {
 		AllowRaw     bool   `json:"allowRaw"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeJSONError(w, http.StatusBadRequest, "invalid request body")
+		writeJSONError(w, http.StatusBadRequest, "неверные данные запроса")
 		return
 	}
 	payload.DeviceURI = strings.TrimSpace(payload.DeviceURI)
 	if payload.DeviceURI == "" {
-		writeJSONError(w, http.StatusBadRequest, "deviceUri is required")
+		writeJSONError(w, http.StatusBadRequest, "deviceUri обязателен")
 		return
 	}
 	if payload.DriverName != "" {
 		meta := findDriverByName(payload.DriverName)
 		if meta == nil {
-			writeJSONError(w, http.StatusNotFound, "unknown driver: "+payload.DriverName)
+			writeJSONError(w, http.StatusNotFound, "неизвестный драйвер: "+payload.DriverName)
 			return
 		}
 		arch := currentDebArch()
 		if !driverSupportsArch(*meta, arch) {
 			writeJSONError(w, http.StatusBadRequest,
-				fmt.Sprintf("驱动 %s 不支持当前架构 %s", meta.DisplayName, arch))
+				fmt.Sprintf("Драйвер %s не поддерживает текущую архитектуру %s", meta.DisplayName, arch))
 			return
 		}
 	}
 
-	// handler 层预校验 ppdUri（job 内会再复核一次）。
 	ppdURI := strings.TrimSpace(payload.PPDURI)
 	if ppdURI != "" && ppdURI != "everywhere" && ppdURI != "__raw__" {
 		if err := ValidatePPDNameSyntax(ppdURI); err != nil {
-			writeJSONError(w, http.StatusBadRequest, fmt.Sprintf("ppdUri 不合法: %v", err))
+			writeJSONError(w, http.StatusBadRequest, fmt.Sprintf("ppdUri невалиден: %v", err))
 			return
 		}
 	}
 	if ppdURI == "__raw__" && !payload.AllowRaw {
-		writeJSONError(w, http.StatusBadRequest, "建立 raw 队列需要显式设置 allowRaw=true")
+		writeJSONError(w, http.StatusBadRequest, "для создания raw очереди нужно явно указать allowRaw=true")
 		return
 	}
 	if ppdURI == "everywhere" {
 		scheme := uriScheme(payload.DeviceURI)
 		if !driverlessSchemes[scheme] {
 			writeJSONError(w, http.StatusBadRequest,
-				fmt.Sprintf("%s 连接不支持 IPP Everywhere（仅 IPP 连接可用）", scheme))
+				fmt.Sprintf("%s подключение не поддерживает IPP Everywhere (доступно только для IPP)", scheme))
 			return
 		}
 	}
@@ -826,7 +824,6 @@ func adminSetupPrinterHandler(w http.ResponseWriter, r *http.Request) {
 	job, busyID := startDriverJob("setup", req.DriverName, func(ctx context.Context, logBuf *safeBuffer) (map[string]any, error) {
 		driverInstalled := false
 
-		// 第 1 步：驱动未安装时先装。
 		if req.DriverName != "" {
 			manifestPath := filepath.Join(driversDataDir, req.DriverName, "manifest.txt")
 			if _, err := os.Stat(manifestPath); os.IsNotExist(err) {
@@ -837,11 +834,10 @@ func adminSetupPrinterHandler(w http.ResponseWriter, r *http.Request) {
 				invalidatePPDModels()
 				refreshPPDEntriesAfterInstall(ctx, logBuf)
 			} else {
-				fmt.Fprintf(logBuf, "驱动 %s 已安装，跳过安装步骤\n", req.DriverName)
+				fmt.Fprintf(logBuf, "Драйвер %s уже установлен, шаг установки пропущен\n", req.DriverName)
 			}
 		}
 
-		// 第 2 步：确定厂商/型号（来源优先级修正）。
 		manufacturer, model := strings.TrimSpace(req.Manufacturer), strings.TrimSpace(req.Model)
 		if model == "" {
 			manufacturer, model = parseDeviceID(req.DeviceID)
@@ -850,7 +846,6 @@ func adminSetupPrinterHandler(w http.ResponseWriter, r *http.Request) {
 			manufacturer, model = parseDeviceURI(req.DeviceURI)
 		}
 
-		// 第 3 步：决定 -m 参数（三态决策树）。
 		ppdURI := strings.TrimSpace(req.PPDURI)
 		decision := "auto-top1"
 		var cands []PPDCandidate
@@ -858,20 +853,17 @@ func adminSetupPrinterHandler(w http.ResponseWriter, r *http.Request) {
 
 		switch {
 		case ppdURI == "__raw__":
-			// a) 显式 raw：不传 -m，大字告警。
-			fmt.Fprintf(logBuf, "⚠⚠⚠ 建立 raw 队列（无驱动）：将无法选择纸盒/双面，多数打印机会打出乱码 ⚠⚠⚠\n")
+			fmt.Fprintf(logBuf, "⚠⚠⚠ Создается raw очередь (без драйвера): выбор лотка/дуплекса будут недоступны, на большинстве принтеров печать будет в виде символов ⚠⚠⚠\n")
 			decision = "raw-explicit"
 
 		case ppdURI == "everywhere":
-			// b) 显式 IPP Everywhere。
 			decision = "everywhere"
-			fmt.Fprintf(logBuf, "使用 IPP Everywhere（-m everywhere）\n")
+			fmt.Fprintf(logBuf, "Используется IPP Everywhere (-m everywhere)\n")
 
 		case ppdURI != "":
-			// c) 显式 ppd-name：job 内复核语义白名单。
 			entries, err := cachedPPDEntries(ctx)
 			if err != nil {
-				return nil, fmt.Errorf("获取 PPD 列表失败: %w", err)
+				return nil, fmt.Errorf("не удалось получить список PPD: %w", err)
 			}
 			found := false
 			for i := range entries {
@@ -881,40 +873,37 @@ func adminSetupPrinterHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			if !found {
-				return nil, fmt.Errorf("指定的驱动不存在: %s（请重新扫描后再选）", ppdURI)
+				return nil, fmt.Errorf("указанный драйвер не найден: %s (пожалуйста, пересканируйте и попробуйте снова)", ppdURI)
 			}
 			decision = "explicit"
-			fmt.Fprintf(logBuf, "使用管理员指定的 PPD: %s\n", ppdURI)
+			fmt.Fprintf(logBuf, "Используется PPD, указанный администратором: %s\n", ppdURI)
 
 		default:
-			// d) 自动匹配。
 			var matchErr error
 			cands, dlInfo, _, matchErr = matchPPDCandidates(ctx, logBuf,
 				manufacturer, model, req.DeviceID, req.DeviceURI, true, 5)
 			if matchErr != nil {
-				fmt.Fprintf(logBuf, "PPD 匹配出错: %v\n", matchErr)
+				fmt.Fprintf(logBuf, "Ошибка подбора PPD: %v\n", matchErr)
 			}
 			ppdURI = bestPPDFromCandidates(cands)
 			if ppdURI != "" {
 				decision = "auto-top1"
-				fmt.Fprintf(logBuf, "自动匹配 PPD: %s\n", ppdURI)
+				fmt.Fprintf(logBuf, "Автоматически подобран PPD: %s\n", ppdURI)
 			} else if dlInfo.Available {
 				ppdURI = "everywhere"
 				decision = "everywhere-fallback"
-				fmt.Fprintf(logBuf, "无型号匹配，降级使用 IPP Everywhere（-m everywhere）\n")
+				fmt.Fprintf(logBuf, "Совпадений по модели не найдено, используется резервный вариант IPP Everywhere (-m everywhere)\n")
 			} else {
-				// d3) 一个候选都没有 → 报错，绝不静默建 raw。
 				fmt.Fprintf(logBuf, "device-id: %s\n", req.DeviceID)
-				fmt.Fprintf(logBuf, "解析结果: manufacturer=%q model=%q\n", manufacturer, model)
+				fmt.Fprintf(logBuf, "Результат разбора: manufacturer=%q model=%q\n", manufacturer, model)
 				return nil, fmt.Errorf(
-					"未能为该打印机匹配到驱动。请在候选列表中手动选择，或确认建立 raw 队列（无驱动，将无法选择纸盒/双面，多数打印机会打出乱码）")
+					"не удалось подобрать драйвер для этого принтера. Пожалуйста, выберите вручную из списка кандидатов или явно разрешите создание raw очереди (без драйвера, при этом выбор лотка/дуплекса будут недоступны)")
 			}
 		}
 
-		// 第 4 步：队列名（去重 + 同 URI 拒绝覆盖）。
 		queues, _ := listExistingQueues(ctx)
 		if existing := findQueueByURI(queues, req.DeviceURI); existing != "" {
-			return nil, fmt.Errorf("该设备已添加为队列 %s，如需重新配置请先删除该队列", existing)
+			return nil, fmt.Errorf("это устройство уже добавлено как очередь %s. Если нужно переназначить, сначала удалите эту очередь", existing)
 		}
 		base := req.PrinterName
 		if base == "" {
@@ -935,17 +924,15 @@ func adminSetupPrinterHandler(w http.ResponseWriter, r *http.Request) {
 			renamedFrom = base
 		}
 
-		// 第 5 步：lpadmin 添加并启用。
 		args := []string{"-p", printerName, "-E", "-v", req.DeviceURI}
 		expectPPD := ppdURI != "" && ppdURI != "__raw__"
 		if expectPPD {
 			args = append(args, "-m", ppdURI)
 		}
 		lpadminErr := runDriverCommand(ctx, logBuf, "lpadmin", args...)
-		// -m everywhere 失败时自动降级重试一次 Top-1（lpadmin 失败时队列不会被创建，重试无副作用）。
 		if lpadminErr != nil && ppdURI == "everywhere" && len(cands) > 0 {
 			if fallback := bestPPDFromCandidates(cands); fallback != "" {
-				fmt.Fprintf(logBuf, "everywhere 失败，降级重试 PPD: %s\n", fallback)
+				fmt.Fprintf(logBuf, "everywhere не сработал, пробуем резервный PPD: %s\n", fallback)
 				args2 := []string{"-p", printerName, "-E", "-v", req.DeviceURI, "-m", fallback}
 				if err2 := runDriverCommand(ctx, logBuf, "lpadmin", args2...); err2 == nil {
 					ppdURI = fallback
@@ -956,22 +943,18 @@ func adminSetupPrinterHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if lpadminErr != nil {
-			return nil, fmt.Errorf("failed to add printer: %w", lpadminErr)
+			return nil, fmt.Errorf("не удалось добавить принтер: %w", lpadminErr)
 		}
 
-		// 第 6 步：默认纸张设为 A4（国内场景），失败不影响整体成功。
 		if err := runDriverCommand(ctx, logBuf, "lpadmin", "-p", printerName, "-o", "media=iso_a4_210x297mm"); err != nil {
-			fmt.Fprintf(logBuf, "设置 A4 默认纸张失败（不影响使用）: %v\n", err)
+			fmt.Fprintf(logBuf, "Не удалось установить формат бумаги A4 по умолчанию (не влияет на работу): %v\n", err)
 		}
 
-		// 第 7 步：验证队列是否真正生效。
 		optionCount, mediaSourceCount, warnings := verifyPrinterQueue(ctx, logBuf, printerName, expectPPD)
 		if expectPPD && optionCount == 0 {
-			// PPD 没真正生效（"假成功 raw 队列"）→ 回滚删除。
-			// 走到这里的队列一定是本次 lpadmin 新建的（前面 findQueueByURI 已拒绝过重复 URI）。
-			fmt.Fprintf(logBuf, "PPD 未生效，回滚删除队列 %s\n", printerName)
+			fmt.Fprintf(logBuf, "PPD не применился, отменяем и удаляем очередь %s\n", printerName)
 			runDriverCommand(ctx, logBuf, "lpadmin", "-x", printerName)
-			return nil, fmt.Errorf("PPD 未真正生效（lpoptions 输出为空），队列可能是 raw 模式")
+			return nil, fmt.Errorf("PPD не применился на самом деле (вывод lpoptions пуст), очередь, вероятно, работает в режиме raw")
 		}
 		for _, w := range warnings {
 			fmt.Fprintf(logBuf, "⚠ %s\n", w)
@@ -1029,13 +1012,11 @@ func adminUploadDriverHandler(w http.ResponseWriter, r *http.Request) {
 
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		writeJSONError(w, http.StatusBadRequest, "file is required")
+		writeJSONError(w, http.StatusBadRequest, "файл обязателен")
 		return
 	}
 	defer file.Close()
 
-	// 显式做一次 Base + 白名单校验：不要依赖 multipart 实现内部恰好做了 filepath.Base，
-	// 否则一旦标准库行为变化就会变成目录穿越写任意文件。
 	filename, err := safeUploadFilename(header.Filename)
 	if err != nil {
 		writeJSONError(w, http.StatusBadRequest, err.Error())
@@ -1048,22 +1029,21 @@ func adminUploadDriverHandler(w http.ResponseWriter, r *http.Request) {
 	case ".ppd":
 		content, err := io.ReadAll(file)
 		if err != nil {
-			writeJSONError(w, http.StatusInternalServerError, "failed to read file")
+			writeJSONError(w, http.StatusInternalServerError, "не удалось прочитать файл")
 			return
 		}
-		// 校验 PPD 头（只看开头一小段，PPD 规范要求首行就是 *PPD-Adobe）。
 		head := content
 		if len(head) > 256 {
 			head = head[:256]
 		}
 		if !strings.Contains(string(head), "*PPD-Adobe") {
-			writeJSONError(w, http.StatusBadRequest, "invalid PPD file (missing *PPD-Adobe header)")
+			writeJSONError(w, http.StatusBadRequest, "недопустимый файл PPD (отсутствует заголовок *PPD-Adobe)")
 			return
 		}
 
 		if err := installCustomPPD(filename, content); err != nil {
 			log.Printf("[driver-upload] PPD %s 安装失败 (user=%s): %v", filename, username, err)
-			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("failed to install PPD: %v", err))
+			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("не удалось установить PPD: %v", err))
 			return
 		}
 
@@ -1072,7 +1052,6 @@ func adminUploadDriverHandler(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, map[string]any{"ok": true, "type": "ppd", "filename": filename})
 
 	case ".deb":
-		// dpkg 有全局锁，正在跑的驱动任务会和它抢锁，直接拒绝更清晰。
 		if busyID := runningDriverJobID(); busyID != "" {
 			writeDriverJobBusy(w, busyID)
 			return
@@ -1080,7 +1059,7 @@ func adminUploadDriverHandler(w http.ResponseWriter, r *http.Request) {
 
 		tmpFile, err := os.CreateTemp("", "driver-upload-*.deb")
 		if err != nil {
-			writeJSONError(w, http.StatusInternalServerError, "failed to create temp file")
+			writeJSONError(w, http.StatusInternalServerError, "не удалось создать временный файл")
 			return
 		}
 		tmpPath := tmpFile.Name()
@@ -1088,11 +1067,11 @@ func adminUploadDriverHandler(w http.ResponseWriter, r *http.Request) {
 
 		if _, err := io.Copy(tmpFile, file); err != nil {
 			tmpFile.Close()
-			writeJSONError(w, http.StatusInternalServerError, "failed to save file")
+			writeJSONError(w, http.StatusInternalServerError, "не удалось сохранить файл")
 			return
 		}
 		if err := tmpFile.Close(); err != nil {
-			writeJSONError(w, http.StatusInternalServerError, "failed to save file")
+			writeJSONError(w, http.StatusInternalServerError, "не удалось сохранить файл")
 			return
 		}
 
@@ -1100,17 +1079,15 @@ func adminUploadDriverHandler(w http.ResponseWriter, r *http.Request) {
 		installLog, err := installDebPackage(r.Context(), tmpPath)
 		if err != nil {
 			log.Printf("[driver-upload] deb %s 安装失败 (user=%s): %v\n%s", filename, username, err, installLog)
-			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("package installation failed: %v", err))
+			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("ошибка установки пакета: %v", err))
 			return
 		}
 		invalidatePPDModels()
 
-		// 归档原件，至少让用户在列表里看得到"装过什么"；
-		// 归档失败不影响本次安装成功，只是重启后无从追溯，故降级为警告。
-		warning := "该 .deb 不会随容器重启自动恢复，重启后需要重新上传安装。"
+		warning := "Этот пакет .deb не восстанавливается автоматически после перезапуска контейнера. Его нужно переустановить вручную."
 		if err := persistUploadedDeb(filename, tmpPath, username); err != nil {
 			log.Printf("[driver-upload] deb %s 归档失败 (user=%s): %v", filename, username, err)
-			warning = "该 .deb 安装成功但归档失败，容器重启后需要重新上传安装（且列表中不会显示该包）。"
+			warning = "Пакет .deb успешно установлен, но не удалось сохранить архив. После перезапуска контейнера его нужно переустановить заново (он не будет отображаться в списке)."
 		}
 
 		log.Printf("[driver-upload] 已安装 deb: %s (user=%s)", filename, username)
@@ -1123,20 +1100,18 @@ func adminUploadDriverHandler(w http.ResponseWriter, r *http.Request) {
 		})
 
 	default:
-		writeJSONError(w, http.StatusBadRequest, "unsupported file type (use .ppd or .deb)")
+		writeJSONError(w, http.StatusBadRequest, "неподдерживаемый тип файла (используйте .ppd или .deb)")
 	}
 }
 
-// safeUploadFilename 把上传文件名收敛为安全的纯文件名。
 func safeUploadFilename(raw string) (string, error) {
-	// Windows 客户端可能带反斜杠路径，filepath.Base 在 Linux 上不认，先手工切一次。
 	if idx := strings.LastIndexAny(raw, `\/`); idx >= 0 {
 		raw = raw[idx+1:]
 	}
 	name := filepath.Base(strings.TrimSpace(raw))
 	if name == "" || name == "." || name == ".." || name == string(filepath.Separator) ||
 		strings.ContainsAny(name, `/\`) || strings.HasPrefix(name, ".") {
-		return "", errors.New("invalid file name")
+		return "", errors.New("недопустимое имя файла")
 	}
 	return name, nil
 }
@@ -1211,12 +1186,12 @@ func installDebPackage(ctx context.Context, debPath string) (string, error) {
 		return logBuf.String(), nil
 	}
 
-	fmt.Fprintf(&logBuf, "dpkg -i 失败，尝试用 apt-get -f install 修复依赖后重试\n")
+	fmt.Fprintf(&logBuf, "dpkg -i не сработал, пробуем исправить зависимости через apt-get -f install и повторяем\n")
 	if fixErr := runDriverCommand(ctx, &logBuf, "apt-get", "install", "-y", "-f", "--no-install-recommends"); fixErr != nil {
-		return logBuf.String(), fmt.Errorf("dpkg -i 失败 (%v)，apt-get -f install 也失败 (%v)", err, fixErr)
+		return logBuf.String(), fmt.Errorf("dpkg -i ошибся (%v), apt-get -f install тоже ошибся (%v)", err, fixErr)
 	}
 	if retryErr := runDriverCommand(ctx, &logBuf, "dpkg", "-i", debPath); retryErr != nil {
-		return logBuf.String(), fmt.Errorf("修复依赖后 dpkg -i 仍失败: %w", retryErr)
+		return logBuf.String(), fmt.Errorf("после исправления зависимостей dpkg -i все еще ошибся: %w", retryErr)
 	}
 	return logBuf.String(), nil
 }

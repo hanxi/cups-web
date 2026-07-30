@@ -48,7 +48,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var req loginReq
 	_ = json.NewDecoder(r.Body).Decode(&req)
 	if req.Username == "" || req.Password == "" {
-		writeJSONError(w, http.StatusBadRequest, "missing credentials")
+		writeJSONError(w, http.StatusBadRequest, "отсутствуют учетные данные")
 		return
 	}
 
@@ -56,7 +56,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	key := loginKey(r, req.Username)
 	if ok, _ := loginAllowed(key); !ok {
 		log.Printf("[login] rate limited: key=%q", key)
-		writeJSONError(w, http.StatusTooManyRequests, "too many attempts, please try again later")
+		writeJSONError(w, http.StatusTooManyRequests, "слишком много попыток, пожалуйста, попробуйте позже")
 		return
 	}
 
@@ -74,23 +74,23 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			// 用户不存在也执行一次等价 bcrypt 比较，抹平时序差异防用户枚举。
 			_ = bcrypt.CompareHashAndPassword([]byte(dummyBcryptHash), []byte(req.Password))
 			registerLoginFailure(key)
-			writeJSONError(w, http.StatusUnauthorized, "invalid credentials")
+			writeJSONError(w, http.StatusUnauthorized, "неверные учетные данные")
 			return
 		}
-		writeJSONError(w, http.StatusInternalServerError, "login failed")
+		writeJSONError(w, http.StatusInternalServerError, "ошибка входа")
 		return
 	}
 
 	if bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)) != nil {
 		registerLoginFailure(key)
-		writeJSONError(w, http.StatusUnauthorized, "invalid credentials")
+		writeJSONError(w, http.StatusUnauthorized, "неверные учетные данные")
 		return
 	}
 	clearLoginFailures(key)
 
 	sess := auth.Session{UserID: user.ID, Username: user.Username, Role: user.Role}
 	if err := auth.SetSession(w, sess); err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "session error")
+		writeJSONError(w, http.StatusInternalServerError, "ошибка сессии")
 		return
 	}
 	// set csrf token cookie (readable by JS)
@@ -117,7 +117,7 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 func SessionHandler(w http.ResponseWriter, r *http.Request) {
 	sess, err := auth.GetSession(r)
 	if err != nil {
-		writeJSONError(w, http.StatusUnauthorized, "unauthorized")
+		writeJSONError(w, http.StatusUnauthorized, "не авторизован")
 		return
 	}
 	writeJSON(w, sess)

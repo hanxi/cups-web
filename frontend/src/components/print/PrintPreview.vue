@@ -4,8 +4,8 @@
       <div class="flex items-center justify-between gap-2 flex-wrap">
         <div class="flex items-center gap-2 font-semibold">
           <UIcon name="i-lucide-eye" class="w-5 h-5" />
-          预览
-          <!-- 纵向/横向快捷切换（取代移动端冗余尺寸文本） -->
+          Предпросмотр
+          <!-- 纵向/横向快捷切换 -->
           <div class="flex rounded-md border border-muted overflow-hidden ml-1">
             <button
               v-for="item in orientationItems"
@@ -50,10 +50,10 @@
       </div>
     </div>
     <div v-else class="py-6 text-center text-xs text-muted">
-      上传文件后显示预览
+      Загрузите файл для предпросмотра
     </div>
     <p v-if="pdfPreviewFailed && previewType === 'pdf'" class="mt-2 text-center text-xs text-muted">
-      PDF 预览加载失败，不影响打印，可直接点击"开始打印"。
+      Ошибка загрузки предпросмотра PDF. Это не влияет на печать, можно нажать "Начать печать".
     </p>
   </UCard>
 </template>
@@ -79,8 +79,8 @@ const props = defineProps({
 defineEmits(['update:orientation'])
 
 const orientationItems = [
-  { label: '纵向', value: 'portrait', icon: 'i-lucide-rectangle-vertical' },
-  { label: '横向', value: 'landscape', icon: 'i-lucide-rectangle-horizontal' }
+  { label: 'Портрет', value: 'portrait', icon: 'i-lucide-rectangle-vertical' },
+  { label: 'Альбом', value: 'landscape', icon: 'i-lucide-rectangle-horizontal' }
 ]
 
 const isMobile = ref(false)

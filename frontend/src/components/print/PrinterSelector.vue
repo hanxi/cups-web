@@ -3,10 +3,10 @@
     <template #header>
       <div class="flex items-center gap-2 font-semibold">
         <UIcon name="i-lucide-printer" class="w-5 h-5" />
-        打印机
+        Принтер
       </div>
     </template>
-    <UFormField label="选择打印机">
+    <UFormField label="Выберите принтер">
       <USelect
         :model-value="modelValue"
         :items="printerItems"

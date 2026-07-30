@@ -27,28 +27,26 @@ type printResp struct {
 }
 
 func printHandler(w http.ResponseWriter, r *http.Request) {
-	// Expect multipart form
 	if err := r.ParseMultipartForm(512 << 20); err != nil {
-		writeJSONError(w, http.StatusBadRequest, "invalid multipart form")
+		writeJSONError(w, http.StatusBadRequest, "неверная форма multipart")
 		return
 	}
 	file, fh, err := r.FormFile("file")
 	if err != nil {
-		writeJSONError(w, http.StatusBadRequest, "missing file field")
+		writeJSONError(w, http.StatusBadRequest, "отсутствует поле file")
 		return
 	}
 	defer file.Close()
 
 	printer := r.FormValue("printer")
 	if printer == "" {
-		writeJSONError(w, http.StatusBadRequest, "missing printer field")
+		writeJSONError(w, http.StatusBadRequest, "отсутствует поле printer")
 		return
 	}
 
 	isDuplex := r.FormValue("duplex") == "true"
 	isColor := r.FormValue("color") == "true"
 
-	// Extended print options
 	copiesStr := r.FormValue("copies")
 	copies := 1
 	if copiesStr != "" {
@@ -63,13 +61,10 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 	mediaSource := r.FormValue("media_source")
 	pageRange := r.FormValue("page_range")
 	pageSet := r.FormValue("page_set")
-	// even-reverse 分支下方会改写 pageSet，落库要保留用户的原始选择（Issue #68）。
 	origPageSet := pageSet
 	mirror := r.FormValue("mirror") == "true"
 	watermarkText := strings.TrimSpace(r.FormValue("watermark_text"))
 
-	// N-up (multiple pages per sheet). Default numberUp=1 means off; invalid or
-	// unsupported values fall back to 1 (Issue #78).
 	numberUp := 1
 	if n, err := strconv.Atoi(r.FormValue("number_up")); err == nil {
 		switch n {
@@ -94,7 +89,7 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 
 	storedRel, storedAbs, err := saveUploadedFile(file, fh.Filename, uploadDir)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "failed to save file")
+		writeJSONError(w, http.StatusInternalServerError, "не удалось сохранить файл")
 		return
 	}
 
@@ -107,9 +102,6 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 	kind := detectFileKind(storedAbs, fh.Filename)
 	switch kind {
 	case fileKindPDF:
-		// 默认不再对上传 PDF 走 gs 规范化，直接打印原始字节。
-		// 如客户端有需要（例如 CJK 字体乱码），可先调用 /api/convert?normalize=true
-		// 拿到规范化后的字节再回传到本接口。
 		var cerr error
 		pages, cerr = countPDFPages(storedAbs)
 		if cerr != nil {
@@ -118,7 +110,6 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		printPath = storedAbs
 		printMime = "application/pdf"
-		// 解析失败时降级 MIME，让 CUPS/IPP 自行识别
 		if cerr != nil {
 			printMime = "application/octet-stream"
 		}
@@ -126,21 +117,21 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 		outPath, cleanup, err := convertOfficeToPDF(countCtx, storedAbs)
 		if err != nil {
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusBadRequest, "conversion failed")
+			writeJSONError(w, http.StatusBadRequest, "ошибка преобразования")
 			return
 		}
 		pages, err = countPDFPages(outPath)
 		if err != nil {
 			cleanup()
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusBadRequest, "failed to read pages")
+			writeJSONError(w, http.StatusBadRequest, "не удалось определить количество страниц")
 			return
 		}
 		_, convertedAbs, err := saveConvertedPDFToUploads(outPath, storedRel, uploadDir)
 		if err != nil {
 			cleanup()
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusInternalServerError, "failed to save converted file")
+			writeJSONError(w, http.StatusInternalServerError, "не удалось сохранить преобразованный файл")
 			return
 		}
 		printPath = convertedAbs
@@ -150,21 +141,21 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 		outPath, cleanup, err := convertOFDToPDF(countCtx, storedAbs)
 		if err != nil {
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusBadRequest, "conversion failed")
+			writeJSONError(w, http.StatusBadRequest, "ошибка преобразования")
 			return
 		}
 		pages, err = countPDFPages(outPath)
 		if err != nil {
 			cleanup()
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusBadRequest, "failed to read pages")
+			writeJSONError(w, http.StatusBadRequest, "не удалось определить количество страниц")
 			return
 		}
 		_, convertedAbs, err := saveConvertedPDFToUploads(outPath, storedRel, uploadDir)
 		if err != nil {
 			cleanup()
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusInternalServerError, "failed to save converted file")
+			writeJSONError(w, http.StatusInternalServerError, "не удалось сохранить преобразованный файл")
 			return
 		}
 		printPath = convertedAbs
@@ -174,14 +165,14 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 		outPath, cleanup, err := convertImageToPDF(storedAbs, orientation, paperSize)
 		if err != nil {
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusBadRequest, "conversion failed")
+			writeJSONError(w, http.StatusBadRequest, "ошибка преобразования")
 			return
 		}
 		_, convertedAbs, err := saveConvertedPDFToUploads(outPath, storedRel, uploadDir)
 		if err != nil {
 			cleanup()
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusInternalServerError, "failed to save converted file")
+			writeJSONError(w, http.StatusInternalServerError, "не удалось сохранить преобразованный файл")
 			return
 		}
 		printPath = convertedAbs
@@ -193,20 +184,20 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 		pages, err = estimateTextPages(storedAbs)
 		if err != nil {
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusBadRequest, "failed to read pages")
+			writeJSONError(w, http.StatusBadRequest, "не удалось определить количество страниц")
 			return
 		}
 		outPath, cleanup, err := convertTextToPDF(storedAbs, orientation, paperSize)
 		if err != nil {
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusBadRequest, "conversion failed")
+			writeJSONError(w, http.StatusBadRequest, "ошибка преобразования")
 			return
 		}
 		_, convertedAbs, err := saveConvertedPDFToUploads(outPath, storedRel, uploadDir)
 		if err != nil {
 			cleanup()
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusInternalServerError, "failed to save converted file")
+			writeJSONError(w, http.StatusInternalServerError, "не удалось сохранить преобразованный файл")
 			return
 		}
 		printPath = convertedAbs
@@ -217,7 +208,7 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 		pages, _, err = countPages(countCtx, storedAbs, fh.Filename)
 		if err != nil {
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusBadRequest, "failed to read pages")
+			writeJSONError(w, http.StatusBadRequest, "не удалось определить количество страниц")
 			return
 		}
 	}
@@ -238,8 +229,6 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Handle even-reverse: reorder PDF pages for manual duplex (even pages
-	// in reverse order, with a blank page prepended when total is odd).
 	if pageSet == "even-reverse" && printMime == "application/pdf" && pages > 1 {
 		reorderedPath, reorderCleanup, err := reorderPDFForManualDuplex(printPath, pages, paperSize)
 		if err != nil {
@@ -301,14 +290,14 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		if err != nil {
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusInternalServerError, "failed to create print record")
+			writeJSONError(w, http.StatusInternalServerError, "не удалось создать запись печати")
 			return
 		}
 	}
 
 	f, err := os.Open(printPath)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "failed to open file")
+		writeJSONError(w, http.StatusInternalServerError, "не удалось открыть файл")
 		return
 	}
 	defer f.Close()
@@ -322,7 +311,7 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 		if n, _ := f.Read(buf); n > 0 {
 			mime = http.DetectContentType(buf[:n])
 			if _, err := f.Seek(0, io.SeekStart); err != nil {
-				writeJSONError(w, http.StatusInternalServerError, "failed to read file")
+				writeJSONError(w, http.StatusInternalServerError, "не удалось прочитать файл")
 				return
 			}
 		}
@@ -349,7 +338,7 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 
 	job, err := ipp.SendPrintJob(printer, f, mime, sess.Username, fh.Filename, printOpts)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "print error: "+err.Error())
+		writeJSONError(w, http.StatusInternalServerError, "ошибка печати: "+err.Error())
 		return
 	}
 

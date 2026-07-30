@@ -1,10 +1,10 @@
-// 从 Cookie 提取 CSRF 令牌
+// Извлечение CSRF токена из Cookie
 export function getCSRF() {
   const m = document.cookie.match('(^|;)\\s*csrf_token\\s*=\\s*([^;]+)')
   return m ? m.pop() : ''
 }
 
-// 统一解析错误响应
+// Унифицированный парсинг ошибок
 export async function readError(resp) {
   try {
     const data = await resp.json()
@@ -19,22 +19,22 @@ export async function readError(resp) {
   }
 }
 
-// 封装 fetch，自动附加 credentials 和 CSRF token，统一处理 401
-// onUnauthorized 是一个回调函数，由调用方传入（用于触发登出）
+// Обертка над fetch: авто-учет credentials, CSRF и обработка 401
+// onUnauthorized - коллбэк для выхода из системы
 export async function apiFetch(url, options = {}, onUnauthorized = null) {
   const opts = { ...options, credentials: 'include' }
 
-  // 初始化 headers
+  // Инициализация заголовков
   const headers = new Headers(opts.headers || {})
 
   const method = (opts.method || 'GET').toUpperCase()
   const isFormData = opts.body instanceof FormData
 
   if (method !== 'GET') {
-    // 对于非 GET 请求，附加 CSRF token
+    // Для не-GET запросов добавляем CSRF токен
     headers.set('X-CSRF-Token', getCSRF())
 
-    // 对于非 FormData body，附加 Content-Type
+    // Для не-FormData добавляем Content-Type
     if (!isFormData) {
       headers.set('Content-Type', 'application/json')
     }
@@ -44,7 +44,7 @@ export async function apiFetch(url, options = {}, onUnauthorized = null) {
 
   const resp = await fetch(url, opts)
 
-  // 检查 401 状态，调用 onUnauthorized 回调
+  // Если 401, вызываем коллбэк разлогина
   if (resp.status === 401 && onUnauthorized) {
     onUnauthorized()
   }

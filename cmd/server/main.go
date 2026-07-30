@@ -22,9 +22,10 @@ import (
 )
 
 func main() {
-	// 命令行参数优先级高于环境变量。
-	// 默认值留空以便区分"用户未指定"与"显式指定"，最终再回退到 :8080。
-	listenFlag := flag.String("addr", "", "监听地址，如 :8080 或 0.0.0.0:8080 (优先级高于 LISTEN_ADDR 环境变量)")
+	// Приоритет аргументов командной строки выше переменных окружения.
+	// Значение по умолчанию пустое, чтобы отличить "не указано" от "указано явно",
+	// в итоге откатывается к :8080.
+	listenFlag := flag.String("addr", "", "Адрес прослушивания, например :8080 или 0.0.0.0:8080 (приоритет выше переменной LISTEN_ADDR)")
 	flag.Parse()
 
 	addr := *listenFlag
@@ -40,15 +41,15 @@ func main() {
 		dbPath = filepath.Join("data", "cups-web.db")
 	}
 	if err := os.MkdirAll(filepath.Dir(dbPath), 0755); err != nil {
-		log.Fatal("failed to create data dir: ", err)
+		log.Fatal("не удалось создать директорию данных: ", err)
 	}
 	var err error
 	appStore, err = store.Open(context.Background(), dbPath)
 	if err != nil {
-		log.Fatal("failed to open database: ", err)
+		log.Fatal("не удалось открыть базу данных: ", err)
 	}
 	if err := ensureDefaultAdmin(context.Background()); err != nil {
-		log.Fatal("failed to ensure default admin: ", err)
+		log.Fatal("не удалось создать администратора по умолчанию: ", err)
 	}
 
 	uploadDir = os.Getenv("UPLOAD_DIR")
@@ -56,11 +57,11 @@ func main() {
 		uploadDir = "uploads"
 	}
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
-		log.Fatal("failed to create uploads dir: ", err)
+		log.Fatal("не удалось создать директорию загрузок: ", err)
 	}
 
 	if err := auth.SetupSecureCookie(appStore.DB); err != nil {
-		log.Fatal("failed to setup secure cookie: ", err)
+		log.Fatal("не удалось настроить secure cookie: ", err)
 	}
 
 	r := mux.NewRouter()
@@ -94,7 +95,7 @@ func main() {
 		printers, err := ipp.ListPrinters(cupsHost)
 		if err != nil {
 			log.Printf("[printers] list failed: %v", err)
-			http.Error(w, "failed to list printers", http.StatusInternalServerError)
+			http.Error(w, "не удалось получить список принтеров", http.StatusInternalServerError)
 			return
 		}
 

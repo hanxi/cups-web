@@ -54,12 +54,12 @@ type printRecordResponse struct {
 func printRecordsHandler(w http.ResponseWriter, r *http.Request) {
 	sess, err := auth.GetSession(r)
 	if err != nil {
-		writeJSONError(w, http.StatusUnauthorized, "unauthorized")
+		writeJSONError(w, http.StatusUnauthorized, "не авторизован")
 		return
 	}
 	startAt, endAt, err := parseDateRange(r)
 	if err != nil {
-		writeJSONError(w, http.StatusBadRequest, "invalid date range")
+		writeJSONError(w, http.StatusBadRequest, "неверный диапазон дат")
 		return
 	}
 
@@ -81,7 +81,7 @@ func printRecordsHandler(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "failed to load records")
+		writeJSONError(w, http.StatusInternalServerError, "не удалось загрузить записи")
 		return
 	}
 	writeJSON(w, resp)
@@ -90,7 +90,7 @@ func printRecordsHandler(w http.ResponseWriter, r *http.Request) {
 func adminPrintRecordsHandler(w http.ResponseWriter, r *http.Request) {
 	startAt, endAt, err := parseDateRange(r)
 	if err != nil {
-		writeJSONError(w, http.StatusBadRequest, "invalid date range")
+		writeJSONError(w, http.StatusBadRequest, "неверный диапазон дат")
 		return
 	}
 	username := r.URL.Query().Get("username")
@@ -109,7 +109,7 @@ func adminPrintRecordsHandler(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "failed to load records")
+		writeJSONError(w, http.StatusInternalServerError, "не удалось загрузить записи")
 		return
 	}
 	writeJSON(w, resp)
@@ -118,13 +118,13 @@ func adminPrintRecordsHandler(w http.ResponseWriter, r *http.Request) {
 func printRecordFileHandler(w http.ResponseWriter, r *http.Request) {
 	sess, err := auth.GetSession(r)
 	if err != nil {
-		writeJSONError(w, http.StatusUnauthorized, "unauthorized")
+		writeJSONError(w, http.StatusUnauthorized, "не авторизован")
 		return
 	}
 	idStr := mux.Vars(r)["id"]
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		writeJSONError(w, http.StatusBadRequest, "invalid record id")
+		writeJSONError(w, http.StatusBadRequest, "неверный идентификатор записи")
 		return
 	}
 
@@ -139,28 +139,26 @@ func printRecordFileHandler(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			writeJSONError(w, http.StatusNotFound, "record not found")
+			writeJSONError(w, http.StatusNotFound, "запись не найдена")
 			return
 		}
-		writeJSONError(w, http.StatusInternalServerError, "failed to load record")
+		writeJSONError(w, http.StatusInternalServerError, "не удалось загрузить запись")
 		return
 	}
 	if sess.Role != store.RoleAdmin && record.UserID != sess.UserID {
-		writeJSONError(w, http.StatusForbidden, "forbidden")
+		writeJSONError(w, http.StatusForbidden, "доступ запрещен")
 		return
 	}
 
-	// os.OpenInRoot 将文件访问限制在 uploadDir 目录树内，即便 StoredPath 被污染
-	// 成 ../ 逃逸路径也会被 OS 层拒绝（纵深防御，Go 1.24+）。
 	f, err := os.OpenInRoot(uploadDir, filepath.FromSlash(record.StoredPath))
 	if err != nil {
-		writeJSONError(w, http.StatusNotFound, "file not found")
+		writeJSONError(w, http.StatusNotFound, "файл не найден")
 		return
 	}
 	defer f.Close()
 	stat, err := f.Stat()
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "failed to stat file")
+		writeJSONError(w, http.StatusInternalServerError, "не удалось получить информацию о файле")
 		return
 	}
 
@@ -257,24 +255,24 @@ type reprintRequest struct {
 func reprintHandler(w http.ResponseWriter, r *http.Request) {
 	sess, err := auth.GetSession(r)
 	if err != nil {
-		writeJSONError(w, http.StatusUnauthorized, "unauthorized")
+		writeJSONError(w, http.StatusUnauthorized, "не авторизован")
 		return
 	}
 
 	idStr := mux.Vars(r)["id"]
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		writeJSONError(w, http.StatusBadRequest, "invalid record id")
+		writeJSONError(w, http.StatusBadRequest, "неверный идентификатор записи")
 		return
 	}
 
 	var req reprintRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSONError(w, http.StatusBadRequest, "invalid request body")
+		writeJSONError(w, http.StatusBadRequest, "неверные данные запроса")
 		return
 	}
 	if req.Printer == "" {
-		writeJSONError(w, http.StatusBadRequest, "missing printer field")
+		writeJSONError(w, http.StatusBadRequest, "отсутствует поле printer")
 		return
 	}
 	if req.Copies < 1 {
@@ -282,7 +280,6 @@ func reprintHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	switch req.NumberUp {
 	case 1, 2, 4, 6, 9, 16:
-		// valid
 	default:
 		req.NumberUp = 1
 	}
@@ -298,28 +295,28 @@ func reprintHandler(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			writeJSONError(w, http.StatusNotFound, "record not found")
+			writeJSONError(w, http.StatusNotFound, "запись не найдена")
 			return
 		}
-		writeJSONError(w, http.StatusInternalServerError, "failed to load record")
+		writeJSONError(w, http.StatusInternalServerError, "не удалось загрузить запись")
 		return
 	}
 
 	if sess.Role != store.RoleAdmin && record.UserID != sess.UserID {
-		writeJSONError(w, http.StatusForbidden, "forbidden")
+		writeJSONError(w, http.StatusForbidden, "доступ запрещен")
 		return
 	}
 
 	origFile, err := os.OpenInRoot(uploadDir, filepath.FromSlash(record.StoredPath))
 	if err != nil {
-		writeJSONError(w, http.StatusNotFound, "original file not found, may have been cleaned up")
+		writeJSONError(w, http.StatusNotFound, "исходный файл не найден, возможно был удален при очистке")
 		return
 	}
 	defer origFile.Close()
 
 	storedRel, storedAbs, err := saveUploadedFile(origFile, record.Filename, uploadDir)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "failed to copy file")
+		writeJSONError(w, http.StatusInternalServerError, "не удалось скопировать файл")
 		return
 	}
 
@@ -347,21 +344,21 @@ func reprintHandler(w http.ResponseWriter, r *http.Request) {
 		outPath, cleanup, err := convertOfficeToPDF(countCtx, storedAbs)
 		if err != nil {
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusBadRequest, "conversion failed")
+			writeJSONError(w, http.StatusBadRequest, "ошибка преобразования")
 			return
 		}
 		pages, err = countPDFPages(outPath)
 		if err != nil {
 			cleanup()
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusBadRequest, "failed to read pages")
+			writeJSONError(w, http.StatusBadRequest, "не удалось определить количество страниц")
 			return
 		}
 		_, convertedAbs, err := saveConvertedPDFToUploads(outPath, storedRel, uploadDir)
 		if err != nil {
 			cleanup()
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusInternalServerError, "failed to save converted file")
+			writeJSONError(w, http.StatusInternalServerError, "не удалось сохранить преобразованный файл")
 			return
 		}
 		printPath = convertedAbs
@@ -371,21 +368,21 @@ func reprintHandler(w http.ResponseWriter, r *http.Request) {
 		outPath, cleanup, err := convertOFDToPDF(countCtx, storedAbs)
 		if err != nil {
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusBadRequest, "conversion failed")
+			writeJSONError(w, http.StatusBadRequest, "ошибка преобразования")
 			return
 		}
 		pages, err = countPDFPages(outPath)
 		if err != nil {
 			cleanup()
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusBadRequest, "failed to read pages")
+			writeJSONError(w, http.StatusBadRequest, "не удалось определить количество страниц")
 			return
 		}
 		_, convertedAbs, err := saveConvertedPDFToUploads(outPath, storedRel, uploadDir)
 		if err != nil {
 			cleanup()
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusInternalServerError, "failed to save converted file")
+			writeJSONError(w, http.StatusInternalServerError, "не удалось сохранить преобразованный файл")
 			return
 		}
 		printPath = convertedAbs
@@ -395,14 +392,14 @@ func reprintHandler(w http.ResponseWriter, r *http.Request) {
 		outPath, cleanup, err := convertImageToPDF(storedAbs, req.Orientation, req.PaperSize)
 		if err != nil {
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusBadRequest, "conversion failed")
+			writeJSONError(w, http.StatusBadRequest, "ошибка преобразования")
 			return
 		}
 		_, convertedAbs, err := saveConvertedPDFToUploads(outPath, storedRel, uploadDir)
 		if err != nil {
 			cleanup()
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusInternalServerError, "failed to save converted file")
+			writeJSONError(w, http.StatusInternalServerError, "не удалось сохранить преобразованный файл")
 			return
 		}
 		printPath = convertedAbs
@@ -413,20 +410,20 @@ func reprintHandler(w http.ResponseWriter, r *http.Request) {
 		pages, err = estimateTextPages(storedAbs)
 		if err != nil {
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusBadRequest, "failed to read pages")
+			writeJSONError(w, http.StatusBadRequest, "не удалось определить количество страниц")
 			return
 		}
 		outPath, cleanup, err := convertTextToPDF(storedAbs, req.Orientation, req.PaperSize)
 		if err != nil {
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusBadRequest, "conversion failed")
+			writeJSONError(w, http.StatusBadRequest, "ошибка преобразования")
 			return
 		}
 		_, convertedAbs, err := saveConvertedPDFToUploads(outPath, storedRel, uploadDir)
 		if err != nil {
 			cleanup()
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusInternalServerError, "failed to save converted file")
+			writeJSONError(w, http.StatusInternalServerError, "не удалось сохранить преобразованный файл")
 			return
 		}
 		printPath = convertedAbs
@@ -436,7 +433,7 @@ func reprintHandler(w http.ResponseWriter, r *http.Request) {
 		pages, _, err = countPages(countCtx, storedAbs, record.Filename)
 		if err != nil {
 			_ = os.Remove(storedAbs)
-			writeJSONError(w, http.StatusBadRequest, "failed to read pages")
+			writeJSONError(w, http.StatusBadRequest, "не удалось определить количество страниц")
 			return
 		}
 	}
@@ -511,13 +508,13 @@ func reprintHandler(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		_ = os.Remove(storedAbs)
-		writeJSONError(w, http.StatusInternalServerError, "failed to create print record")
+		writeJSONError(w, http.StatusInternalServerError, "не удалось создать запись печати")
 		return
 	}
 
 	f, err := os.Open(printPath)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "failed to open file")
+		writeJSONError(w, http.StatusInternalServerError, "не удалось открыть файл")
 		return
 	}
 	defer f.Close()
@@ -528,7 +525,7 @@ func reprintHandler(w http.ResponseWriter, r *http.Request) {
 		if n, _ := f.Read(buf); n > 0 {
 			mimeType = http.DetectContentType(buf[:n])
 			if _, err := f.Seek(0, io.SeekStart); err != nil {
-				writeJSONError(w, http.StatusInternalServerError, "failed to read file")
+				writeJSONError(w, http.StatusInternalServerError, "не удалось прочитать файл")
 				return
 			}
 		}
@@ -555,7 +552,7 @@ func reprintHandler(w http.ResponseWriter, r *http.Request) {
 
 	job, err := ipp.SendPrintJob(req.Printer, f, mimeType, sess.Username, record.Filename, printOpts)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "print error: "+err.Error())
+		writeJSONError(w, http.StatusInternalServerError, "ошибка печати: "+err.Error())
 		return
 	}
 

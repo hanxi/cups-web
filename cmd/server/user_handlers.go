@@ -18,7 +18,7 @@ type meResponse struct {
 func MeHandler(w http.ResponseWriter, r *http.Request) {
 	sess, err := auth.GetSession(r)
 	if err != nil {
-		writeJSONError(w, http.StatusUnauthorized, "unauthorized")
+		writeJSONError(w, http.StatusUnauthorized, "не авторизован")
 		return
 	}
 
@@ -37,9 +37,9 @@ func MeHandler(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			writeJSONError(w, http.StatusUnauthorized, "unauthorized")
+			writeJSONError(w, http.StatusUnauthorized, "не авторизован")
 		} else {
-			writeJSONError(w, http.StatusInternalServerError, "failed to load profile")
+			writeJSONError(w, http.StatusInternalServerError, "не удалось загрузить профиль")
 		}
 		return
 	}

@@ -4,7 +4,7 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2 font-semibold">
           <UIcon name="i-lucide-eye" class="w-5 h-5" />
-          预览
+          Предпросмотр
         </div>
         <span class="text-sm text-muted">
           {{ paperSizeLabel }} · {{ orientationLabel }} · {{ paperDimText }}
@@ -29,7 +29,7 @@
       </div>
     </div>
     <p v-if="pdfPreviewFailed && previewType === 'pdf'" class="mt-2 text-center text-xs text-muted">
-      PDF 预览加载失败，不影响打印，可直接点击"开始打印"。
+      Ошибка загрузки предпросмотра PDF. Это не влияет на печать, можно нажать "Начать печать".
     </p>
   </UCard>
 </template>

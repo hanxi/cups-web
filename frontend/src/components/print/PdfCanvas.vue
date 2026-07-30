@@ -4,8 +4,8 @@
       <UIcon name="i-lucide-loader-circle" class="w-6 h-6 animate-spin" />
     </div>
     <div v-else-if="error" class="text-center text-muted text-xs p-3 leading-relaxed">
-      <p>PDF 预览加载失败</p>
-      <p class="mt-1 text-[10px] opacity-80">不影响打印，仍可点击"开始打印"</p>
+      <p>Ошибка загрузки предпросмотра PDF</p>
+      <p class="mt-1 text-[10px] opacity-80">Это не влияет на печать, можно нажать "Начать печать"</p>
     </div>
     <div v-show="!loading && !error" class="relative w-full h-full flex items-center justify-center">
       <canvas ref="canvas" class="max-w-full max-h-full" />

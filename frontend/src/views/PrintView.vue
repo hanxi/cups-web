@@ -6,19 +6,19 @@
       <div class="lg:col-span-2 flex items-center gap-2 sm:gap-3 min-w-0">
         <h1 class="text-lg font-bold flex items-center gap-2 shrink-0">
           <UIcon name="i-lucide-printer" class="w-5 h-5 text-primary" />
-          打印
+          Печать
         </h1>
         <USelect
           :model-value="printer"
           :items="printerItems"
           value-key="value"
           label-key="label"
-          placeholder="选择打印机"
+          placeholder="Выберите принтер"
           icon="i-lucide-printer"
           class="flex-1 min-w-0"
           @update:model-value="onPrinterSelect"
         />
-        <!-- 移动端：刷新按钮紧跟下拉（纯图标），桌面端隐藏 -->
+        <!-- Мобильная версия: Кнопка обновления -->
         <UButton
           variant="ghost"
           size="xs"
@@ -28,7 +28,7 @@
           :loading="refreshing"
         />
       </div>
-      <!-- 右：刷新按钮（桌面 col-span-3，靠右，与右栏对齐；移动端隐藏） -->
+      <!-- Десктоп: Кнопка обновления -->
       <div class="hidden lg:flex lg:col-span-3 items-center justify-end">
         <UButton
           variant="ghost"
@@ -36,11 +36,11 @@
           icon="i-lucide-refresh-cw"
           @click="refreshAll"
           :loading="refreshing"
-        >刷新</UButton>
+        >Обновить</UButton>
       </div>
     </div>
 
-    <!-- 打印模式选择器 -->
+    <!-- Переключатель режима печати -->
     <div class="mb-3">
       <div class="flex rounded-lg border border-muted overflow-hidden">
         <label
@@ -56,11 +56,11 @@
       </div>
     </div>
 
-    <!-- 主体两栏布局：左栏操作区（上传+参数），右栏预览区 -->
+    <!-- Основной контент: Две колонки -->
     <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
-      <!-- 左栏：上传 + 打印参数 -->
+      <!-- Левая колонка: Загрузка и параметры -->
       <div class="lg:col-span-2 space-y-4">
-        <!-- 1. 文件上传 — 仅标准模式 -->
+        <!-- 1. Загрузка файла — Стандартный режим -->
         <FileUpload
           v-if="printMode === 'standard'"
           :selected-file="selectedFile"
@@ -86,7 +86,7 @@
           @print="uploadAndPrint"
         />
 
-        <!-- 发票模式上传 -->
+        <!-- Режим квитанций -->
         <UCard v-if="printMode === 'invoice'" :ui="{ body: 'p-3 sm:p-4' }">
           <div class="space-y-3">
             <div
@@ -100,7 +100,7 @@
               <input ref="invoiceInput" type="file" class="hidden" multiple @change="onInvoiceFileChange" />
               <div class="flex items-center justify-center gap-2 text-sm text-muted py-1">
                 <UIcon name="i-lucide-receipt" class="w-5 h-5" />
-                <span>上传发票文件（支持多选，PDF / 图片 / OFD）</span>
+                <span>Загрузить файлы квитанций (PDF, изображения, OFD)</span>
               </div>
             </div>
             <div v-if="invoiceFiles.length > 0" class="space-y-1">
@@ -119,11 +119,11 @@
               :loading="composing"
               :disabled="composing"
               @click="composeAndPreview"
-            >合并预览 ({{ invoiceFiles.length }} 个文件)</UButton>
+            >Объединить и предпросмотр ({{ invoiceFiles.length }} файлов)</UButton>
           </div>
         </UCard>
 
-        <!-- 身份证模式上传 -->
+        <!-- Режим ID-карты -->
         <IdCardUpload
           v-if="printMode === 'id_card'"
           :front="idCardFront"
@@ -134,7 +134,7 @@
           @update:back="onIdCardBack"
         />
         <div v-if="printMode === 'id_card'" class="flex items-center gap-3">
-          <span class="text-sm text-muted shrink-0">版面</span>
+          <span class="text-sm text-muted shrink-0">Макет</span>
           <div class="flex rounded-lg border border-muted overflow-hidden">
             <label
               v-for="p in ['A4', 'A5']"
@@ -155,17 +155,17 @@
           :loading="composing"
           :disabled="composing"
           @click="composeAndPreview"
-        >合并预览</UButton>
+        >Объединить и предпросмотр</UButton>
 
-        <!-- 多图片列表（仅标准模式） -->
+        <!-- Список изображений (Стандартный режим) -->
         <UCard v-if="printMode === 'standard' && selectedImages.length > 1">
           <template #header>
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2 font-semibold">
                 <UIcon name="i-lucide-images" class="w-5 h-5" />
-                已选图片 ({{ selectedImages.length }})
+                Выбрано изображений ({{ selectedImages.length }})
               </div>
-              <UButton variant="ghost" size="xs" color="error" icon="i-lucide-trash-2" @click="clearFile">清空全部</UButton>
+              <UButton variant="ghost" size="xs" color="error" icon="i-lucide-trash-2" @click="clearFile">Очистить всё</UButton>
             </div>
           </template>
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -299,9 +299,9 @@ const pageBorder = ref('none')
 // ─── 打印模式 ─────────────────────────────────────────────
 const printMode = ref(localStorage.getItem('print_mode') || 'standard')
 const printModeItems = [
-  { label: '标准打印', value: 'standard', icon: 'i-lucide-file-text' },
-  { label: '发票打印', value: 'invoice', icon: 'i-lucide-receipt' },
-  { label: '身份证打印', value: 'id_card', icon: 'i-lucide-id-card' }
+  { label: 'Стандартная', value: 'standard', icon: 'i-lucide-file-text' },
+  { label: 'Квитанции', value: 'invoice', icon: 'i-lucide-receipt' },
+  { label: 'ID-карта', value: 'id_card', icon: 'i-lucide-id-card' }
 ]
 const invoiceFiles = ref([])
 const invoiceDragging = ref(false)
@@ -345,20 +345,20 @@ const paperDimensionsMap = {
 
 // ─── 选项列表（供 PrintOptions 内部的 paperSizeLabel 等计算使用） ──
 const orientationItems = [
-  { label: '纵向', value: 'portrait' },
-  { label: '横向', value: 'landscape' }
+  { label: 'Портретная', value: 'portrait' },
+  { label: 'Альбомная', value: 'landscape' }
 ]
 const paperSizeItems = [
-  { label: 'A5 (148×210mm)', value: 'A5' },
-  { label: 'A4 (210×297mm)', value: 'A4' },
-  { label: 'A3 (297×420mm)', value: 'A3' },
-  { label: 'A2 (420×594mm)', value: 'A2' },
-  { label: 'A1 (594×841mm)', value: 'A1' },
-  { label: '5寸 (89×127mm)', value: '5inch' },
-  { label: '6寸 (102×152mm)', value: '6inch' },
-  { label: '7寸 (127×178mm)', value: '7inch' },
-  { label: '8寸 (152×203mm)', value: '8inch' },
-  { label: '10寸 (203×254mm)', value: '10inch' },
+  { label: 'A5 (148×210мм)', value: 'A5' },
+  { label: 'A4 (210×297мм)', value: 'A4' },
+  { label: 'A3 (297×420мм)', value: 'A3' },
+  { label: 'A2 (420×594мм)', value: 'A2' },
+  { label: 'A1 (594×841мм)', value: 'A1' },
+  { label: '5" (89×127мм)', value: '5inch' },
+  { label: '6" (102×152мм)', value: '6inch' },
+  { label: '7" (127×178мм)', value: '7inch' },
+  { label: '8" (152×203мм)', value: '8inch' },
+  { label: '10" (203×254мм)', value: '10inch' },
   { label: 'Letter (8.5×11in)', value: 'Letter' },
   { label: 'Legal (8.5×14in)', value: 'Legal' }
 ]
@@ -377,9 +377,9 @@ const canPrint = computed(() => {
 
 const printButtonLabel = computed(() => {
   if (printMode.value === 'standard') {
-    return batchFiles.value.length > 0 ? `批量打印 (${batchFiles.value.length} 个文件)` : '开始打印'
+    return batchFiles.value.length > 0 ? `Пакетная печать (${batchFiles.value.length} файлов)` : 'Начать печать'
   }
-  return '开始打印'
+  return 'Начать печать'
 })
 
 // 打印机下拉选项（原 PrinterSelector.vue 迁移过来）
@@ -402,16 +402,16 @@ const paperSizeLabel = computed(() => {
 
 const orientationLabel = computed(() => {
   const item = orientationItems.find(i => i.value === orientation.value)
-  return item?.label || (orientation.value === 'portrait' ? '纵向' : '横向')
+  return item?.label || (orientation.value === 'portrait' ? 'Портретная' : 'Альбомная')
 })
 
 const paperDimText = computed(() => {
   const dim = paperDimensionsMap[paperSize.value]
   if (!dim) return ''
   if (orientation.value === 'landscape') {
-    return `${dim.height}×${dim.width}mm`
+    return `${dim.height}×${dim.width}мм`
   }
-  return `${dim.width}×${dim.height}mm`
+  return `${dim.width}×${dim.height}мм`
 })
 
 // 纸张预览：宽度撑满容器，高度由 aspect-ratio 根据纸张真实比例自动算出。
@@ -462,7 +462,7 @@ function processFile(f) {
   downloadName.value = f.name.replace(/\.[^/.]+$/, '') + '.pdf'
 
   if (f.type === 'application/pdf') {
-    // 默认不再对上传 PDF 走 /api/convert (gs 规范化)：直接用原始字节做预览和打印，
+    // 默认不再对上传 PDF 走 /api/convert (gs 规范化)：直接用原始字节做预览 and 打印，
     // 上传即可秒开预览。如需修复 CJK 字体乱码等问题，用户可点击"应用 GS 规范化"
     // 显式触发 applyGsNormalization()，把当前 PDF 替换为 gs 产物。
     clearPreviewUrl()
@@ -475,7 +475,7 @@ function processFile(f) {
     if (isHeicImage(f)) {
       // HEIC/HEIF 浏览器无法原生解码，先提示"正在转换"，异步用 heic2any 转成 JPEG 再预览
       previewType.value = 'text'
-      textPreview.value = '正在解码 HEIC/HEIF 图片，请稍候…'
+      textPreview.value = 'Декодирование HEIC/HEIF, пожалуйста, подождите...'
       const originalFile = f
       heicBlobToJpegBlob(originalFile)
         .then(jpegFile => {
@@ -491,8 +491,8 @@ function processFile(f) {
         .catch(err => {
           if (selectedFile.value !== originalFile) return
           previewType.value = 'text'
-          textPreview.value = `HEIC 解码失败：${err.message || '未知错误'}`
-          toast.add({ title: 'HEIC 解码失败', description: err.message, color: 'error', icon: 'i-lucide-x-circle' })
+          textPreview.value = `Ошибка декодирования HEIC: ${err.message || 'неизвестная ошибка'}`
+          toast.add({ title: 'Ошибка декодирования HEIC', description: err.message, color: 'error', icon: 'i-lucide-x-circle' })
         })
     } else {
       previewUrl.value = URL.createObjectURL(f)
@@ -500,10 +500,10 @@ function processFile(f) {
     }
   } else if (isOfficeFile(f)) {
     previewType.value = 'text'
-    textPreview.value = 'Office 文档（无法直接预览）。点击"转换为 PDF"生成预览。'
+    textPreview.value = 'Документ Office (нет предпросмотра). Нажмите "В PDF" для просмотра.'
   } else if (isOFDFile(f)) {
     previewType.value = 'text'
-    textPreview.value = 'OFD文件（开放版式文档）无法直接预览。点击"转换为PDF"生成预览。'
+    textPreview.value = 'Файл OFD (нет предпросмотра). Нажмите "В PDF" для просмотра.'
   } else if (f.type.startsWith('text/') || /\.(txt|md|html)$/i.test(f.name)) {
     const reader = new FileReader()
     reader.onload = () => {
@@ -513,7 +513,7 @@ function processFile(f) {
     reader.readAsText(f)
   } else {
     previewType.value = 'text'
-    textPreview.value = '无法预览此文件类型，可直接提交打印。'
+    textPreview.value = 'Тип файла не поддерживается для предпросмотра, но его можно напечатать.'
   }
 }
 
@@ -533,7 +533,7 @@ async function heicBlobToJpegBlob(file) {
     const mod = await import('heic2any')
     heic2any = mod.default || mod
   } catch (e) {
-    throw new Error('加载 HEIC 解码器失败，请检查网络后重试')
+    throw new Error('Ошибка загрузки декодера HEIC. Проверьте сеть.')
   }
   try {
     const result = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 })
@@ -543,7 +543,7 @@ async function heicBlobToJpegBlob(file) {
     const jpegName = file.name.replace(/\.(heic|heif)$/i, '') + '.jpg'
     return new File([blob], jpegName, { type: 'image/jpeg', lastModified: Date.now() })
   } catch (e) {
-    throw new Error(`HEIC 解码失败：${file.name}（文件可能已损坏或非标准 HEIC 格式）`)
+    throw new Error(`Ошибка HEIC: ${file.name} (файл поврежден или неверный формат)`)
   }
 }
 
@@ -551,8 +551,8 @@ function processMultipleImages(files) {
   clearFile()
   const arr = Array.from(files)
   selectedImages.value = arr
-  fileDisplayName.value = `${arr.length}张图片`
-  downloadName.value = '合并图片.pdf'
+  fileDisplayName.value = `${arr.length} изображений`
+  downloadName.value = 'merged_images.pdf'
   converted.value = false
 
   // HEIC 无法直接生成缩略图，先用占位图，再异步转码后替换
@@ -565,7 +565,7 @@ function processMultipleImages(files) {
     previewType.value = 'image'
   } else {
     previewType.value = 'text'
-    textPreview.value = '正在解码 HEIC/HEIF 图片，请稍候…'
+    textPreview.value = 'Декодирование HEIC/HEIF...'
   }
 
   if (hasHeic) {
@@ -591,7 +591,7 @@ function processMultipleImages(files) {
         .catch(err => {
           if (selectedImages.value !== heicBatch) return
           toast.add({
-            title: `HEIC 解码失败：${f.name}`,
+            title: `Ошибка HEIC: ${f.name}`,
             description: err.message,
             color: 'error',
             icon: 'i-lucide-x-circle'
@@ -616,8 +616,7 @@ function removeImage(idx) {
   } else if (selectedImages.value.length === 0) {
     clearFile()
   } else {
-    fileDisplayName.value = `${selectedImages.value.length}张图片`
-    // 更新预览为第一张（不调用 clearPreviewUrl，因为旧 previewUrl 与 imageThumbnails 共享同一 URL）
+    fileDisplayName.value = `${selectedImages.value.length} изображений`
     previewUrl.value = imageThumbnails.value[0]
     converted.value = false
     pdfBlob.value = null
@@ -627,13 +626,13 @@ function removeImage(idx) {
 function processBatchFiles(files) {
   clearFile()
   batchFiles.value = Array.from(files)
-  fileDisplayName.value = `${batchFiles.value.length} 个文件（批量打印）`
+  fileDisplayName.value = `${batchFiles.value.length} файлов (пакетная печать)`
   previewType.value = 'text'
-  textPreview.value = `已选择 ${batchFiles.value.length} 个文件，点击"开始打印"将逐个打印。`
+  textPreview.value = `Выбрано ${batchFiles.value.length} файлов, нажмите «Начать печать» для печати по очереди.`
 }
 
 async function uploadAndPrintBatch() {
-  if (!printer.value) { toast.add({ title: '请选择打印机', color: 'warning' }); return }
+  if (!printer.value) { toast.add({ title: 'Выберите принтер', color: 'warning' }); return }
   if (batchFiles.value.length === 0) return
 
   batchPrinting.value = true
@@ -687,14 +686,14 @@ async function uploadAndPrintBatch() {
       successCount++
     } catch (e) {
       failCount++
-      toast.add({ title: `打印失败：${file.name}`, description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
+      toast.add({ title: `Ошибка печати: ${file.name}`, description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
     }
   }
 
   if (successCount > 0) {
     toast.add({
-      title: '批量打印完成',
-      description: `成功 ${successCount} 个${failCount > 0 ? `，失败 ${failCount} 个` : ''}`,
+      title: 'Пакетная печать завершена',
+      description: `Успешно: ${successCount}${failCount > 0 ? `, ошибка: ${failCount}` : ''}`,
       color: failCount > 0 ? 'warning' : 'success',
       icon: failCount > 0 ? 'i-lucide-alert-triangle' : 'i-lucide-check-circle'
     })
@@ -728,27 +727,25 @@ async function convertImagesToPdfViaServer(files, orient, pSize, name) {
   if (orient) fd.append('orientation', orient)
   if (pSize) fd.append('paper_size', pSize)
   const resp = await apiFetch('/api/convert', { method: 'POST', body: fd }, () => emit('logout'))
-  if (!resp.ok) throw new Error('服务端转换失败：' + await readError(resp))
+  if (!resp.ok) throw new Error('Ошибка преобразования на сервере: ' + await readError(resp))
   return resp.blob()
 }
 
-// 通过后端 /api/convert 将文本文件转成 PDF（使用后端内嵌中文字体，避免 jsPDF 中文乱码）。
 async function convertTextViaServer(file, orient, pSize) {
   const fd = new FormData()
   fd.append('file', file, file.name)
   if (orient) fd.append('orientation', orient)
   if (pSize) fd.append('paper_size', pSize)
   const resp = await apiFetch('/api/convert', { method: 'POST', body: fd }, () => emit('logout'))
-  if (!resp.ok) throw new Error('服务端转换失败：' + await readError(resp))
+  if (!resp.ok) throw new Error('Ошибка преобразования на сервере: ' + await readError(resp))
   return resp.blob()
 }
 
-// 通过后端 /api/convert 将 Office / OFD 文件转成 PDF。
 async function convertOfficeToPdf(file) {
   const fd = new FormData()
   fd.append('file', file, file.name)
   const resp = await apiFetch('/api/convert', { method: 'POST', body: fd }, () => emit('logout'))
-  if (!resp.ok) throw new Error('服务端转换失败：' + await readError(resp))
+  if (!resp.ok) throw new Error('Ошибка преобразования на сервере: ' + await readError(resp))
   return resp.blob()
 }
 
@@ -760,7 +757,7 @@ async function convertToPdf() {
     let blob
     if (isMultiImage.value) {
       blob = await convertImagesToPdfViaServer(
-        selectedImages.value, orientation.value, paperSize.value, downloadName.value || '合并图片.pdf'
+        selectedImages.value, orientation.value, paperSize.value, downloadName.value || 'merged_images.pdf'
       )
     } else if (isOfficeFile(f) || isOFDFile(f)) {
       blob = await convertOfficeToPdf(f)
@@ -774,9 +771,9 @@ async function convertToPdf() {
     previewUrl.value = URL.createObjectURL(blob)
     previewType.value = 'pdf'
     converted.value = true
-    toast.add({ title: '转换成功', color: 'success', icon: 'i-lucide-check-circle' })
+    toast.add({ title: 'Преобразование успешно', color: 'success', icon: 'i-lucide-check-circle' })
   } catch (e) {
-    toast.add({ title: '转换失败', description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
+    toast.add({ title: 'Ошибка преобразования', description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
   } finally {
     converting.value = false
   }
@@ -806,9 +803,9 @@ async function applyGsNormalization() {
     textPreview.value = ''
     pdfBlob.value = blob
     gsApplied.value = true
-    toast.add({ title: '已应用 GS 规范化', color: 'success', icon: 'i-lucide-check-circle' })
+    toast.add({ title: 'Нормализация GS примена', color: 'success', icon: 'i-lucide-check-circle' })
   } catch (e) {
-    toast.add({ title: '应用 GS 失败', description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
+    toast.add({ title: 'Ошибка нормализации GS', description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
   } finally {
     gsApplying.value = false
   }
@@ -816,7 +813,7 @@ async function applyGsNormalization() {
 
 // ─── 打印 ─────────────────────────────────────────────────
 async function uploadAndPrint() {
-  if (!printer.value) { toast.add({ title: '请选择打印机', color: 'warning' }); return }
+  if (!printer.value) { toast.add({ title: 'Выберите принтер', color: 'warning' }); return }
 
   // 批量打印模式
   if (batchFiles.value.length > 0) {
@@ -825,7 +822,7 @@ async function uploadAndPrint() {
   }
 
   const fileToSend = pdfBlob.value || selectedFile.value
-  if (!fileToSend && !isMultiImage.value) { toast.add({ title: '请先选择文件', color: 'warning' }); return }
+  if (!fileToSend && !isMultiImage.value) { toast.add({ title: 'Сначала выберите файл', color: 'warning' }); return }
   // 多图片未转换时自动转换
   if (isMultiImage.value && !pdfBlob.value) {
     await convertToPdf()
@@ -868,15 +865,15 @@ async function uploadAndPrint() {
     }
     const j = await resp.json()
     toast.add({
-      title: '打印任务已提交',
-      description: `任务ID：${j.jobId || '—'}，共 ${j.pages} 页`,
+      title: 'Задание на печать отправлено',
+      description: `ID задания: ${j.jobId || '—'}, страниц: ${j.pages}`,
       color: 'success',
       icon: 'i-lucide-check-circle'
     })
     localStorage.setItem('last_printer', printer.value)
     await loadPrintRecords()
   } catch (e) {
-    toast.add({ title: '打印失败', description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
+    toast.add({ title: 'Ошибка печати', description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
   } finally {
     printing.value = false
   }
@@ -896,7 +893,7 @@ async function loadPrintRecords(silent = false) {
       }))
     }
   } catch (e) {
-    console.error('加载打印记录失败', e)
+    console.error('Не удалось загрузить историю печати', e)
   } finally {
     loadingRecords.value = false
   }
@@ -932,14 +929,14 @@ async function handleReprint(payload) {
     }
     const j = await resp.json()
     toast.add({
-      title: '重新打印已提交',
-      description: `${j.pages} 页，任务ID：${j.jobId || '—'}`,
+      title: 'Повторная печать отправлена',
+      description: `${j.pages} стр., ID задания: ${j.jobId || '—'}`,
       color: 'success',
       icon: 'i-lucide-check-circle'
     })
     await loadPrintRecords()
   } catch (e) {
-    toast.add({ title: '重新打印失败', description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
+    toast.add({ title: 'Ошибка повторной печати', description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
   } finally {
     recordListRef.value?.clearReprintLoading()
   }
@@ -967,7 +964,7 @@ async function loadPrinterInfo(silent = false) {
       printerInfoError.value = await readError(resp)
     }
   } catch (_) {
-    printerInfoError.value = '无法连接到打印机'
+    printerInfoError.value = 'Не удалось подключиться к принтеру'
   } finally {
     loadingPrinterInfo.value = false
   }
@@ -1097,10 +1094,10 @@ async function composeAndPreview() {
     previewUrl.value = URL.createObjectURL(blob)
     previewType.value = 'pdf'
     converted.value = true
-    downloadName.value = printMode.value === 'invoice' ? '发票合并.pdf' : '身份证.pdf'
-    toast.add({ title: '合并成功', color: 'success', icon: 'i-lucide-check-circle' })
+    downloadName.value = printMode.value === 'invoice' ? 'merged_invoices.pdf' : 'id_card.pdf'
+    toast.add({ title: 'Объединение успешно', color: 'success', icon: 'i-lucide-check-circle' })
   } catch (e) {
-    toast.add({ title: '合并失败', description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
+    toast.add({ title: 'Ошибка объединения', description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
   } finally {
     composing.value = false
   }

@@ -17,9 +17,9 @@ import (
 )
 
 var (
-	errDeleteDefaultAdmin = errors.New("default admin cannot be deleted")
-	errProtectedRole      = errors.New("protected admin role cannot change")
-	errAdminRename        = errors.New("admin username cannot change")
+	errDeleteDefaultAdmin = errors.New("администратор по умолчанию не может быть удален")
+	errProtectedRole      = errors.New("защищенная роль администратора не может быть изменена")
+	errAdminRename        = errors.New("имя администратора не может быть изменено")
 )
 
 type adminUserPayload struct {
@@ -59,7 +59,7 @@ func adminListUsersHandler(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "failed to list users")
+		writeJSONError(w, http.StatusInternalServerError, "не удалось получить список пользователей")
 		return
 	}
 	writeJSON(w, resp)
@@ -68,22 +68,22 @@ func adminListUsersHandler(w http.ResponseWriter, r *http.Request) {
 func adminCreateUserHandler(w http.ResponseWriter, r *http.Request) {
 	var payload adminUserPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeJSONError(w, http.StatusBadRequest, "invalid payload")
+		writeJSONError(w, http.StatusBadRequest, "неверные данные запроса")
 		return
 	}
 	payload.Username = strings.TrimSpace(payload.Username)
 	if payload.Username == "" || payload.Password == "" {
-		writeJSONError(w, http.StatusBadRequest, "username and password required")
+		writeJSONError(w, http.StatusBadRequest, "имя пользователя и пароль обязательны")
 		return
 	}
 	role := normalizeRole(payload.Role)
 	if role == "" {
-		writeJSONError(w, http.StatusBadRequest, "invalid role")
+		writeJSONError(w, http.StatusBadRequest, "неверная роль")
 		return
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(payload.Password), bcrypt.DefaultCost)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "failed to hash password")
+		writeJSONError(w, http.StatusInternalServerError, "не удалось хешировать пароль")
 		return
 	}
 
@@ -105,7 +105,7 @@ func adminCreateUserHandler(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "failed to create user")
+		writeJSONError(w, http.StatusInternalServerError, "не удалось создать пользователя")
 		return
 	}
 	writeJSON(w, mapAdminUser(created))
@@ -114,22 +114,22 @@ func adminCreateUserHandler(w http.ResponseWriter, r *http.Request) {
 func adminUpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r)
 	if err != nil {
-		writeJSONError(w, http.StatusBadRequest, "invalid user id")
+		writeJSONError(w, http.StatusBadRequest, "неверный идентификатор пользователя")
 		return
 	}
 	var payload adminUserPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeJSONError(w, http.StatusBadRequest, "invalid payload")
+		writeJSONError(w, http.StatusBadRequest, "неверные данные запроса")
 		return
 	}
 	payload.Username = strings.TrimSpace(payload.Username)
 	if payload.Username == "" {
-		writeJSONError(w, http.StatusBadRequest, "username required")
+		writeJSONError(w, http.StatusBadRequest, "имя пользователя обязательно")
 		return
 	}
 	role := normalizeRole(payload.Role)
 	if role == "" {
-		writeJSONError(w, http.StatusBadRequest, "invalid role")
+		writeJSONError(w, http.StatusBadRequest, "неверная роль")
 		return
 	}
 
@@ -137,7 +137,7 @@ func adminUpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 	if strings.TrimSpace(payload.Password) != "" {
 		hash, err := bcrypt.GenerateFromPassword([]byte(payload.Password), bcrypt.DefaultCost)
 		if err != nil {
-			writeJSONError(w, http.StatusInternalServerError, "failed to hash password")
+			writeJSONError(w, http.StatusInternalServerError, "не удалось хешировать пароль")
 			return
 		}
 		h := string(hash)
@@ -181,13 +181,13 @@ func adminUpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if errors.Is(err, errProtectedRole) {
-			writeJSONError(w, http.StatusBadRequest, "admin role cannot change")
+			writeJSONError(w, http.StatusBadRequest, "роль администратора не может быть изменена")
 			return
 		}
 		if errors.Is(err, sql.ErrNoRows) {
-			writeJSONError(w, http.StatusNotFound, "user not found")
+			writeJSONError(w, http.StatusNotFound, "пользователь не найден")
 		} else {
-			writeJSONError(w, http.StatusInternalServerError, "failed to update user")
+			writeJSONError(w, http.StatusInternalServerError, "не удалось обновить пользователя")
 		}
 		return
 	}
@@ -197,12 +197,12 @@ func adminUpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 func adminDeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r)
 	if err != nil {
-		writeJSONError(w, http.StatusBadRequest, "invalid user id")
+		writeJSONError(w, http.StatusBadRequest, "неверный идентификатор пользователя")
 		return
 	}
 	sess, _ := auth.GetSession(r)
 	if sess.UserID == id {
-		writeJSONError(w, http.StatusBadRequest, "cannot delete current user")
+		writeJSONError(w, http.StatusBadRequest, "невозможно удалить текущего пользователя")
 		return
 	}
 	err = appStore.WithTx(r.Context(), false, func(tx *sql.Tx) error {
@@ -217,13 +217,13 @@ func adminDeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, errDeleteDefaultAdmin) {
-			writeJSONError(w, http.StatusBadRequest, "admin cannot be deleted")
+			writeJSONError(w, http.StatusBadRequest, "администратор не может быть удален")
 			return
 		}
 		if errors.Is(err, sql.ErrNoRows) {
-			writeJSONError(w, http.StatusNotFound, "user not found")
+			writeJSONError(w, http.StatusNotFound, "пользователь не найден")
 		} else {
-			writeJSONError(w, http.StatusInternalServerError, "failed to delete user")
+			writeJSONError(w, http.StatusInternalServerError, "не удалось удалить пользователя")
 		}
 		return
 	}
@@ -247,7 +247,7 @@ func adminGetSettingsHandler(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "failed to load settings")
+		writeJSONError(w, http.StatusInternalServerError, "не удалось загрузить настройки")
 		return
 	}
 	writeJSON(w, map[string]interface{}{
@@ -259,15 +259,15 @@ func adminGetSettingsHandler(w http.ResponseWriter, r *http.Request) {
 func adminUpdateSettingsHandler(w http.ResponseWriter, r *http.Request) {
 	var payload settingsPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeJSONError(w, http.StatusBadRequest, "invalid payload")
+		writeJSONError(w, http.StatusBadRequest, "неверные данные запроса")
 		return
 	}
 	err := appStore.WithTx(r.Context(), false, func(tx *sql.Tx) error {
 		if payload.RetentionDays != nil {
 			if *payload.RetentionDays < 0 {
-				return errors.New("invalid retentionDays")
+				return errors.New("неверное значение срока хранения")
 			}
-			if err := store.SetSettingInt(r.Context(), tx, store.SettingRetentionDays, *payload.RetentionDays); err != nil {
+			if err := store.SettingInt(r.Context(), tx, store.SettingRetentionDays, *payload.RetentionDays); err != nil {
 				return err
 			}
 		}
@@ -293,7 +293,7 @@ func adminUpdateSettingsHandler(w http.ResponseWriter, r *http.Request) {
 func adminCleanupHandler(w http.ResponseWriter, r *http.Request) {
 	count, err := cleanupAllPrints(r.Context(), appStore, uploadDir)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, "cleanup failed: "+err.Error())
+		writeJSONError(w, http.StatusInternalServerError, "ошибка очистки: "+err.Error())
 		return
 	}
 	writeJSON(w, map[string]interface{}{"ok": true, "deleted": count})
