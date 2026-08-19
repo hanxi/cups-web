@@ -572,7 +572,7 @@ docker compose logs -f cups
 
 <div align="center">
 
-[![Star History Chart](https://api.star-history.com/svg?repos=hanxi/cups-web&type=Date)](https://www.star-history.com/#hanxi/cups-web&Date)
+[![Star History Chart](https://star-history.dera.page/svg?repos=hanxi/cups-web&type=Date)](https://star-history.dera.page/#hanxi/cups-web&Date)
 
 如果这个项目对你有帮助，欢迎点击右上角的 ⭐ **Star** 让更多人发现它！
 
