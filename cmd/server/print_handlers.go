@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"io"
@@ -63,8 +64,9 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 	mediaSource := r.FormValue("media_source")
 	pageRange := r.FormValue("page_range")
 	pageSet := r.FormValue("page_set")
-	// even-reverse 分支下方会改写 pageSet，落库要保留用户的原始选择（Issue #68）。
+	// even-reverse / custom-scale 分支下方会改写 pageSet/printScaling，落库要保留用户的原始选择。
 	origPageSet := pageSet
+	origPrintScaling := printScaling
 	mirror := r.FormValue("mirror") == "true"
 	watermarkText := strings.TrimSpace(r.FormValue("watermark_text"))
 
@@ -238,6 +240,16 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Custom percentage scaling: pre-scale PDF via Ghostscript
+	if scalePercent, err := strconv.Atoi(printScaling); err == nil && scalePercent != 100 && scalePercent >= 10 && scalePercent <= 400 && printMime == "application/pdf" {
+		scaledPath := printPath + ".scaled.pdf"
+		if err := scalePDFByPercent(context.Background(), printPath, scaledPath, scalePercent, paperSize); err == nil {
+			printPath = scaledPath
+			defer os.Remove(scaledPath)
+		}
+		printScaling = ""
+	}
+
 	// Handle even-reverse: reorder PDF pages for manual duplex (even pages
 	// in reverse order, with a blank page prepended when total is odd).
 	if pageSet == "even-reverse" && printMime == "application/pdf" && pages > 1 {
@@ -281,7 +293,7 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 				PaperSize:      paperSize,
 				PaperType:      paperType,
 				MediaSource:    mediaSource,
-				PrintScaling:   printScaling,
+				PrintScaling:   origPrintScaling,
 				PageRange:      pageRange,
 				PageSet:        origPageSet,
 				Mirror:         mirror,

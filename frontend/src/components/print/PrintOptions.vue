@@ -78,7 +78,21 @@
             <!-- 缩放 + 页面范围 -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <UFormField label="缩放">
-                <USelect :model-value="printScaling" :items="scalingItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:printScaling', $event)" />
+                <div class="flex gap-2">
+                  <USelect :model-value="printScaling" :items="scalingItems" value-key="value" label-key="label" :class="printScaling === 'custom' ? 'w-28' : 'w-full'" @update:model-value="$emit('update:printScaling', $event)" />
+                  <div v-if="printScaling === 'custom'" class="flex items-center gap-1 flex-1">
+                    <UInput
+                      type="number"
+                      :model-value="scalePercent"
+                      :min="10"
+                      :max="400"
+                      :step="5"
+                      class="w-full"
+                      @update:model-value="$emit('update:scalePercent', Math.max(10, Math.min(400, Number($event) || 100)))"
+                    />
+                    <span class="text-sm text-gray-500 shrink-0">%</span>
+                  </div>
+                </div>
               </UFormField>
               <UFormField label="页面范围" :hint="pageRangeError || '如：1-5 8'">
                 <UInput
@@ -164,6 +178,7 @@ const props = defineProps({
   mediaSource: { type: String, default: 'auto' },
   mediaSourceSupported: { type: Array, default: () => [] },
   printScaling: { type: String, default: 'fit' },
+  scalePercent: { type: Number, default: 100 },
   pageRange: { type: String, default: '' },
   pageSet: { type: String, default: 'all' },
   mirror: { type: Boolean, default: false },
@@ -176,7 +191,7 @@ const props = defineProps({
 
 const emit = defineEmits([
   'update:isColor', 'update:duplex', 'update:copies',
-  'update:paperSize', 'update:paperType', 'update:mediaSource', 'update:printScaling', 'update:pageRange',
+  'update:paperSize', 'update:paperType', 'update:mediaSource', 'update:printScaling', 'update:scalePercent', 'update:pageRange',
   'update:pageSet', 'update:mirror', 'update:watermarkText',
   'update:numberUp', 'update:numberUpLayout', 'update:pageBorder'
 ])
@@ -289,7 +304,8 @@ const scalingItems = [
   { label: '自动适应', value: 'auto-fit' },
   { label: '适应纸张', value: 'fit' },
   { label: '填充纸张', value: 'fill' },
-  { label: '无缩放', value: 'none' }
+  { label: '无缩放', value: 'none' },
+  { label: '自定义', value: 'custom' }
 ]
 
 const pageSetItems = [

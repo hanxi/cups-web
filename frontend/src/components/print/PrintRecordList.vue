@@ -96,6 +96,7 @@
               v-model:mediaSource="reprintForm.mediaSource"
               :media-source-supported="mediaSourceSupported"
               v-model:printScaling="reprintForm.printScaling"
+              v-model:scalePercent="reprintForm.scalePercent"
               v-model:pageRange="reprintForm.pageRange"
               v-model:pageSet="reprintForm.pageSet"
               v-model:mirror="reprintForm.mirror"
@@ -150,6 +151,7 @@ function defaultReprintForm() {
     paperType: 'plain',
     mediaSource: 'auto',
     printScaling: 'fit',
+    scalePercent: 100,
     pageRange: '',
     pageSet: 'all',
     mirror: false,
@@ -185,7 +187,8 @@ function openReprintDialog(rec) {
     paperSize: rec.paperSize ?? def.paperSize,
     paperType: rec.paperType ?? def.paperType,
     mediaSource: rec.mediaSource ?? def.mediaSource,
-    printScaling: rec.printScaling ?? def.printScaling,
+    printScaling: /^\d+$/.test(rec.printScaling) ? 'custom' : (rec.printScaling ?? def.printScaling),
+    scalePercent: /^\d+$/.test(rec.printScaling) ? Number(rec.printScaling) : def.scalePercent,
     pageRange: rec.pageRange ?? def.pageRange,
     pageSet: rec.pageSet ?? def.pageSet,
     mirror: rec.mirror ?? def.mirror,
@@ -213,7 +216,7 @@ function submitReprint() {
     paperSize: f.paperSize,
     paperType: f.paperType,
     mediaSource: f.mediaSource,
-    printScaling: f.printScaling,
+    printScaling: f.printScaling === 'custom' ? String(f.scalePercent) : f.printScaling,
     pageRange: f.pageRange.trim(),
     pageSet: f.pageSet,
     mirror: f.mirror,

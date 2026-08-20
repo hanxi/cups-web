@@ -189,6 +189,7 @@
           v-model:mediaSource="mediaSource"
           :media-source-supported="printerInfo?.mediaSourceSupported || []"
           v-model:printScaling="printScaling"
+          v-model:scalePercent="scalePercent"
           v-model:pageRange="pageRange"
           v-model:pageSet="pageSet"
           v-model:mirror="mirror"
@@ -288,6 +289,7 @@ const paperSize = ref('A4')
 const paperType = ref('plain')
 const mediaSource = ref('auto')
 const printScaling = ref('fit')
+const scalePercent = ref(100)
 const pageRange = ref('')
 const pageSet = ref('all')
 const mirror = ref(false)
@@ -671,7 +673,7 @@ async function uploadAndPrintBatch() {
       form.append('paper_size', paperSize.value)
       form.append('paper_type', paperType.value)
       if (mediaSource.value && mediaSource.value !== 'auto') form.append('media_source', mediaSource.value)
-      form.append('print_scaling', printScaling.value)
+      form.append('print_scaling', printScaling.value === 'custom' ? String(scalePercent.value) : printScaling.value)
       if (pageRange.value.trim()) form.append('page_range', pageRange.value.trim())
       if (pageSet.value && pageSet.value !== 'all') form.append('page_set', pageSet.value)
       if (mirror.value) form.append('mirror', 'true')
@@ -846,7 +848,7 @@ async function uploadAndPrint() {
   form.append('paper_size', paperSize.value)
   form.append('paper_type', paperType.value)
   if (mediaSource.value && mediaSource.value !== 'auto') form.append('media_source', mediaSource.value)
-  form.append('print_scaling', printScaling.value)
+  form.append('print_scaling', printScaling.value === 'custom' ? String(scalePercent.value) : printScaling.value)
   if (pageRange.value.trim()) form.append('page_range', pageRange.value.trim())
   if (pageSet.value && pageSet.value !== 'all') form.append('page_set', pageSet.value)
   if (mirror.value) form.append('mirror', 'true')
@@ -996,13 +998,16 @@ function switchMode(mode) {
   if (mode === 'invoice') {
     isColor.value = false
     printScaling.value = 'none'
+    scalePercent.value = 100
   } else if (mode === 'id_card') {
     isColor.value = true
     printScaling.value = 'none'
+    scalePercent.value = 100
     paperSize.value = 'A4'
   } else {
     isColor.value = true
     printScaling.value = 'fit'
+    scalePercent.value = 100
   }
 }
 
