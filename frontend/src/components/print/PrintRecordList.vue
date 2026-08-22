@@ -200,6 +200,13 @@ function openReprintDialog(rec) {
   showReprintModal.value = true
 }
 
+// 自定义缩放提交给后端的是纯数字字符串；输入框聚焦时可能残留区间外的中间值，这里兜底 clamp。
+function clampScalePercent(v) {
+  const n = Number(v)
+  if (!Number.isFinite(n)) return '100'
+  return String(Math.min(400, Math.max(10, Math.round(n))))
+}
+
 function submitReprint() {
   const rec = reprintRecord.value
   if (!rec) return
@@ -216,7 +223,7 @@ function submitReprint() {
     paperSize: f.paperSize,
     paperType: f.paperType,
     mediaSource: f.mediaSource,
-    printScaling: f.printScaling === 'custom' ? String(f.scalePercent) : f.printScaling,
+    printScaling: f.printScaling === 'custom' ? clampScalePercent(f.scalePercent) : f.printScaling,
     pageRange: f.pageRange.trim(),
     pageSet: f.pageSet,
     mirror: f.mirror,

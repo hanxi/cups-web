@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"io"
@@ -240,14 +239,12 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Custom percentage scaling: pre-scale PDF via Ghostscript
-	if scalePercent, err := strconv.Atoi(printScaling); err == nil && scalePercent != 100 && scalePercent >= 10 && scalePercent <= 400 && printMime == "application/pdf" {
-		scaledPath := printPath + ".scaled.pdf"
-		if err := scalePDFByPercent(context.Background(), printPath, scaledPath, scalePercent, paperSize); err == nil {
-			printPath = scaledPath
-			defer os.Remove(scaledPath)
-		}
-		printScaling = ""
+	// 自定义百分比缩放：先用 gs 把 PDF 内容预缩放，再把 print-scaling 换成合法 keyword
+	scaledPath, scaleCleanup, effectiveScaling := resolveCustomScaling(printPath, printScaling, printMime, "print")
+	printPath = scaledPath
+	printScaling = effectiveScaling
+	if scaleCleanup != nil {
+		defer scaleCleanup()
 	}
 
 	// Handle even-reverse: reorder PDF pages for manual duplex (even pages

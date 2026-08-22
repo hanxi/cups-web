@@ -22,7 +22,7 @@
           </div>
         </div>
         <span class="text-xs sm:text-sm text-muted truncate">
-          {{ paperSizeLabel }}<span class="hidden sm:inline"> · {{ paperDimText }}</span>
+          {{ paperSizeLabel }}<span class="hidden sm:inline"> · {{ paperDimText }}</span><span v-if="contentScale !== 1"> · {{ Math.round(contentScale * 100) }}%</span>
         </span>
       </div>
     </template>
@@ -36,11 +36,12 @@
         :style="adjustedPreviewStyle"
         class="bg-white shadow-lg border border-default overflow-hidden transition-all duration-300 ease-in-out relative mx-auto"
       >
-        <img v-if="previewType === 'image'" :src="previewUrl" class="w-full h-full object-contain" />
-        <PdfCanvas v-else-if="previewType === 'pdf'" :src="previewUrl" :watermark-text="watermarkText" @preview-failed="onPreviewFailed" />
+        <img v-if="previewType === 'image'" :src="previewUrl" class="w-full h-full object-contain transition-transform duration-200" :style="contentScaleStyle" />
+        <PdfCanvas v-else-if="previewType === 'pdf'" :src="previewUrl" :watermark-text="watermarkText" :content-scale="contentScale" @preview-failed="onPreviewFailed" />
         <div
           v-else-if="previewType === 'text'"
-          class="p-3 text-[8px] leading-tight overflow-hidden h-full text-gray-700 dark:text-gray-300 whitespace-pre-wrap"
+          class="p-3 text-[8px] leading-tight overflow-hidden h-full text-gray-700 dark:text-gray-300 whitespace-pre-wrap transition-transform duration-200"
+          :style="contentScaleStyle"
         >
           {{ textPreview?.substring(0, 800) }}
         </div>
@@ -73,8 +74,25 @@ const props = defineProps({
   orientationLabel: { type: String, default: '' },
   paperDimText: { type: String, default: '' },
   paperPreviewStyle: { type: Object, default: () => ({}) },
-  watermarkText: { type: String, default: '' }
+  watermarkText: { type: String, default: '' },
+  printScaling: { type: String, default: 'fit' },
+  scalePercent: { type: Number, default: 100 }
 })
+
+// 自定义百分比缩放：后端用 gs 把内容按比例缩小并在页面内居中，这里用等比 CSS transform
+// 同步预览，用户拖百分比时立刻能看到效果（Issue #98）。
+// 其余缩放模式（fit / fill / none…）由 CUPS 在打印时处理，预览不做模拟。
+const contentScale = computed(() => {
+  if (props.printScaling !== 'custom') return 1
+  const p = Number(props.scalePercent)
+  if (!Number.isFinite(p) || p <= 0) return 1
+  // 输入过程中可能出现区间外的中间值，clamp 一下避免预览抽风
+  return Math.min(400, Math.max(10, p)) / 100
+})
+
+const contentScaleStyle = computed(() =>
+  contentScale.value === 1 ? {} : { transform: `scale(${contentScale.value})` }
+)
 
 defineEmits(['update:orientation'])
 

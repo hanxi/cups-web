@@ -8,8 +8,11 @@
       <p class="mt-1 text-[10px] opacity-80">不影响打印，仍可点击"开始打印"</p>
     </div>
     <div v-show="!loading && !error" class="relative w-full h-full flex items-center justify-center">
-      <canvas ref="canvas" class="max-w-full max-h-full" />
-      <canvas ref="watermarkCanvas" class="absolute top-0 left-0 pointer-events-none" />
+      <!-- 自定义缩放只作用于画布本身，翻页控件留在外层不跟着缩小 -->
+      <div class="relative w-full h-full flex items-center justify-center transition-transform duration-200" :style="contentScaleStyle">
+        <canvas ref="canvas" class="max-w-full max-h-full" />
+        <canvas ref="watermarkCanvas" class="absolute top-0 left-0 pointer-events-none" />
+      </div>
       <div v-if="totalPages > 1 && !loading && !error" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex flex-nowrap items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 bg-black/40 rounded-full w-max max-w-[90%] whitespace-nowrap" style="backdrop-filter: blur(4px)">
         <UButton size="xs" variant="ghost" color="white" icon="i-lucide-chevron-left" :disabled="currentPage <= 1" class="flex-shrink-0" @click="prevPage" />
         <span class="text-xs text-white whitespace-nowrap flex-shrink-0">{{ currentPage }} / {{ totalPages }}</span>
@@ -20,7 +23,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted, nextTick } from 'vue'
 import * as pdfjsLib from 'pdfjs-dist'
 // 用包装过的 worker（内联了 Uint8Array base64/hex polyfill），修复旧内核浏览器
 // 在 worker 内调用 toHex 计算 fingerprints 时 `a.toHex is not a function` 导致预览失败（Issue #86）。
@@ -30,8 +33,19 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker
 
 const props = defineProps({
   src: { type: String, required: true },
-  watermarkText: { type: String, default: '' }
+  watermarkText: { type: String, default: '' },
+  // 自定义百分比缩放的预览倍率（1 = 不缩放）。用 CSS transform 展示，
+  // 不改渲染分辨率：canvas 仍按容器满尺寸渲染，缩小后反而更清晰。
+  contentScale: { type: Number, default: 1 }
 })
+
+const contentScaleStyle = computed(() =>
+  props.contentScale === 1 ? {} : { transform: `scale(${props.contentScale})` }
+)
+
+// contentScale > 1 时 CSS 放大会让画布发虚，按整数档提高渲染分辨率补偿。
+// 取整数档（1/2/3）而不是直接用 contentScale，是为了让用户连续调百分比时最多只重渲两次。
+const superSample = computed(() => Math.min(3, Math.max(1, Math.ceil(props.contentScale))))
 
 // 预览失败时通知父组件，便于在外层展示"不影响打印"的提示
 const emit = defineEmits(['preview-failed'])
@@ -127,14 +141,15 @@ async function renderPage(pageNum) {
     const scaleY = containerHeight / viewport.height
     const baseScale = Math.min(scaleX, scaleY, 2)
 
-    // 高清渲染：scale 乘以 DPR，canvas 实际像素更大，CSS 尺寸保持正常
-    const scaledViewport = page.getViewport({ scale: baseScale * dpr })
+    // 高清渲染：scale 乘以 DPR（放大预览时再乘 superSample），canvas 实际像素更大，CSS 尺寸保持正常
+    const pixelRatio = dpr * superSample.value
+    const scaledViewport = page.getViewport({ scale: baseScale * pixelRatio })
 
     const ctx = canvas.value.getContext('2d')
     canvas.value.width = scaledViewport.width
     canvas.value.height = scaledViewport.height
-    canvas.value.style.width = (scaledViewport.width / dpr) + 'px'
-    canvas.value.style.height = (scaledViewport.height / dpr) + 'px'
+    canvas.value.style.width = (scaledViewport.width / pixelRatio) + 'px'
+    canvas.value.style.height = (scaledViewport.height / pixelRatio) + 'px'
 
     renderTask = page.render({
       canvasContext: ctx,
@@ -229,6 +244,10 @@ watch(() => props.src, () => {
 
 watch(() => props.watermarkText, () => {
   drawWatermark()
+})
+
+watch(superSample, () => {
+  if (pdfDoc && currentPage.value > 0 && !loading.value) renderPage(currentPage.value)
 })
 
 onMounted(() => {

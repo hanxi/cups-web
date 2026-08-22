@@ -457,6 +457,13 @@ func reprintHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// 重打同样要走自定义百分比缩放：记录里存的是用户原始选择（自定义时为纯数字）。
+	scaledPath, scaleCleanup, printScaling := resolveCustomScaling(printPath, req.PrintScaling, printMime, "reprint")
+	printPath = scaledPath
+	if scaleCleanup != nil {
+		defer scaleCleanup()
+	}
+
 	pageSet := req.PageSet
 	if pageSet == "even-reverse" && printMime == "application/pdf" && pages > 1 {
 		reorderedPath, reorderCleanup, rerr := reorderPDFForManualDuplex(printPath, pages, req.PaperSize)
@@ -542,7 +549,7 @@ func reprintHandler(w http.ResponseWriter, r *http.Request) {
 		PaperSize:    req.PaperSize,
 		PaperType:    req.PaperType,
 		MediaSource:  req.MediaSource,
-		PrintScaling: req.PrintScaling,
+		PrintScaling: printScaling,
 		PageRange:    req.PageRange,
 		PageSet:      pageSet,
 		Mirror:       req.Mirror,

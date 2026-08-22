@@ -230,6 +230,8 @@
             :paper-dim-text="paperDimText"
             :paper-preview-style="paperPreviewStyle"
             :watermark-text="watermarkText"
+            :print-scaling="printScaling"
+            :scale-percent="scalePercent"
           />
         </div>
         <PrintRecordList ref="recordListRef" :records="printRecords" :loading="loadingRecords" :printers="printers" :current-printer="printer" :media-source-supported="printerInfo?.mediaSourceSupported || []" @refresh="loadPrintRecords" @reprint="handleReprint" />
@@ -419,6 +421,16 @@ const paperDimText = computed(() => {
 // 纸张预览：宽度撑满容器，高度由 aspect-ratio 根据纸张真实比例自动算出。
 // 不再限制 maxWidth —— 预览区域宽度始终等于容器宽度，这样"预览区的形状"
 // 就能精确同步当前纸张（纵向 / 横向 / 5寸 ... 10寸）的真实比例。
+// 提交给后端的 print_scaling：自定义模式下传纯数字百分比。
+// 这里再 clamp 一次——输入框在聚焦状态下可能残留区间外的中间值，
+// 直接提交会被后端判为非法而退回 100%（见 resolveCustomScaling）。
+const printScalingParam = computed(() => {
+  if (printScaling.value !== 'custom') return printScaling.value
+  const p = Number(scalePercent.value)
+  if (!Number.isFinite(p)) return '100'
+  return String(Math.round(Math.min(400, Math.max(10, p))))
+})
+
 const paperPreviewStyle = computed(() => {
   const dim = paperDimensionsMap[paperSize.value]
   if (!dim) return {}
@@ -673,7 +685,7 @@ async function uploadAndPrintBatch() {
       form.append('paper_size', paperSize.value)
       form.append('paper_type', paperType.value)
       if (mediaSource.value && mediaSource.value !== 'auto') form.append('media_source', mediaSource.value)
-      form.append('print_scaling', printScaling.value === 'custom' ? String(scalePercent.value) : printScaling.value)
+      form.append('print_scaling', printScalingParam.value)
       if (pageRange.value.trim()) form.append('page_range', pageRange.value.trim())
       if (pageSet.value && pageSet.value !== 'all') form.append('page_set', pageSet.value)
       if (mirror.value) form.append('mirror', 'true')
@@ -848,7 +860,7 @@ async function uploadAndPrint() {
   form.append('paper_size', paperSize.value)
   form.append('paper_type', paperType.value)
   if (mediaSource.value && mediaSource.value !== 'auto') form.append('media_source', mediaSource.value)
-  form.append('print_scaling', printScaling.value === 'custom' ? String(scalePercent.value) : printScaling.value)
+  form.append('print_scaling', printScalingParam.value)
   if (pageRange.value.trim()) form.append('page_range', pageRange.value.trim())
   if (pageSet.value && pageSet.value !== 'all') form.append('page_set', pageSet.value)
   if (mirror.value) form.append('mirror', 'true')

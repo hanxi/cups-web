@@ -165,7 +165,7 @@ cups-web/
 | `paper_size` | `A4` / `A3` / `5inch`…`10inch` | 纸张尺寸 |
 | `paper_type` | `plain` / `photo` / … / `auto` | 纸张类型 |
 | `media_source` | string | 进纸盒（`auto` 不发送） |
-| `print_scaling` | `auto` / `auto-fit` / `fit` / `fill` / `none` | 缩放 |
+| `print_scaling` | `auto` / `auto-fit` / `fit` / `fill` / `none` / 纯数字 `10`–`400` | 缩放；纯数字＝自定义百分比 |
 | `page_range` | string | 页码范围 |
 | `page_set` | `all` / `odd` / `even` | 页面子集（`all` 不发送） |
 | `mirror` | `"true"` / `"false"` | 镜像 |
@@ -232,6 +232,16 @@ KV 表。当前键：`retention_days`（`0` = 永久）、`session_hash_key` / `
 - `text` → `gofpdf` + 内嵌中文字体
 
 > ⚠️ 标准化管线只解决 CUPS 老驱动兼容性问题，gs 会破坏空壳 CJK 字体导致 pdf.js 预览错位。管线原理与 cidfmap 机制见 [docs/pdf-pipeline.md](docs/pdf-pipeline.md)。
+
+### 自定义百分比缩放（`pdf_scale.go`）
+
+`print_scaling` 为纯数字时走 `resolveCustomScaling`：gs 预缩放 PDF 内容 → 发给 CUPS 的 `print-scaling` 换成 `none`。
+打印与重打（`reprintHandler`）两条路径都必须调用它。
+
+- 🚫 **纯数字绝不能透传给 IPP**：`print-scaling` 是 keyword，`"40"` 不是合法取值。gs 失败/非 PDF 时退回空串（打印机默认），不是原样下发。
+- 🚫 gs 缩放**不要**用 `-dFIXEDMEDIA` + 固定 `-dDEVICEWIDTHPOINTS`：横向页会被塞进纵向纸并偏移。现在的 `Install` 过程逐页读 `currentpagedevice /PageSize`，纸张尺寸原样保留。
+- ⚠️ `-sOutputFile` 必须排在 `-f` **之前**——`-f` 之后的参数会被 gs 当成输入文件名，放末尾会直接报 `requires an output file`（Issue #98 的根因）。
+- 前端预览用等比 CSS transform 同步这个百分比（`PrintPreview.vue` / `PdfCanvas.vue`），其余缩放模式交给 CUPS，预览不模拟。
 
 ## 🧹 维护任务
 

@@ -88,7 +88,8 @@
                       :max="400"
                       :step="5"
                       class="w-full"
-                      @update:model-value="$emit('update:scalePercent', Math.max(10, Math.min(400, Number($event) || 100)))"
+                      @update:model-value="onScalePercentInput"
+                      @blur="onScalePercentBlur"
                     />
                     <span class="text-sm text-gray-500 shrink-0">%</span>
                   </div>
@@ -330,6 +331,20 @@ const numberUpLayoutItems = [
   { label: '纵向 N 形（上→下，左→右）', value: 'tblr' },
   { label: '纵向 N 形（上→下，右→左）', value: 'tbrl' }
 ]
+
+// 输入过程中只夹上限：若这里连下限一起夹，用户想输 40 时刚敲下 "4" 就会被弹成 10，
+// 后面再敲 "0" 就变成 100。下限留到 blur 时归一。
+function onScalePercentInput(val) {
+  const n = Number(val)
+  if (!Number.isFinite(n)) return
+  emit('update:scalePercent', Math.min(400, Math.max(0, Math.round(n))))
+}
+
+function onScalePercentBlur() {
+  const n = Number(props.scalePercent)
+  const fixed = Number.isFinite(n) ? Math.min(400, Math.max(10, Math.round(n))) : 100
+  if (fixed !== props.scalePercent) emit('update:scalePercent', fixed)
+}
 
 function onPageRangeInput(val) {
   emit('update:pageRange', val)
