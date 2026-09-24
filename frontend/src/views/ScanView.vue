@@ -66,7 +66,16 @@
             <USelect v-model="form.mode" :items="modeItems" value-key="value" label-key="label" />
           </UFormField>
           <UFormField label="分辨率(dpi)">
-            <USelect v-model="form.resolution" :items="resolutionItems" value-key="value" label-key="label" />
+            <USelect v-model="form.resolution" :items="resolutionSelectItems" value-key="value" label-key="label" />
+            <UInput
+              v-if="form.resolution === 'custom'"
+              v-model="customResolution"
+              type="number"
+              :min="50"
+              :max="4800"
+              placeholder="50 - 4800"
+              class="mt-2"
+            />
           </UFormField>
           <UFormField label="输出格式">
             <USelect v-model="form.format" :items="formatItems" value-key="value" label-key="label" />
@@ -222,7 +231,8 @@ const modeItems = [
   { value: 'Gray', label: '灰度 (Gray)' },
   { value: 'Lineart', label: '黑白线稿 (Lineart)' }
 ]
-const resolutionItems = [
+// 分辨率默认档位:/api/scan/options 拉取失败或设备未上报 resolution 时兜底。
+const DEFAULT_RESOLUTION_ITEMS = [
   { value: '75', label: '75 dpi' },
   { value: '100', label: '100 dpi' },
   { value: '150', label: '150 dpi' },
@@ -230,6 +240,15 @@ const resolutionItems = [
   { value: '300', label: '300 dpi (推荐)' },
   { value: '600', label: '600 dpi (高质量)' }
 ]
+// 设备上报档位优先(issue #114):list 型直接用枚举值(如 M1005 含 1200),
+// range 型由 min/default/max 生成;末尾始终追加「自定义…」。
+const deviceResolutionItems = ref(DEFAULT_RESOLUTION_ITEMS)
+const resolutionSelectItems = computed(() => [
+  ...deviceResolutionItems.value,
+  { value: 'custom', label: '自定义…' }
+])
+// 选「自定义…」时的数值输入;前端按后端 parseResolution 同样的 50..4800 校验。
+const customResolution = ref('')
 const formatItems = [
   { value: 'png', label: 'PNG(位图,无损)' },
   { value: 'jpeg', label: 'JPEG(位图,较小)' },
@@ -369,6 +388,35 @@ async function loadOptions(device) {
       sourceItems.value = [{ value: '', label: '(默认)' }]
       form.value.source = ''
     }
+    // 分辨率用设备上报档位(issue #114):list 型直接用枚举值,range 型取
+    // min/default/常用值/max 生成;拿不到或解析失败时回落默认档位。
+    const ro = opts.resolution
+    if (ro && ro.type === 'list' && ro.values?.length) {
+      deviceResolutionItems.value = ro.values.map((v) => ({
+        value: v,
+        label: v === ro.default ? `${v} dpi (设备默认)` : `${v} dpi`
+      }))
+    } else if (ro && ro.type === 'range') {
+      const min = Number(ro.min)
+      const max = Number(ro.max)
+      const def = Number(ro.default)
+      if (Number.isFinite(min) && Number.isFinite(max) && max > min) {
+        const picks = [...new Set(
+          [min, def, 150, 300, 600, max].filter((v) => Number.isFinite(v) && v >= min && v <= max)
+        )].sort((a, b) => a - b)
+        deviceResolutionItems.value = picks.map((v) => ({
+          value: String(v),
+          label: v === def ? `${v} dpi (设备默认)` : `${v} dpi`
+        }))
+      }
+    } else {
+      deviceResolutionItems.value = DEFAULT_RESOLUTION_ITEMS
+    }
+    // 换设备后当前选中值可能不在新档位里,回落到设备默认或首项;自定义选择不受影响
+    const values = deviceResolutionItems.value.map((i) => i.value)
+    if (form.value.resolution !== 'custom' && !values.includes(form.value.resolution)) {
+      form.value.resolution = (ro && values.includes(String(ro.default))) ? String(ro.default) : values[0]
+    }
   } catch (e) {
     // 参数加载属可降级,静默失败即可
   }
@@ -390,6 +438,16 @@ async function loadRecords() {
 
 async function startScan() {
   if (!form.value.device) { toast.add({ title: '请选择设备', color: 'warning' }); return }
+  // 自定义 dpi:与后端 parseResolution 相同区间校验,非法时阻止提交(issue #114)
+  let resolution = form.value.resolution
+  if (resolution === 'custom') {
+    const n = parseInt(customResolution.value, 10)
+    if (!Number.isFinite(n) || n < 50 || n > 4800) {
+      toast.add({ title: '自定义 dpi 非法', description: '请输入 50 - 4800 之间的整数', color: 'warning' })
+      return
+    }
+    resolution = String(n)
+  }
   starting.value = true
   try {
     const resp = await apiFetch('/api/scan/jobs', {
@@ -397,7 +455,7 @@ async function startScan() {
       body: JSON.stringify({
         device: form.value.device,
         mode: form.value.mode,
-        resolution: form.value.resolution,
+        resolution,
         source: form.value.source,
         format: form.value.format,
         filename: form.value.filename
@@ -410,7 +468,7 @@ async function startScan() {
       id: data.jobId,
       device: form.value.device,
       mode: form.value.mode,
-      resolution: parseInt(form.value.resolution, 10),
+      resolution: parseInt(resolution, 10),
       format: form.value.format,
       filename: data.filename,
       status: 'running',
