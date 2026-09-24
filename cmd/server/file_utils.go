@@ -10,6 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode"
+
+	"golang.org/x/text/unicode/norm"
 
 	"rsc.io/pdf"
 )
@@ -40,15 +43,28 @@ func sanitizeFilename(name string) string {
 	return safeBase + safeExt
 }
 
+// maxNamePartRunes 限制文件名主体的 rune 数。中文 UTF-8 每字 3 字节,不截断
+// 时拼上时间戳与扩展名可能超过 ext4 的 255 字节文件名上限(issue #114)。
+const maxNamePartRunes = 64
+
+// sanitizeNamePart 过滤用户提供的文件名主体(不含扩展名)。
+//
+// 允许 Unicode 字母 / 数字 / 组合标记(保留中文、泰文、天城文等,issue #114)
+// 以及 '_' '-',其余字符(路径危险字符 / \ : * ? " < > |、控制字符、NUL、
+// 空格、点号等)一律替换为 '_'。点号不能幸存,因此 ".." 无法拼出;上游
+// sanitizeFilename 还先做了 filepath.Base 兜底。输入先做 NFC 归一化,避免
+// 跨系统编码差异;结果按 rune 截断到 maxNamePartRunes。
 func sanitizeNamePart(name string) string {
+	name = norm.NFC.String(name)
 	var b strings.Builder
+	n := 0
 	for _, r := range name {
+		if n >= maxNamePartRunes {
+			break
+		}
+		n++
 		switch {
-		case r >= 'a' && r <= 'z':
-			b.WriteRune(r)
-		case r >= 'A' && r <= 'Z':
-			b.WriteRune(r)
-		case r >= '0' && r <= '9':
+		case unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsMark(r):
 			b.WriteRune(r)
 		case r == '_' || r == '-':
 			b.WriteRune(r)

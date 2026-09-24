@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime"
 	"net/http"
 	"os"
 	"os/exec"
@@ -593,7 +594,15 @@ func scanDownloadHandler(w http.ResponseWriter, r *http.Request) {
 	defer f.Close()
 
 	w.Header().Set("Content-Type", scanContentType(rec.Format))
-	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, rec.Filename))
+	// mime.FormatMediaType 对非 ASCII 文件名自动输出 RFC 5987 的
+	// filename*=UTF-8''… 形式,保证中文文件名下载不丢名、不乱码(issue #114),
+	// 与 print_records_handlers.go 的既有写法保持一致。rec.Filename 入库前已
+	// sanitize,正常不会触发空串;兜底 attachment 防御历史脏数据。
+	disposition := mime.FormatMediaType("attachment", map[string]string{"filename": rec.Filename})
+	if disposition == "" {
+		disposition = "attachment"
+	}
+	w.Header().Set("Content-Disposition", disposition)
 	if _, err := io.Copy(w, f); err != nil {
 		log.Printf("[scan] 下载中断: %v", err)
 	}

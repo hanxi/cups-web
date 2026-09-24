@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"io"
+	"mime"
 	"net/http"
 	"os"
 	"os/exec"
@@ -171,7 +172,14 @@ func parseRotations(s string) []int {
 // streamPDF 以 application/pdf 的 Content-Type 把 PDF 文件流式写回响应
 func streamPDF(w http.ResponseWriter, path string, filename string) {
 	w.Header().Set("Content-Type", "application/pdf")
-	w.Header().Set("Content-Disposition", "attachment; filename=\""+filename+"\"")
+	// mime.FormatMediaType 对非 ASCII 文件名自动输出 RFC 5987 形式(issue #114)。
+	// filename 来自用户输入(FormValue / 上传名),含控制字符等非法值时返回空串,
+	// 兜底为不带文件名的 attachment,保证仍是下载而非内联展示。
+	disposition := mime.FormatMediaType("attachment", map[string]string{"filename": filename})
+	if disposition == "" {
+		disposition = "attachment"
+	}
+	w.Header().Set("Content-Disposition", disposition)
 	pdfFile, err := os.Open(path)
 	if err != nil {
 		http.Error(w, "failed to open converted file", http.StatusInternalServerError)
