@@ -74,6 +74,12 @@ services:
       - ./.drivers:/opt/cups-drivers/data
       - /dev/bus/usb:/dev/bus/usb
       - /run/udev:/run/udev:ro
+    tmpfs:
+      # D-Bus 和 Avahi 的运行时状态不应持久化。
+      # 使用 tmpfs 可避免 /run/dbus/pid、system_bus_socket 等
+      # 残留文件在容器重启后导致 dbus-daemon/avahi-daemon 无法启动。
+      - /run/dbus
+      - /run/avahi-daemon
     device_cgroup_rules:
       - 'c 189:* rmw'
     # ── 特权模式：USB 打印机发现（issue #110） ────────────────────────────
