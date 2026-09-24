@@ -233,6 +233,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       openjdk-21-jre \
       # ── Ghostscript（PDF 处理） ──
       ghostscript \
+      # ── img2pdf（扫描 PNG→PDF 无损嵌入，issue #114：gs 不支持位图输入） ──
+      img2pdf \
       # ── 字体：CJK 中文 ──
       fonts-droid-fallback \
       fonts-noto-cjk \

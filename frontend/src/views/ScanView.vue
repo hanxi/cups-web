@@ -21,7 +21,7 @@
       variant="soft"
       icon="i-lucide-info"
       title="使用说明"
-      description="AIO 镜像自带 scanimage 与多种 SANE 后端。zeroconf 类零配置后端(如 hpljm1005: / escl:)通常可直接工作;同一台设备若同时列出 hpaio: 与 hpljm1005:,优先选后者。选中设备后系统会做一次快速可用性探测,若打开失败请换其它后端再试。PDF 会先扫成 PNG,再用 Ghostscript 合成。"
+      description="AIO 镜像自带 scanimage 与多种 SANE 后端。zeroconf 类零配置后端(如 hpljm1005: / escl:)通常可直接工作;同一台设备若同时列出 hpaio: 与 hpljm1005:,优先选后者。选中设备后系统会做一次快速可用性探测,若打开失败请换其它后端再试。PDF 会先扫成 PNG,再用 img2pdf 无损嵌入合成。"
     />
 
     <UCard>
@@ -233,7 +233,7 @@ const resolutionItems = [
 const formatItems = [
   { value: 'png', label: 'PNG(位图,无损)' },
   { value: 'jpeg', label: 'JPEG(位图,较小)' },
-  { value: 'pdf', label: 'PDF(单页,Ghostscript 合成)' }
+  { value: 'pdf', label: 'PDF(单页,无损嵌入)' }
 ]
 // 动态从 /api/scan/options 拉;后端返回不足时用默认单项 Flatbed 兜底。
 const sourceItems = ref([{ value: '', label: '(默认)' }])

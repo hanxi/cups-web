@@ -271,7 +271,7 @@ func scanCreateJobHandler(w http.ResponseWriter, r *http.Request) {
 // runScanPipeline 是真正的扫描 pipeline。
 //
 // - png / jpeg: 直接让 scanimage 一次出图。
-// - pdf:       先让 scanimage 出临时 PNG,再用 gs(Ghostscript)合成 PDF,最后删 PNG。
+// - pdf:       先让 scanimage 出临时 PNG,再用 img2pdf 无损嵌入合成 PDF,最后删 PNG。
 //
 // 所有子进程都走 exec.CommandContext(变参),没有 shell,无注入面。
 func runScanPipeline(ctx context.Context, logBuf *scanBuffer, device, mode string, dpi int, source, format, outputPath string) (int64, error) {
@@ -286,7 +286,7 @@ func runScanPipeline(ctx context.Context, logBuf *scanBuffer, device, mode strin
 			_ = os.Remove(tmpPNG)
 			return 0, err
 		}
-		if err := runGhostscriptPNG2PDF(ctx, logBuf, tmpPNG, outputPath); err != nil {
+		if err := runImg2pdfPNG2PDF(ctx, logBuf, tmpPNG, outputPath); err != nil {
 			_ = os.Remove(tmpPNG)
 			_ = os.Remove(outputPath)
 			return 0, err
@@ -379,23 +379,21 @@ func buildScanGeometryArgs(ctx context.Context, logBuf *scanBuffer, device strin
 	return nil
 }
 
-func runGhostscriptPNG2PDF(ctx context.Context, logBuf *scanBuffer, pngPath, pdfPath string) error {
-	// -dSAFER 关闭对文件系统的额外权限,-dNOPAUSE / -dBATCH 保证非交互。
-	// pdfwrite 直接把光栅嵌进 PDF——MVP 阶段不做 OCR。
-	args := []string{
-		"-sDEVICE=pdfwrite",
-		"-dSAFER",
-		"-dNOPAUSE",
-		"-dBATCH",
-		"-o", pdfPath,
-		pngPath,
-	}
-	cmd := exec.CommandContext(ctx, "gs", args...)
+// runImg2pdfPNG2PDF 用 img2pdf 把 PNG 无损嵌入 PDF 容器。
+//
+// 此前走 gs -sDEVICE=pdfwrite,但 Ghostscript 输入只支持 PostScript / PDF,
+// 读不了任何位图:PNG 二进制被按 PostScript 语法解析,必然报
+// "/syntaxerror in (binary token)" 并以 exit 1 结束(issue #114)。img2pdf
+// 是专为「图片 → PDF」设计的工具,不重新编码、无损嵌入。
+// MVP 阶段不做 OCR,产物为无文字层的光栅 PDF,与原设计意图一致。
+func runImg2pdfPNG2PDF(ctx context.Context, logBuf *scanBuffer, pngPath, pdfPath string) error {
+	args := []string{pngPath, "-o", pdfPath}
+	cmd := exec.CommandContext(ctx, "img2pdf", args...)
 	cmd.Stdout = logBuf
 	cmd.Stderr = logBuf
-	fmt.Fprintf(logBuf, "$ gs %s\n", strings.Join(args, " "))
+	fmt.Fprintf(logBuf, "$ img2pdf %s\n", strings.Join(args, " "))
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("gs 合成 PDF 失败: %w", err)
+		return fmt.Errorf("img2pdf 合成 PDF 失败: %w", err)
 	}
 	return nil
 }
