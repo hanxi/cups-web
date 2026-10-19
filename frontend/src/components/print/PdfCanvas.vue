@@ -4,8 +4,8 @@
       <UIcon name="i-lucide-loader-circle" class="w-6 h-6 animate-spin" />
     </div>
     <div v-else-if="error" class="text-center text-muted text-xs p-3 leading-relaxed">
-      <p>PDF 预览加载失败</p>
-      <p class="mt-1 text-[10px] opacity-80">不影响打印，仍可点击"开始打印"</p>
+      <p>{{ t('ui.could_not_load_pdf_preview') }}</p>
+      <p class="mt-1 text-[10px] opacity-80">{{ t('ui.printing_is_still_available_select_start_printing') }}</p>
     </div>
     <div v-show="!loading && !error" class="relative w-full h-full flex items-center justify-center">
       <!-- 自定义缩放只作用于画布本身，翻页控件留在外层不跟着缩小 -->
@@ -14,17 +14,20 @@
         <canvas ref="watermarkCanvas" class="absolute top-0 left-0 pointer-events-none" />
       </div>
       <div v-if="totalPages > 1 && !loading && !error" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex flex-nowrap items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 bg-black/40 rounded-full w-max max-w-[90%] whitespace-nowrap" style="backdrop-filter: blur(4px)">
-        <UButton size="xs" variant="ghost" color="white" icon="i-lucide-chevron-left" :disabled="currentPage <= 1" class="flex-shrink-0" @click="prevPage" />
+        <UButton :aria-label="t('accessibility.previous_page')" size="xs" variant="ghost" color="white" icon="i-lucide-chevron-left" :disabled="currentPage <= 1" class="flex-shrink-0" @click="prevPage" />
         <span class="text-xs text-white whitespace-nowrap flex-shrink-0">{{ currentPage }} / {{ totalPages }}</span>
-        <UButton size="xs" variant="ghost" color="white" icon="i-lucide-chevron-right" :disabled="currentPage >= totalPages" class="flex-shrink-0" @click="nextPage" />
+        <UButton :aria-label="t('accessibility.next_page')" size="xs" variant="ghost" color="white" icon="i-lucide-chevron-right" :disabled="currentPage >= totalPages" class="flex-shrink-0" @click="nextPage" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import { ref, computed, onMounted, watch, onUnmounted, nextTick } from 'vue'
 import * as pdfjsLib from 'pdfjs-dist'
+
+const { t } = useI18n()
 // 用包装过的 worker（内联了 Uint8Array base64/hex polyfill），修复旧内核浏览器
 // 在 worker 内调用 toHex 计算 fingerprints 时 `a.toHex is not a function` 导致预览失败（Issue #86）。
 import pdfjsWorker from '../../polyfills/pdf-worker.js?worker&url'

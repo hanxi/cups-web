@@ -2,46 +2,44 @@
   <UCard>
     <template #header>
       <div class="flex items-center gap-2 font-semibold">
-        <UIcon name="i-lucide-settings-2" class="w-5 h-5" />
-        打印参数
-      </div>
+        <UIcon name="i-lucide-settings-2" class="w-5 h-5" /> {{ t('ui.print_settings') }} </div>
     </template>
     <div class="space-y-4">
       <!-- ═══ 基础选项（始终显示） ═══ -->
       <!-- 颜色 -->
-      <UFormField label="颜色模式" :hint="isColor ? undefined : '文档中的彩色内容将以灰阶模式打印输出'">
+      <UFormField :label="t('ui.colour_mode')" :hint="isColor ? undefined : t('ui.colour_content_in_the_document_will_be_printed_in_greyscale')">
         <div class="flex rounded-lg border border-muted overflow-hidden">
           <label v-for="item in colorItems" :key="String(item.value)"
             class="flex-1 flex items-center justify-center gap-1.5 py-2 px-2 cursor-pointer text-sm transition"
             :class="isColor === item.value ? 'bg-primary text-white font-medium' : 'hover:bg-elevated'">
             <input type="radio" :value="item.value" :checked="isColor === item.value" class="sr-only" @change="$emit('update:isColor', item.value)" />
             <UIcon :name="item.icon" class="w-3.5 h-3.5 shrink-0" />
-            <span class="text-xs whitespace-nowrap">{{ item.label }}</span>
+            <span class="text-xs text-center">{{ item.label }}</span>
           </label>
         </div>
       </UFormField>
 
       <!-- 黑白反转（仅图片 + 黑白模式时显示，issue #87） -->
-      <UFormField v-if="invertVisible" label="黑白反转" hint="把黑底白字反成正常；正常图片会变负片">
+      <UFormField v-if="invertVisible" :label="t('ui.invert_black_and_white')" :hint="t('ui.convert_white_text_on_a_black_background_to_normal_ordinary')">
         <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer transition hover:bg-elevated w-fit"
           :class="invert ? 'border-primary bg-primary/5' : 'border-muted'">
           <UCheckbox :model-value="invert" @update:model-value="$emit('update:invert', $event)" />
           <UIcon name="i-lucide-contrast" class="w-4 h-4" />
-          <span class="text-sm">反色（负片）</span>
+          <span class="text-sm">{{ t('ui.invert_colours_negative') }}</span>
         </label>
       </UFormField>
 
-      <UFormField v-if="imageCompressionVisible" label="图片压缩">
-        <UCheckbox :model-value="compressImages" :disabled="imageCompressionDisabled" label="启用图片压缩" description="关闭时保留原始像素；开启后每张图片压至 800KB 以下，可能降低清晰度。" @update:model-value="$emit('update:compressImages', $event)" />
+      <UFormField v-if="imageCompressionVisible" :label="t('ui.image_compression')">
+        <UCheckbox :model-value="compressImages" :disabled="imageCompressionDisabled" :label="t('ui.enable_image_compression')" :description="t('ui.when_off_original_pixels_are_preserved_when_on_each_image')" @update:model-value="$emit('update:compressImages', $event)" />
       </UFormField>
 
       <!-- 双面 + 份数 -->
       <div class="grid grid-cols-2 gap-3">
-        <UFormField label="双面打印">
+        <UFormField :label="t('ui.double_sided_printing')">
           <USelect :model-value="duplex" :items="duplexItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:duplex', $event)" />
         </UFormField>
 
-        <UFormField label="份数">
+        <UFormField :label="t('ui.copies')">
           <UInput
             :model-value="copies"
             type="number"
@@ -65,13 +63,12 @@
             class="w-3.5 h-3.5 transition-transform duration-200 shrink-0"
             :class="showAdvanced ? 'rotate-90' : ''"
           />
-          <span class="font-medium">高级选项</span>
+          <span class="font-medium">{{ t('ui.advanced_options') }}</span>
           <span v-if="!showAdvanced" class="text-[11px] sm:text-xs text-muted ml-1 truncate">{{ advancedSummary }}</span>
         </button>
 
         <div
-          class="overflow-hidden transition-all duration-300 ease-in-out"
-          :style="{ maxHeight: showAdvanced ? '1000px' : '0px', opacity: showAdvanced ? 1 : 0, visibility: showAdvanced ? 'visible' : 'hidden' }"
+          v-show="showAdvanced"
         >
           <div class="space-y-4 pt-3">
             <PrinterMediaOptions :printer-uri="printerUri" :driver-options="driverOptions"
@@ -80,13 +77,13 @@
               @update:paper-size="$emit('update:paperSize', $event)" @update:paper-type="$emit('update:paperType', $event)" />
 
             <!-- 进纸盒（仅当打印机上报可用纸盒时显示） -->
-            <UFormField v-if="mediaSourceItems.length > 1" label="进纸盒" hint="选择从哪个纸盒进纸；「自动」由打印机决定">
+            <UFormField v-if="mediaSourceItems.length > 1" :label="t('ui.paper_tray')" :hint="t('ui.choose_a_paper_tray_automatic_lets_the_printer_decide')">
               <USelect :model-value="mediaSource" :items="mediaSourceItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:mediaSource', $event)" />
             </UFormField>
 
             <!-- 缩放 + 页面范围 -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <UFormField label="缩放">
+              <UFormField :label="t('ui.scaling')">
                 <div class="flex gap-2">
                   <USelect :model-value="printScaling" :items="scalingItems" value-key="value" label-key="label" :class="printScaling === 'custom' ? 'w-28' : 'w-full'" @update:model-value="$emit('update:printScaling', $event)" />
                   <div v-if="printScaling === 'custom'" class="flex items-center gap-1 flex-1">
@@ -104,10 +101,10 @@
                   </div>
                 </div>
               </UFormField>
-              <UFormField label="页面范围" :hint="pageRangeError || '如：1-5 8'">
+              <UFormField :label="t('ui.page_range')" :hint="pageRangeError || t('ui.example_1_5_8')">
                 <UInput
                   :model-value="pageRange"
-                  placeholder="留空=全部"
+                  :placeholder="t('ui.leave_blank_for_all_pages')"
                   class="w-full"
                   :color="pageRangeError ? 'error' : undefined"
                   @update:model-value="onPageRangeInput"
@@ -117,56 +114,56 @@
 
             <!-- 一张多页（N-up） -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <UFormField label="每张页数" hint="将多页缩排到一张纸上">
+              <UFormField :label="t('ui.pages_per_sheet')" :hint="t('ui.reduce_multiple_pages_to_fit_on_one_sheet')">
                 <USelect :model-value="numberUp" :items="numberUpItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:numberUp', Number($event))" />
               </UFormField>
-              <UFormField v-if="numberUp > 1" label="页面顺序">
+              <UFormField v-if="numberUp > 1" :label="t('ui.page_order')">
                 <USelect :model-value="numberUpLayout" :items="numberUpLayoutItems" value-key="value" label-key="label" class="w-full" @update:model-value="$emit('update:numberUpLayout', $event)" />
               </UFormField>
             </div>
-            <UFormField v-if="numberUp > 1" label="打印边框">
+            <UFormField v-if="numberUp > 1" :label="t('ui.print_borders')">
               <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer transition hover:bg-elevated w-fit"
                 :class="pageBorder === 'single' ? 'border-primary bg-primary/5' : 'border-muted'">
                 <UCheckbox :model-value="pageBorder === 'single'" @update:model-value="$emit('update:pageBorder', $event ? 'single' : 'none')" />
                 <UIcon name="i-lucide-square" class="w-4 h-4" />
-                <span class="text-sm">为每个小页添加边框</span>
+                <span class="text-sm">{{ t('ui.add_a_border_around_each_reduced_page') }}</span>
               </label>
             </UFormField>
 
             <!-- 页面子集（手动双面 / 分册排版） -->
-            <UFormField label="页面子集" :hint="pageSetHint">
-              <div class="flex rounded-lg border border-muted overflow-hidden">
+            <UFormField :label="t('ui.page_subset')" :hint="pageSetHint">
+              <div class="grid grid-cols-2 sm:grid-cols-4 rounded-lg border border-muted overflow-hidden">
                 <label
                   v-for="item in pageSetItems"
                   :key="item.value"
-                  class="flex-1 flex items-center justify-center gap-1.5 py-2 px-2 cursor-pointer text-sm transition"
+                  class="min-w-0 flex items-center justify-center gap-1.5 py-2 px-2 cursor-pointer text-sm transition"
                   :class="pageSet === item.value ? 'bg-primary text-white font-medium' : 'hover:bg-elevated'"
                 >
                   <input type="radio" :value="item.value" :checked="pageSet === item.value" class="sr-only" @change="onPageSetChange(item.value)" />
                   <UIcon :name="item.icon" class="w-3.5 h-3.5 shrink-0" />
-                  <span class="text-xs whitespace-nowrap">{{ item.label }}</span>
+                  <span class="text-xs text-center">{{ item.label }}</span>
                 </label>
               </div>
             </UFormField>
 
             <!-- 镜像打印 -->
-            <UFormField label="镜像打印">
+            <UFormField :label="t('ui.mirror_printing')">
               <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer transition hover:bg-elevated w-fit"
                 :class="mirror ? 'border-primary bg-primary/5' : 'border-muted'">
                 <UCheckbox :model-value="mirror" @update:model-value="$emit('update:mirror', $event)" />
                 <UIcon name="i-lucide-flip-horizontal" class="w-4 h-4" />
-                <span class="text-sm">水平镜像翻转</span>
+                <span class="text-sm">{{ t('ui.flip_horizontally') }}</span>
               </label>
             </UFormField>
 
-            <UFormField v-if="photoDateVisible" label="拍摄日期" help="读取照片 EXIF，缺少有效拍摄日期时跳过；转换为 PDF 可查看效果。">
-              <USwitch :model-value="photoDateWatermark" :disabled="photoDateDisabled || printing" label="打印拍摄日期" @update:model-value="$emit('update:photoDateWatermark', $event)" />
+            <UFormField v-if="photoDateVisible" :label="t('ui.photo_date')" :help="t('ui.uses_the_exif_capture_date_skipping_photos_without_a_valid')">
+              <USwitch :model-value="photoDateWatermark" :disabled="photoDateDisabled || printing" :label="t('ui.print_photo_date')" @update:model-value="$emit('update:photoDateWatermark', $event)" />
             </UFormField>
             <!-- 水印文字 -->
-            <UFormField label="水印文字" hint="留空=不添加水印；如：仅供XX使用">
+            <UFormField :label="t('ui.watermark_text')" :hint="t('ui.leave_blank_for_no_watermark_for_example_for_internal_use')">
               <UInput
                 :model-value="watermarkText"
-                placeholder="留空=不添加水印"
+                :placeholder="t('ui.leave_blank_for_no_watermark_2')"
                 class="w-full"
                 @update:model-value="$emit('update:watermarkText', $event)"
               />
@@ -180,8 +177,13 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import PrinterMediaOptions from './PrinterMediaOptions.vue'
 import { ref, computed, watch } from 'vue'
+import { readPreference, writePreference } from '../../locale-preference.js'
+import { printerChoiceLabel } from '../../utils/printer-options'
+
+const { t } = useI18n()
 
 const props = defineProps({
   printerUri: { type: String, default: '' },
@@ -222,47 +224,48 @@ const emit = defineEmits([
   'update:numberUp', 'update:numberUpLayout', 'update:pageBorder'
 ])
 
-const showAdvanced = ref(localStorage.getItem('print_options_expanded') === '1')
-watch(showAdvanced, (val) => { localStorage.setItem('print_options_expanded', val ? '1' : '0') })
-const pageRangeError = ref('')
+const showAdvanced = ref(readPreference('print_options_expanded') === '1')
+watch(showAdvanced, (val) => { writePreference('print_options_expanded', val ? '1' : '0') })
+const pageRangeInvalid = ref(false)
+const pageRangeError = computed(() => pageRangeInvalid.value ? t('ui.invalid_format_example_1_5_8_10_12') : '')
 
 // IPP media-source keyword → 中文名映射。不同打印机上报的纸盒关键字差异很大，
 // 未命中的关键字（如 tray-3）会走 mediaSourceLabel 的通用规则或原样显示。
-const mediaSourceNames = {
-  'auto': '自动选择',
-  'auto-select': '自动选择',
-  'main': '主纸盒',
-  'alternate': '备用纸盒',
-  'large-capacity': '大容量纸盒',
-  'manual': '手动进纸',
-  'bypass': '旁路进纸',
-  'by-pass-tray': '旁路进纸',
-  'multipurpose': '多功能纸盒',
-  'envelope': '信封纸盒',
-  'top': '上纸盒',
-  'middle': '中纸盒',
-  'bottom': '下纸盒',
-  'left': '左纸盒',
-  'right': '右纸盒',
-  'center': '中央纸盒',
-  'rear': '后纸盒',
-  'side': '侧纸盒',
-  'photo': '照片纸盒',
-  'hagaki': '明信片纸盒',
-  'disc': '光盘托盘'
-}
+const mediaSourceNames = computed(() => ({
+  'auto': t('ui.automatic_selection'),
+  'auto-select': t('ui.automatic_selection'),
+  'main': t('ui.main_tray'),
+  'alternate': t('ui.alternate_tray'),
+  'large-capacity': t('ui.high_capacity_tray'),
+  'manual': t('ui.manual_feed'),
+  'bypass': t('ui.bypass_tray'),
+  'by-pass-tray': t('ui.bypass_tray'),
+  'multipurpose': t('ui.multipurpose_tray'),
+  'envelope': t('ui.envelope_tray'),
+  'top': t('ui.top_tray'),
+  'middle': t('ui.middle_tray'),
+  'bottom': t('ui.bottom_tray'),
+  'left': t('ui.left_tray'),
+  'right': t('ui.right_tray'),
+  'center': t('ui.centre_tray'),
+  'rear': t('ui.rear_tray'),
+  'side': t('ui.side_tray'),
+  'photo': t('ui.photo_tray'),
+  'hagaki': t('ui.postcard_tray'),
+  'disc': t('ui.disc_tray')
+}))
 
 function mediaSourceLabel(key) {
-  if (mediaSourceNames[key]) return mediaSourceNames[key]
+  if (mediaSourceNames.value[key]) return mediaSourceNames.value[key]
   // tray-1 / tray-2 ... → 纸盒 1 / 纸盒 2
   const m = /^tray-?(\d+)$/i.exec(key)
-  if (m) return `纸盒 ${m[1]}`
+  if (m) return t('ui.tray', { p0: m[1] })
   return key
 }
 
 // 供 USelect 使用的纸盒选项：始终含「自动选择」，其余来自打印机上报的 media-source-supported。
 const mediaSourceItems = computed(() => {
-  const items = [{ label: '自动选择', value: 'auto' }]
+  const items = [{ label: t('ui.automatic_selection'), value: 'auto' }]
   for (const key of props.mediaSourceSupported) {
     if (key === 'auto' || key === 'auto-select') continue
     items.push({ label: mediaSourceLabel(key), value: key })
@@ -271,93 +274,93 @@ const mediaSourceItems = computed(() => {
 })
 
 const advancedSummary = computed(() => {
-  const sizeLabel = props.driverOptions.pageSize?.label || paperSizeItems.find(i => i.value === props.paperSize)?.label?.split(' ')[0] || props.paperSize
-  const typeLabel = props.driverOptions.mediaType?.label || paperTypeItems.find(i => i.value === props.paperType)?.label || props.paperType
-  const scaleLabel = scalingItems.find(i => i.value === props.printScaling)?.label || props.printScaling
+  const sizeLabel = printerChoiceLabel(props.driverOptions.pageSize) || paperSizeItems.value.find(i => i.value === props.paperSize)?.label?.split(' ')[0] || props.paperSize
+  const typeLabel = printerChoiceLabel(props.driverOptions.mediaType) || paperTypeItems.value.find(i => i.value === props.paperType)?.label || props.paperType
+  const scaleLabel = scalingItems.value.find(i => i.value === props.printScaling)?.label || props.printScaling
   const parts = [sizeLabel, typeLabel, scaleLabel]
-  if (props.driverOptions.quality) parts.push(props.driverOptions.quality.label)
+  if (props.driverOptions.quality) parts.push(printerChoiceLabel(props.driverOptions.quality))
   if (props.mediaSource && props.mediaSource !== 'auto') parts.push(mediaSourceLabel(props.mediaSource))
-  if (props.pageRange) parts.push(`页码: ${props.pageRange}`)
-  const pageSetLabel = pageSetItems.find(i => i.value === props.pageSet)?.label
+  if (props.pageRange) parts.push(t('ui.pages_3', { p0: props.pageRange }))
+  const pageSetLabel = pageSetItems.value.find(i => i.value === props.pageSet)?.label
   if (props.pageSet && props.pageSet !== 'all' && pageSetLabel) parts.push(pageSetLabel)
   if (props.numberUp > 1) {
-    parts.push(`${props.numberUp} 页/张`)
-    if (props.pageBorder === 'single') parts.push('带边框')
+    parts.push(t('ui.pages_per_sheet_2', { p0: props.numberUp }))
+    if (props.pageBorder === 'single') parts.push(t('ui.with_borders'))
   }
-  if (props.mirror) parts.push('镜像')
-  if (props.photoDateWatermark) parts.push('拍摄日期')
-  if (props.watermarkText) parts.push(`水印: ${props.watermarkText}`)
+  if (props.mirror) parts.push(t('ui.mirror'))
+  if (props.photoDateWatermark) parts.push(t('ui.photo_date'))
+  if (props.watermarkText) parts.push(t('ui.watermark', { p0: props.watermarkText }))
   return parts.join(' / ')
 })
 
-const colorItems = [
-  { label: '彩色打印', value: true, icon: 'i-lucide-palette' },
-  { label: '黑白打印', value: false, icon: 'i-lucide-contrast' }
-]
+const colorItems = computed(() => ([
+  { label: t('ui.colour_printing'), value: true, icon: 'i-lucide-palette' },
+  { label: t('ui.black_and_white_printing'), value: false, icon: 'i-lucide-contrast' }
+]))
 
-const duplexItems = [
-  { label: '单面打印', value: 'one-sided' },
-  { label: '双面（长边翻页）', value: 'two-sided-long-edge' },
-  { label: '双面（短边翻页）', value: 'two-sided-short-edge' }
-]
+const duplexItems = computed(() => ([
+  { label: t('ui.single_sided_printing'), value: 'one-sided' },
+  { label: t('ui.double_sided_long_edge_binding'), value: 'two-sided-long-edge' },
+  { label: t('ui.double_sided_short_edge_binding'), value: 'two-sided-short-edge' }
+]))
 
-const paperSizeItems = [
+const paperSizeItems = computed(() => ([
   { label: 'A5 (148×210mm)', value: 'A5' },
   { label: 'A4 (210×297mm)', value: 'A4' },
   { label: 'A3 (297×420mm)', value: 'A3' },
   { label: 'A2 (420×594mm)', value: 'A2' },
   { label: 'A1 (594×841mm)', value: 'A1' },
-  { label: '5寸 (89×127mm)', value: '5inch' },
-  { label: '6寸 (102×152mm)', value: '6inch' },
-  { label: '7寸 (127×178mm)', value: '7inch' },
-  { label: '8寸 (152×203mm)', value: '8inch' },
-  { label: '10寸 (203×254mm)', value: '10inch' },
+  { label: t('ui.option_3_5_5_in_89_127mm'), value: '5inch' },
+  { label: t('ui.option_4_6_in_102_152mm'), value: '6inch' },
+  { label: t('ui.option_5_7_in_127_178mm'), value: '7inch' },
+  { label: t('ui.option_6_8_in_152_203mm'), value: '8inch' },
+  { label: t('ui.option_8_10_in_203_254mm'), value: '10inch' },
   { label: 'Letter (8.5×11in)', value: 'Letter' },
   { label: 'Legal (8.5×14in)', value: 'Legal' }
-]
+]))
 
-const paperTypeItems = [
-  { label: '普通纸', value: 'plain' },
-  { label: '照片纸', value: 'photo' },
-  { label: '光面照片纸', value: 'glossy' },
-  { label: '哑光照片纸', value: 'matte' },
-  { label: '信封', value: 'envelope' },
-  { label: '卡片纸', value: 'cardstock' },
-  { label: '标签纸', value: 'labels' },
-  { label: '自动选择', value: 'auto' }
-]
+const paperTypeItems = computed(() => ([
+  { label: t('ui.plain_paper'), value: 'plain' },
+  { label: t('ui.photo_paper'), value: 'photo' },
+  { label: t('ui.glossy_photo_paper'), value: 'glossy' },
+  { label: t('ui.matt_photo_paper'), value: 'matte' },
+  { label: t('ui.envelope'), value: 'envelope' },
+  { label: t('ui.card_stock'), value: 'cardstock' },
+  { label: t('ui.labels'), value: 'labels' },
+  { label: t('ui.automatic_selection'), value: 'auto' }
+]))
 
-const scalingItems = [
-  { label: '自动', value: 'auto' },
-  { label: '自动适应', value: 'auto-fit' },
-  { label: '适应纸张', value: 'fit' },
-  { label: '填充纸张', value: 'fill' },
-  { label: '无缩放', value: 'none' },
-  { label: '自定义', value: 'custom' }
-]
+const scalingItems = computed(() => ([
+  { label: t('ui.automatic'), value: 'auto' },
+  { label: t('ui.auto_fit'), value: 'auto-fit' },
+  { label: t('ui.fit_to_paper'), value: 'fit' },
+  { label: t('ui.fill_paper'), value: 'fill' },
+  { label: t('ui.no_scaling'), value: 'none' },
+  { label: t('ui.custom_2'), value: 'custom' }
+]))
 
-const pageSetItems = [
-  { label: '全部页', value: 'all', icon: 'i-lucide-copy' },
-  { label: '奇数页', value: 'odd', icon: 'i-lucide-list-ordered' },
-  { label: '偶数页', value: 'even', icon: 'i-lucide-list-ordered' },
-  { label: '偶数页(倒序)', value: 'even-reverse', icon: 'i-lucide-arrow-down-up' }
-]
+const pageSetItems = computed(() => ([
+  { label: t('ui.all_pages'), value: 'all', icon: 'i-lucide-copy' },
+  { label: t('ui.odd_pages'), value: 'odd', icon: 'i-lucide-list-ordered' },
+  { label: t('ui.even_pages'), value: 'even', icon: 'i-lucide-list-ordered' },
+  { label: t('ui.even_pages_reverse_order'), value: 'even-reverse', icon: 'i-lucide-arrow-down-up' }
+]))
 
-const numberUpItems = [
-  { label: '1 页/张（不缩排）', value: 1 },
-  { label: '2 页/张', value: 2 },
-  { label: '4 页/张', value: 4 },
-  { label: '6 页/张', value: 6 },
-  { label: '9 页/张', value: 9 },
-  { label: '16 页/张', value: 16 }
-]
+const numberUpItems = computed(() => ([
+  { label: t('ui.option_1_page_per_sheet_no_reduction'), value: 1 },
+  { label: t('ui.option_2_pages_per_sheet'), value: 2 },
+  { label: t('ui.option_4_pages_per_sheet'), value: 4 },
+  { label: t('ui.option_6_pages_per_sheet'), value: 6 },
+  { label: t('ui.option_9_pages_per_sheet'), value: 9 },
+  { label: t('ui.option_16_pages_per_sheet'), value: 16 }
+]))
 
-const numberUpLayoutItems = [
-  { label: '横向 Z 形（左→右，上→下）', value: 'lrtb' },
-  { label: '横向 Z 形（右→左，上→下）', value: 'rltb' },
-  { label: '纵向 N 形（上→下，左→右）', value: 'tblr' },
-  { label: '纵向 N 形（上→下，右→左）', value: 'tbrl' }
-]
+const numberUpLayoutItems = computed(() => ([
+  { label: t('ui.across_then_down_left_to_right'), value: 'lrtb' },
+  { label: t('ui.across_then_down_right_to_left'), value: 'rltb' },
+  { label: t('ui.down_then_across_left_to_right'), value: 'tblr' },
+  { label: t('ui.down_then_across_right_to_left'), value: 'tbrl' }
+]))
 
 // 输入过程中只夹上限：若这里连下限一起夹，用户想输 40 时刚敲下 "4" 就会被弹成 10，
 // 后面再敲 "0" 就变成 100。下限留到 blur 时归一。
@@ -388,9 +391,9 @@ function onPageSetChange(val) {
 
 const pageSetHint = computed(() => {
   if (props.pageSet === 'odd' || props.pageSet === 'even' || props.pageSet === 'even-reverse') {
-    return '手动双面：已自动切回单面输出。先打奇数页，翻纸后再选偶数页(倒序)打第二遍'
+    return t('ui.manual_duplex_switched_to_single_sided_output_print_odd_pages')
   }
-  return '配合页面范围使用；手动双面可先打奇数页，翻面后再打偶数页'
+  return t('ui.combine_with_a_page_range_for_manual_duplex_print_odd')
 })
 
 function onPageRangeInput(val) {
@@ -401,7 +404,7 @@ function onPageRangeInput(val) {
 function validatePageRange(val) {
   if (typeof val !== 'string') val = ''
   val = val.trim()
-  if (!val) { pageRangeError.value = ''; return }
+  if (!val) { pageRangeInvalid.value = false; return }
 
   const normalizedVal = val
     .replace(/[－—–―]/g, '-')
@@ -416,6 +419,6 @@ function validatePageRange(val) {
   }
 
   const pattern = /^(\d+(-\d+)?)(\s+\d+(-\d+)?)*$/
-  pageRangeError.value = pattern.test(val) ? '' : '格式无效，例如：1-5 8 10-12'
+  pageRangeInvalid.value = !pattern.test(val)
 }
 </script>

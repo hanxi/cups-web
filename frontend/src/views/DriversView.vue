@@ -4,9 +4,7 @@
     <UCard>
       <template #header>
         <h2 class="text-xl font-bold flex items-center gap-2">
-          <UIcon name="i-lucide-scan-search" class="w-5 h-5" />
-          自动检测打印机
-        </h2>
+          <UIcon name="i-lucide-scan-search" class="w-5 h-5" /> {{ t('ui.detect_printers_automatically') }} </h2>
       </template>
       <div class="space-y-4">
         <UButton
@@ -14,13 +12,9 @@
           :loading="scanning"
           :disabled="scanning"
           @click="detectPrinters"
-        >
-          扫描打印机
-        </UButton>
+        > {{ t('ui.scan_for_printers') }} </UButton>
         <div v-if="scanning" class="flex items-center gap-2 text-sm text-muted">
-          <UIcon name="i-lucide-loader-circle" class="w-4 h-4 animate-spin" />
-          正在扫描，请稍候…
-        </div>
+          <UIcon name="i-lucide-loader-circle" class="w-4 h-4 animate-spin" /> {{ t('ui.scanning_please_wait') }} </div>
         <div v-if="detected.length" class="overflow-x-auto">
           <UTable :columns="detectColumns" :data="detected">
             <template #connection-cell="{ row }">
@@ -29,7 +23,7 @@
                   :name="row.original.connection === 'usb' ? 'i-lucide-usb' : 'i-lucide-wifi'"
                   class="w-4 h-4"
                 />
-                <span>{{ row.original.connection === 'usb' ? 'USB' : '网络' }}</span>
+                <span>{{ row.original.connection === 'usb' ? 'USB' : t('ui.network') }}</span>
               </div>
             </template>
             <template #printer-cell="{ row }">
@@ -38,46 +32,35 @@
             </template>
             <template #driverStatus-cell="{ row }">
               <div class="flex items-center gap-1 flex-wrap">
-                <UBadge v-if="row.original.existingQueue" color="success" variant="subtle" size="sm">
-                  已添加: {{ row.original.existingQueue }}
+                <UBadge v-if="row.original.existingQueue" color="success" variant="subtle" size="sm"> {{ t('ui.added') }} {{ row.original.existingQueue }}
                 </UBadge>
                 <UBadge v-if="row.original.driverState === 'ready'" color="success" size="sm">
-                  <UTooltip :text="row.original.topCandidate?.makeAndModel || ''">驱动已就绪</UTooltip>
+                  <UTooltip :text="row.original.topCandidate?.makeAndModel || ''">{{ t('ui.driver_ready') }}</UTooltip>
                 </UBadge>
-                <UBadge v-else-if="row.original.driverState === 'driverless'" color="primary" size="sm">
-                  免驱动可用 (IPP)
+                <UBadge v-else-if="row.original.driverState === 'driverless'" color="primary" size="sm"> {{ t('ui.driverless_printing_available_ipp') }} </UBadge>
+                <UBadge v-else-if="row.original.driverState === 'needsVendorDriver'" color="warning" size="sm"> {{ t('ui.installation_required') }} {{ translateError(row.original.driverMatch?.displayName) || t('ui.drivers') }}
                 </UBadge>
-                <UBadge v-else-if="row.original.driverState === 'needsVendorDriver'" color="warning" size="sm">
-                  需安装: {{ row.original.driverMatch?.displayName || '驱动' }}
-                </UBadge>
-                <UBadge v-else-if="row.original.driverState === 'unmatched'" color="error" variant="subtle" size="sm">
-                  未匹配到驱动
-                </UBadge>
+                <UBadge v-else-if="row.original.driverState === 'unmatched'" color="error" variant="subtle" size="sm"> {{ t('ui.no_matching_driver') }} </UBadge>
                 <!-- 兼容旧后端（无 driverState 字段时退回三态） -->
                 <template v-if="!row.original.driverState">
-                  <UBadge v-if="row.original.hasDriver" color="success" size="sm">已就绪</UBadge>
-                  <UBadge v-else-if="row.original.driverMatch" color="warning" size="sm">
-                    推荐安装: {{ row.original.driverMatch.displayName }}
+                  <UBadge v-if="row.original.hasDriver" color="success" size="sm">{{ t('ui.ready') }}</UBadge>
+                  <UBadge v-else-if="row.original.driverMatch" color="warning" size="sm"> {{ t('ui.recommended_installation') }} {{ translateError(row.original.driverMatch.displayName) }}
                   </UBadge>
-                  <UBadge v-else color="neutral" size="sm">未知</UBadge>
+                  <UBadge v-else color="neutral" size="sm">{{ t('ui.unknown') }}</UBadge>
                 </template>
               </div>
             </template>
             <template #actions-cell="{ row }">
               <!-- 已添加队列：禁用操作 -->
-              <UTooltip v-if="row.original.existingQueue" text="如需重新配置，请先在 CUPS 中删除该队列">
-                <UButton size="sm" icon="i-lucide-check" color="neutral" variant="outline" disabled>
-                  已添加
-                </UButton>
+              <UTooltip v-if="row.original.existingQueue" :text="t('ui.to_reconfigure_first_delete_this_queue_in_cups')">
+                <UButton size="sm" icon="i-lucide-check" color="neutral" variant="outline" disabled> {{ t('ui.added_2') }} </UButton>
               </UTooltip>
               <!-- 推荐的驱动在当前架构上不可用 -->
               <UTooltip
                 v-else-if="row.original.driverMatch && !row.original.hasDriver && !archSupported(row.original.driverMatch.arch)"
-                :text="`当前架构 ${currentArch} 不支持该驱动`"
+                :text="t('ui.this_driver_does_not_support_the_current_architecture', { p0: currentArch })"
               >
-                <UButton size="sm" icon="i-lucide-ban" color="neutral" variant="outline" disabled>
-                  架构不支持
-                </UButton>
+                <UButton size="sm" icon="i-lucide-ban" color="neutral" variant="outline" disabled> {{ t('ui.unsupported_architecture') }} </UButton>
               </UTooltip>
               <!-- 需安装厂商驱动 -->
               <UButton
@@ -87,9 +70,7 @@
                 :loading="settingUp === row.original.deviceUri"
                 :disabled="busy"
                 @click="openPPDModal(row.original)"
-              >
-                一键安装并添加
-              </UButton>
+              > {{ t('ui.install_and_add') }} </UButton>
               <!-- 未匹配到驱动：手动选择 -->
               <UButton
                 v-else-if="row.original.driverState === 'unmatched'"
@@ -99,9 +80,7 @@
                 :loading="settingUp === row.original.deviceUri"
                 :disabled="busy"
                 @click="openPPDModal(row.original)"
-              >
-                手动选择驱动
-              </UButton>
+              > {{ t('ui.select_driver_manually') }} </UButton>
               <!-- 已就绪 / driverless：直接添加 -->
               <UButton
                 v-else
@@ -111,15 +90,11 @@
                 :loading="settingUp === row.original.deviceUri"
                 :disabled="busy"
                 @click="openPPDModal(row.original)"
-              >
-                添加打印机
-              </UButton>
+              > {{ t('ui.add_printer') }} </UButton>
             </template>
           </UTable>
         </div>
-        <div v-else-if="scanDone && !detected.length" class="text-sm text-muted">
-          未检测到打印机。请检查连接后重试。
-        </div>
+        <div v-else-if="scanDone && !detected.length" class="text-sm text-muted"> {{ t('ui.no_printers_detected_check_the_connection_and_try_again') }} </div>
       </div>
     </UCard>
 
@@ -132,7 +107,7 @@
               :name="jobRunning ? 'i-lucide-loader-circle' : (jobFailed ? 'i-lucide-x-circle' : 'i-lucide-check-circle')"
               :class="['w-5 h-5', jobRunning && 'animate-spin', jobFailed && 'text-error']"
             />
-            {{ jobTitle }}
+            {{ jobTitleText }}
           </h2>
           <UButton
             size="xs"
@@ -140,18 +115,16 @@
             :icon="jobLogOpen ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
             @click="jobLogOpen = !jobLogOpen"
           >
-            {{ jobLogOpen ? '收起日志' : '展开日志' }}
+            {{ jobLogOpen ? t('ui.hide_logs') : t('ui.show_logs') }}
           </UButton>
         </div>
       </template>
       <div class="space-y-2">
-        <p v-if="jobRunning" class="text-sm text-muted">
-          需编译的驱动可能需要几分钟，页面保持打开即可，进度会持续刷新。
-        </p>
+        <p v-if="jobRunning" class="text-sm text-muted"> {{ t('ui.drivers_requiring_compilation_may_take_several_minutes_keep_the_page') }} </p>
         <pre
           v-if="jobLogOpen"
           class="text-xs bg-elevated rounded p-3 max-h-64 overflow-auto whitespace-pre-wrap break-all"
-        >{{ jobLog || '（暂无输出）' }}</pre>
+        >{{ jobLog || t('ui.no_output_yet') }}</pre>
       </div>
     </UCard>
 
@@ -160,37 +133,32 @@
       <template #header>
         <div class="flex items-center justify-between gap-2 flex-wrap">
           <h2 class="text-xl font-bold flex items-center gap-2">
-            <UIcon name="i-lucide-puzzle" class="w-5 h-5" />
-            驱动管理
-          </h2>
-          <UBadge v-if="currentArch" color="neutral" variant="subtle" size="sm">
-            当前架构: {{ currentArch }}
+            <UIcon name="i-lucide-puzzle" class="w-5 h-5" /> {{ t('ui.driver_management') }} </h2>
+          <UBadge v-if="currentArch" color="neutral" variant="subtle" size="sm"> {{ t('ui.current_architecture') }} {{ currentArch }}
           </UBadge>
         </div>
       </template>
       <div class="overflow-x-auto">
         <UTable :columns="driverColumns" :data="drivers">
+          <template #displayName-cell="{ row }">{{ translateError(row.original.displayName) }}</template>
           <template #description-cell="{ row }">
-            <span>{{ row.original.description }}</span>
-            <UBadge v-if="row.original.needCompile" color="warning" size="xs" class="ml-1">需编译</UBadge>
+            <span>{{ translateError(row.original.description) }}</span>
+            <UBadge v-if="row.original.needCompile" color="warning" size="xs" class="ml-1">{{ t('ui.compilation_required') }}</UBadge>
           </template>
           <template #arch-cell="{ row }">
             {{ (row.original.arch || []).join(', ') }}
           </template>
           <template #status-cell="{ row }">
             <div class="space-y-1">
-              <UBadge v-if="row.original.installed" color="success" size="sm">
-                已安装 {{ row.original.installedAt ? formatDate(row.original.installedAt) : '' }}
+              <UBadge v-if="row.original.installed" color="success" size="sm"> {{ t('ui.installed') }} {{ row.original.installedAt ? formatDate(row.original.installedAt) : '' }}
               </UBadge>
-              <UBadge v-else color="neutral" size="sm">未安装</UBadge>
+              <UBadge v-else color="neutral" size="sm">{{ t('ui.not_installed') }}</UBadge>
               <!-- 驱动数据是挂载卷，换机器时可能与当前架构不符，必须提示重装 -->
               <UBadge
                 v-if="row.original.installed && row.original.installedArch && currentArch && row.original.installedArch !== currentArch"
                 color="warning"
                 size="xs"
-              >
-                安装于 {{ row.original.installedArch }}，与当前架构不符，建议卸载重装
-              </UBadge>
+              > {{ t('ui.architecture_mismatch', { arch: row.original.installedArch }) }} </UBadge>
               <!--
                 恢复方式徽章：厂商驱动普遍把产物装在 /opt、/usr/bin 等位置，只有归档了
                 .deb 原件（package / hybrid）才能在容器重启后完整装回来。老快照没有
@@ -200,39 +168,31 @@
                 v-if="row.original.installed && row.original.restoreMode"
                 :text="restoreModeHint(row.original)"
               >
-                <UBadge color="info" variant="subtle" size="xs">
-                  重启恢复: {{ restoreModeLabel(row.original.restoreMode) }}
+                <UBadge color="info" variant="subtle" size="xs"> {{ t('ui.restoration_on_restart') }} {{ restoreModeLabel(row.original.restoreMode) }}
                   <template v-if="row.original.packageCount">
-                    （{{ row.original.packageCount }} 个包）
-                  </template>
+                    {{ t('ui.package_count', { count: row.original.packageCount }) }} </template>
                 </UBadge>
               </UTooltip>
               <UTooltip
                 v-else-if="row.original.installed"
-                text="这是旧版本安装的快照，只按文件清单恢复。厂商 deb 装在 /opt、/usr/bin 等位置的产物可能没被记录，容器重启后驱动可能残缺。卸载后重新安装一次即可升级为包级恢复。"
+                :text="t('ui.this_snapshot_was_created_by_an_older_version_and_restores')"
               >
-                <UBadge color="warning" variant="subtle" size="xs">
-                  旧快照，建议重装
-                </UBadge>
+                <UBadge color="warning" variant="subtle" size="xs"> {{ t('ui.old_snapshot_reinstall_recommended') }} </UBadge>
               </UTooltip>
             </div>
           </template>
           <template #actions-cell="{ row }">
             <UTooltip
               v-if="!row.original.installed && row.original.supported === false"
-              :text="`当前架构 ${currentArch} 不支持`"
+              :text="t('ui.unsupported_on_the_current_architecture', { p0: currentArch })"
             >
-              <UButton size="sm" icon="i-lucide-ban" color="neutral" variant="outline" disabled>
-                安装
-              </UButton>
+              <UButton size="sm" icon="i-lucide-ban" color="neutral" variant="outline" disabled> {{ t('ui.install') }} </UButton>
             </UTooltip>
             <UTooltip
               v-else-if="!row.original.installed && row.original.hasScript === false"
-              text="当前镜像缺少该驱动的安装脚本"
+              :text="t('ui.this_image_does_not_include_the_driver_s_installation_script')"
             >
-              <UButton size="sm" icon="i-lucide-ban" color="neutral" variant="outline" disabled>
-                安装
-              </UButton>
+              <UButton size="sm" icon="i-lucide-ban" color="neutral" variant="outline" disabled> {{ t('ui.install') }} </UButton>
             </UTooltip>
             <UButton
               v-else-if="!row.original.installed"
@@ -241,9 +201,7 @@
               :loading="installingDriver === row.original.name"
               :disabled="busy"
               @click="confirmInstall(row.original)"
-            >
-              安装
-            </UButton>
+            > {{ t('ui.install') }} </UButton>
             <UButton
               v-else
               size="sm"
@@ -253,9 +211,7 @@
               :loading="removingDriver === row.original.name"
               :disabled="busy"
               @click="confirmRemove(row.original)"
-            >
-              卸载
-            </UButton>
+            > {{ t('ui.uninstall') }} </UButton>
           </template>
         </UTable>
       </div>
@@ -265,16 +221,12 @@
     <UCard>
       <template #header>
         <h2 class="text-xl font-bold flex items-center gap-2">
-          <UIcon name="i-lucide-upload" class="w-5 h-5" />
-          上传自定义驱动
-        </h2>
+          <UIcon name="i-lucide-upload" class="w-5 h-5" /> {{ t('ui.upload_custom_driver') }} </h2>
       </template>
       <div class="space-y-3">
-        <p class="text-sm text-muted">支持 PPD 文件 (.ppd) 或 Debian 包 (.deb)</p>
+        <p class="text-sm text-muted">{{ t('ui.supports_ppd_files_ppd_and_debian_packages_deb') }}</p>
         <div class="flex flex-wrap items-center gap-3">
-          <UButton variant="outline" icon="i-lucide-file-up" @click="triggerFileInput">
-            选择文件
-          </UButton>
+          <UButton variant="outline" icon="i-lucide-file-up" @click="triggerFileInput"> {{ t('ui.choose_file') }} </UButton>
           <span v-if="uploadFile" class="text-sm text-muted truncate max-w-xs">{{ uploadFile.name }}</span>
           <input
             ref="fileInputRef"
@@ -291,9 +243,7 @@
           :loading="uploading"
           :disabled="uploading || busy"
           @click="uploadDriver"
-        >
-          上传安装
-        </UButton>
+        > {{ t('ui.upload_and_install') }} </UButton>
 
         <!-- .deb 无法自动恢复，必须显式告知，不能静默丢失 -->
         <UAlert
@@ -301,10 +251,10 @@
           color="info"
           variant="subtle"
           icon="i-lucide-package"
-          title="已上传的 .deb 包（重启时自动重装）"
+          :title="t('ui.uploaded_deb_packages_reinstalled_automatically_on_restart')"
         >
           <template #description>
-            <p class="mb-1">{{ customDebNotice }}</p>
+            <p class="mb-1">{{ translateError(customDebNotice) }}</p>
             <ul class="list-disc pl-5">
               <li v-for="pkg in customDebs" :key="pkg.filename">
                 {{ pkg.filename }}
@@ -317,46 +267,45 @@
     </UCard>
 
     <!-- 安装确认弹窗 -->
-    <UModal v-model:open="showInstallModal">
+    <UModal :title="t('ui.confirm_installation')" v-model:open="showInstallModal">
       <template #content>
         <div class="p-6 space-y-4">
-          <h3 class="text-lg font-semibold">确认安装</h3>
-          <p>安装驱动 <strong>{{ pendingDriver?.displayName }}</strong>？</p>
-          <p class="text-sm text-muted">需编译的驱动可能需要几分钟，安装进度会在页面上实时显示。</p>
+          <h3 class="text-lg font-semibold">{{ t('ui.confirm_installation') }}</h3>
+          <p>{{ t('ui.install_driver_confirm', { name: translateError(pendingDriver?.displayName) }) }}</p>
+          <p class="text-sm text-muted">{{ t('ui.drivers_requiring_compilation_may_take_several_minutes_installation_progress_appears') }}</p>
           <div class="flex justify-end gap-2">
-            <UButton variant="ghost" @click="showInstallModal = false">取消</UButton>
-            <UButton color="primary" :loading="!!installingDriver" @click="installDriver">确认安装</UButton>
+            <UButton variant="ghost" @click="showInstallModal = false">{{ t('ui.cancel') }}</UButton>
+            <UButton color="primary" :loading="!!installingDriver" @click="installDriver">{{ t('ui.confirm_installation') }}</UButton>
           </div>
         </div>
       </template>
     </UModal>
 
     <!-- 卸载确认弹窗 -->
-    <UModal v-model:open="showRemoveModal">
+    <UModal :title="t('ui.confirm_uninstallation')" v-model:open="showRemoveModal">
       <template #content>
         <div class="p-6 space-y-4">
-          <h3 class="text-lg font-semibold">确认卸载</h3>
-          <p>确定要卸载驱动 <strong>{{ pendingDriver?.displayName }}</strong> 吗？</p>
-          <p class="text-sm text-muted">卸载后使用该驱动的打印机可能无法正常工作。</p>
+          <h3 class="text-lg font-semibold">{{ t('ui.confirm_uninstallation') }}</h3>
+          <p>{{ t('ui.remove_driver_confirm', { name: translateError(pendingDriver?.displayName) }) }}</p>
+          <p class="text-sm text-muted">{{ t('ui.printers_using_this_driver_may_stop_working_after_it_is') }}</p>
           <div class="flex justify-end gap-2">
-            <UButton variant="ghost" @click="showRemoveModal = false">取消</UButton>
-            <UButton color="error" :loading="!!removingDriver" @click="removeDriver">确认卸载</UButton>
+            <UButton variant="ghost" @click="showRemoveModal = false">{{ t('ui.cancel') }}</UButton>
+            <UButton color="error" :loading="!!removingDriver" @click="removeDriver">{{ t('ui.confirm_uninstallation') }}</UButton>
           </div>
         </div>
       </template>
     </UModal>
 
     <!-- PPD 候选选择弹窗 -->
-    <UModal v-model:open="showPPDModal" :ui="{ width: 'max-w-lg' }">
-      <template #content>
-        <div class="p-6 space-y-4">
-          <h3 class="text-lg font-semibold">选择驱动</h3>
+    <UModal :title="t('ui.select_driver')" v-model:open="showPPDModal" :ui="{ content: 'max-w-lg' }">
+      <template #body>
+        <div class="space-y-4">
           <!-- 设备摘要 -->
           <div class="text-sm">
             <div class="font-medium">{{ printerLabel(ppdModalPrinter) }}</div>
             <div class="text-xs text-muted truncate">{{ ppdModalPrinter?.deviceUri }}</div>
             <details v-if="ppdModalPrinter?.deviceId" class="mt-1">
-              <summary class="text-xs text-muted cursor-pointer">Device ID（排障用）</summary>
+              <summary class="text-xs text-muted cursor-pointer">{{ t('ui.device_id_for_troubleshooting') }}</summary>
               <code class="text-xs break-all">{{ ppdModalPrinter.deviceId }}</code>
             </details>
           </div>
@@ -366,7 +315,7 @@
             v-if="ppdModalData?.existingQueue"
             color="warning"
             icon="i-lucide-alert-triangle"
-            :title="`该设备已添加为队列 ${ppdModalData.existingQueue}，请先删除后再添加`"
+            :title="t('ui.this_device_already_has_queue_delete_it_before_adding_it', { p0: ppdModalData.existingQueue })"
           />
 
           <!-- 候选查询失败降级 -->
@@ -374,7 +323,7 @@
             v-if="ppdModalError"
             color="warning"
             icon="i-lucide-alert-triangle"
-            title="候选查询失败，将由服务端自动匹配"
+            :title="t('ui.could_not_fetch_candidates_the_server_will_select_a_driver')"
           />
 
           <!-- 候选加载中 -->
@@ -384,23 +333,21 @@
 
           <!-- 候选列表 -->
           <div v-else-if="ppdModalCandidates.length" class="space-y-1">
-            <p class="text-xs text-muted">
-              完全匹配 = 厂商与型号完全一致；可能匹配 = 型号部分一致，建议先试打一页；通用 = 能打但纸盒/双面等功能可能缺失
-            </p>
+            <p class="text-xs text-muted"> {{ t('ui.exact_match_manufacturer_and_model_match_possible_match_partial_model') }} </p>
             <URadioGroup v-model="selectedPPD" :items="ppdRadioItems">
               <template #label="{ item }">
                 <div class="flex items-center gap-2 flex-wrap">
                   <span>{{ item.label }}</span>
-                  <UBadge v-if="item.raw?.recommended" color="primary" size="xs">推荐</UBadge>
+                  <UBadge v-if="item.raw?.recommended" color="primary" size="xs">{{ t('ui.recommended') }}</UBadge>
                   <UBadge
                     :color="item.raw?.confidence === 'high' ? 'success' : item.raw?.confidence === 'medium' ? 'warning' : 'neutral'"
                     size="xs"
                   >
-                    {{ item.raw?.confidence === 'high' ? '完全匹配' : item.raw?.confidence === 'medium' ? '可能匹配' : '通用/兜底' }}
+                    {{ item.raw?.confidence === 'high' ? t('ui.exact_match') : item.raw?.confidence === 'medium' ? t('ui.possible_match') : t('ui.generic_fallback') }}
                   </UBadge>
-                  <UBadge v-if="item.raw?.driverdRank >= 1" color="primary" variant="subtle" size="xs">CUPS 推荐</UBadge>
+                  <UBadge v-if="item.raw?.driverdRank >= 1" color="primary" variant="subtle" size="xs">{{ t('ui.recommended_by_cups') }}</UBadge>
                 </div>
-                <div class="text-xs text-muted">{{ item.raw?.reason }} · {{ item.raw?.makeAndModel }}</div>
+                <div class="text-xs text-muted">{{ translateError(item.raw?.reason) }} · {{ item.raw?.makeAndModel }}</div>
               </template>
             </URadioGroup>
 
@@ -408,39 +355,34 @@
             <div class="border-t pt-2 mt-2">
               <UTooltip
                 v-if="!ppdModalData?.driverless?.available"
-                :text="ppdModalData?.driverless?.reason || '不支持'"
+                :text="translateError(ppdModalData?.driverless?.reason) || t('ui.unsupported')"
               >
                 <div class="opacity-50 cursor-not-allowed text-sm">
-                  <input type="radio" disabled class="mr-2" />免驱动 IPP Everywhere
-                </div>
+                  <input type="radio" disabled class="mr-2" />{{ t('ui.driverless_ipp_everywhere') }} </div>
               </UTooltip>
               <label v-else class="flex items-center gap-2 text-sm cursor-pointer">
                 <input
                   type="radio"
                   :checked="selectedPPD === 'everywhere'"
                   @change="selectedPPD = 'everywhere'"
-                />
-                免驱动 IPP Everywhere（由打印机自报能力）
-              </label>
+                /> {{ t('ui.driverless_ipp_everywhere_capabilities_reported_by_the_printer') }} </label>
             </div>
 
             <!-- 高级选项：raw 队列 -->
             <details class="border-t pt-2 mt-2">
-              <summary class="text-xs text-muted cursor-pointer">高级选项</summary>
+              <summary class="text-xs text-muted cursor-pointer">{{ t('ui.advanced_options') }}</summary>
               <label class="flex items-center gap-2 text-sm cursor-pointer mt-1">
                 <input
                   type="radio"
                   :checked="selectedPPD === '__raw__'"
                   @change="selectedPPD = '__raw__'"
-                />
-                不使用驱动（raw 队列）
-              </label>
+                /> {{ t('ui.no_driver_raw_queue') }} </label>
               <UAlert
                 v-if="selectedPPD === '__raw__'"
                 color="error"
                 icon="i-lucide-alert-triangle"
-                title="将无法选择纸盒/双面，多数打印机会打出乱码"
-                description="仅在你确知打印机能直接解析 PDF/PostScript 时使用"
+                :title="t('ui.tray_and_duplex_options_will_be_unavailable_most_printers_will')"
+                :description="t('ui.use_only_if_you_know_the_printer_can_interpret_pdf')"
                 class="mt-2"
               />
             </details>
@@ -448,21 +390,22 @@
 
           <!-- 队列名 -->
           <div v-if="!ppdModalData?.existingQueue">
-            <label class="text-sm font-medium">队列名</label>
+            <label class="text-sm font-medium">{{ t('ui.queue_name') }}</label>
             <UInput v-model="ppdQueueName" class="mt-1" />
           </div>
-
-          <div class="flex justify-end gap-2">
-            <UButton variant="ghost" @click="showPPDModal = false">取消</UButton>
-            <UButton
-              color="primary"
-              :disabled="!!ppdModalData?.existingQueue || busy"
-              :loading="settingUp === ppdModalPrinter?.deviceUri"
-              @click="submitPPDSelection"
-            >
-              {{ ppdModalError ? '仍然继续（自动）' : '确认并添加' }}
-            </UButton>
-          </div>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2 w-full">
+          <UButton variant="ghost" @click="showPPDModal = false">{{ t('ui.cancel') }}</UButton>
+          <UButton
+            color="primary"
+            :disabled="!!ppdModalData?.existingQueue || busy"
+            :loading="settingUp === ppdModalPrinter?.deviceUri"
+            @click="submitPPDSelection"
+          >
+            {{ ppdModalError ? t('ui.continue_automatic_selection') : t('ui.confirm_and_add') }}
+          </UButton>
         </div>
       </template>
     </UModal>
@@ -470,8 +413,12 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { apiFetch, readError } from '../utils/api'
+import { translateError } from '../utils/translate-error.js'
+
+const { t, locale } = useI18n()
 
 defineProps({ session: Object })
 const emit = defineEmits(['logout'])
@@ -485,6 +432,13 @@ const POLL_MAX_MS = 35 * 60 * 1000
 
 // --- 后台任务（安装 / 卸载 / 一键设置统一走 /api/admin/drivers/jobs/{id} 轮询）---
 const jobTitle = ref('')
+const jobTitleText = computed(() => {
+  const title = jobTitle.value
+  if (!title) return ''
+  return t(title.key, title.driverDisplayName
+    ? { p0: translateError(title.driverDisplayName) }
+    : title.params)
+})
 const jobLog = ref('')
 const jobLogOpen = ref(true)
 const jobRunning = ref(false)
@@ -512,14 +466,14 @@ async function pollDriverJob(jobId) {
   const deadline = Date.now() + POLL_MAX_MS
   while (Date.now() < deadline) {
     await delay(POLL_INTERVAL)
-    if (unmounted) throw new Error('页面已离开，任务仍在后台继续执行')
+    if (unmounted) throw new Error(t('ui.you_have_left_the_page_the_task_continues_in_the'))
     const resp = await apiFetch(`/api/admin/drivers/jobs/${jobId}`, {}, () => emit('logout'))
     if (!resp.ok) throw new Error(await readError(resp))
     const job = await resp.json()
     jobLog.value = job.log || ''
     if (job.status !== 'running') return job
   }
-  throw new Error('任务超时（超过 35 分钟未完成），请检查容器日志')
+  throw new Error(t('ui.the_task_timed_out_more_than_35_minutes_check_the'))
 }
 
 // 提交一个驱动任务并等待其结束，返回最终任务对象；提交失败/任务失败均抛错
@@ -536,11 +490,11 @@ async function runDriverJob(url, payload) {
     throw new Error(msg)
   }
   const data = await resp.json()
-  if (!data.jobId) throw new Error('服务端未返回任务 ID')
+  if (!data.jobId) throw new Error(t('ui.the_server_did_not_return_a_task_id'))
 
   const job = await pollDriverJob(data.jobId)
   if (job.status !== 'succeeded') {
-    throw new Error(job.error || '任务执行失败')
+    throw new Error(job.error || t('ui.task_failed'))
   }
   return job
 }
@@ -556,16 +510,16 @@ const scanDone = ref(false)
 const detected = ref([])
 const settingUp = ref(null)
 
-const detectColumns = [
-  { id: 'connection', header: '连接方式' },
-  { id: 'printer', header: '打印机' },
-  { id: 'driverStatus', header: '驱动状态' },
-  { id: 'actions', header: '操作' }
-]
+const detectColumns = computed(() => ([
+  { id: 'connection', header: t('ui.connection') },
+  { id: 'printer', header: t('ui.printer') },
+  { id: 'driverStatus', header: t('ui.driver_status') },
+  { id: 'actions', header: t('ui.actions') }
+]))
 
 function printerLabel(printer) {
   const label = `${printer.manufacturer || ''} ${printer.model || ''}`.trim()
-  return label || '未知型号'
+  return label || t('ui.unknown_model')
 }
 
 async function detectPrinters() {
@@ -577,12 +531,12 @@ async function detectPrinters() {
     const resp = await apiFetch('/api/admin/drivers/detect', {}, () => emit('logout'))
     if (!resp.ok) {
       const msg = await readError(resp)
-      toast.add({ title: '扫描失败', description: msg, color: 'error', icon: 'i-lucide-x-circle' })
+      toast.add({ title: t('ui.scan_failed'), description: msg, color: 'error', icon: 'i-lucide-x-circle' })
       return
     }
     detected.value = (await resp.json()) || []
   } catch (e) {
-    toast.add({ title: '扫描失败', description: String(e), color: 'error', icon: 'i-lucide-x-circle' })
+    toast.add({ title: t('ui.scan_failed'), description: String(e), color: 'error', icon: 'i-lucide-x-circle' })
   } finally {
     scanning.value = false
     scanDone.value = true
@@ -592,7 +546,7 @@ async function detectPrinters() {
 // 请求体字段名与后端 adminSetupPrinterHandler 严格对齐。
 async function setupPrinter(printer, opts = {}) {
   settingUp.value = printer.deviceUri
-  startJobPanel(`正在设置打印机 ${printerLabel(printer)}`)
+  startJobPanel({ key: 'ui.setting_up_printer', params: { p0: printerLabel(printer) } })
   try {
     const job = await runDriverJob('/api/admin/drivers/setup', {
       deviceUri: printer.deviceUri,
@@ -606,15 +560,15 @@ async function setupPrinter(printer, opts = {}) {
     })
     finishJobPanel(true)
     toast.add({
-      title: '设置成功',
-      description: `打印机 ${job.result?.printerName || printerLabel(printer)} 已添加`,
+      title: t('ui.setup_complete'),
+      description: t('ui.printer_added', { p0: job.result?.printerName || printerLabel(printer) }),
       color: 'success',
       icon: 'i-lucide-check-circle'
     })
     await Promise.all([detectPrinters(), loadDrivers()])
   } catch (e) {
     finishJobPanel(false)
-    toast.add({ title: '设置失败', description: e.message || String(e), color: 'error', icon: 'i-lucide-x-circle' })
+    toast.add({ title: t('ui.setup_failed'), description: translateError(e.message || String(e)), color: 'error', icon: 'i-lucide-x-circle' })
   } finally {
     settingUp.value = null
   }
@@ -672,7 +626,7 @@ async function openPPDModal(printer) {
     if (!resp.ok) {
       const msg = await readError(resp)
       if (resp.status === 429) {
-        ppdModalError.value = '候选查询繁忙，请稍后重试'
+        ppdModalError.value = t('ui.driver_candidate_lookup_is_busy_try_again_shortly')
       } else {
         ppdModalError.value = msg
       }
@@ -724,13 +678,13 @@ const showRemoveModal = ref(false)
 // 任何一个驱动任务在跑时禁用所有触发按钮，防止重复点击（后端也会回 409）
 const busy = computed(() => !!settingUp.value || !!installingDriver.value || !!removingDriver.value)
 
-const driverColumns = [
-  { accessorKey: 'displayName', header: '驱动名称' },
-  { id: 'description', header: '说明' },
-  { id: 'arch', header: '架构' },
-  { id: 'status', header: '状态' },
-  { id: 'actions', header: '操作' }
-]
+const driverColumns = computed(() => ([
+  { accessorKey: 'displayName', header: t('ui.driver_name') },
+  { id: 'description', header: t('ui.description_2') },
+  { id: 'arch', header: t('ui.architecture') },
+  { id: 'status', header: t('ui.status') },
+  { id: 'actions', header: t('ui.actions') }
+]))
 
 // 检测表格里的推荐驱动只有 arch 数组（DriverMeta），按当前架构自行判断是否可装
 function archSupported(arch) {
@@ -741,10 +695,7 @@ function archSupported(arch) {
 function formatDate(dateStr) {
   if (!dateStr) return ''
   const d = new Date(dateStr)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  return Number.isNaN(d.getTime()) ? dateStr : d.toLocaleDateString(locale.value)
 }
 
 // restore_mode 由 scripts/driver/driver-install.sh 写进 metadata.txt：
@@ -754,11 +705,11 @@ function formatDate(dateStr) {
 function restoreModeLabel(mode) {
   switch (mode) {
     case 'package':
-      return '包级'
+      return t('ui.packages_2')
     case 'hybrid':
-      return '包级+文件'
+      return t('ui.packages_and_files')
     case 'files':
-      return '文件级'
+      return t('ui.files')
     default:
       return mode
   }
@@ -768,11 +719,11 @@ function restoreModeHint(row) {
   const n = row.packageCount || 0
   switch (row.restoreMode) {
     case 'package':
-      return `容器重启时用归档的 ${n} 个 .deb 重新安装，产物完整恢复（含 /opt、/usr/bin 等位置的文件）。`
+      return t('ui.reinstalls_archived_deb_packages_when_the_container_restarts_restoring_all', { p0: n })
     case 'hybrid':
-      return `容器重启时先用归档的 ${n} 个 .deb 重装，再补上文件级快照里的散落文件。`
+      return t('ui.reinstalls_archived_deb_packages_when_the_container_restarts_then_restores', { p0: n })
     case 'files':
-      return '容器重启时按文件清单逐个恢复。此驱动的产物都落在受监控的目录内，文件级恢复即完整。'
+      return t('ui.restores_files_from_the_manifest_when_the_container_restarts_all')
     default:
       return ''
   }
@@ -783,7 +734,7 @@ async function loadDrivers() {
     const resp = await apiFetch('/api/admin/drivers', {}, () => emit('logout'))
     if (!resp.ok) {
       const msg = await readError(resp)
-      toast.add({ title: '加载驱动列表失败', description: msg, color: 'error', icon: 'i-lucide-x-circle' })
+      toast.add({ title: t('ui.could_not_load_driver_list'), description: msg, color: 'error', icon: 'i-lucide-x-circle' })
       return
     }
     const data = await resp.json()
@@ -792,7 +743,7 @@ async function loadDrivers() {
     customDebs.value = data.customDebs || []
     customDebNotice.value = data.customDebNotice || ''
   } catch (e) {
-    toast.add({ title: '加载驱动列表失败', description: String(e), color: 'error', icon: 'i-lucide-x-circle' })
+    toast.add({ title: t('ui.could_not_load_driver_list'), description: String(e), color: 'error', icon: 'i-lucide-x-circle' })
   }
 }
 
@@ -811,15 +762,15 @@ async function installDriver() {
   if (!driver) return
   installingDriver.value = driver.name
   showInstallModal.value = false
-  startJobPanel(`正在安装驱动 ${driver.displayName}`)
+  startJobPanel({ key: 'ui.installing_driver', driverDisplayName: driver.displayName })
   try {
     await runDriverJob('/api/admin/drivers/install', { name: driver.name })
     finishJobPanel(true)
-    toast.add({ title: '安装成功', description: `驱动 ${driver.displayName} 已安装`, color: 'success', icon: 'i-lucide-check-circle' })
+    toast.add({ title: t('ui.installation_complete'), description: t('ui.driver_installed', { p0: translateError(driver.displayName) }), color: 'success', icon: 'i-lucide-check-circle' })
     await loadDrivers()
   } catch (e) {
     finishJobPanel(false)
-    toast.add({ title: '安装失败', description: e.message || String(e), color: 'error', icon: 'i-lucide-x-circle' })
+    toast.add({ title: t('ui.installation_failed'), description: translateError(e.message || String(e)), color: 'error', icon: 'i-lucide-x-circle' })
   } finally {
     installingDriver.value = null
     pendingDriver.value = null
@@ -831,15 +782,15 @@ async function removeDriver() {
   if (!driver) return
   removingDriver.value = driver.name
   showRemoveModal.value = false
-  startJobPanel(`正在卸载驱动 ${driver.displayName}`)
+  startJobPanel({ key: 'ui.uninstalling_driver', driverDisplayName: driver.displayName })
   try {
     await runDriverJob('/api/admin/drivers/remove', { name: driver.name })
     finishJobPanel(true)
-    toast.add({ title: '卸载成功', description: `驱动 ${driver.displayName} 已卸载`, color: 'success', icon: 'i-lucide-check-circle' })
+    toast.add({ title: t('ui.uninstalled_successfully'), description: t('ui.driver_uninstalled', { p0: translateError(driver.displayName) }), color: 'success', icon: 'i-lucide-check-circle' })
     await loadDrivers()
   } catch (e) {
     finishJobPanel(false)
-    toast.add({ title: '卸载失败', description: e.message || String(e), color: 'error', icon: 'i-lucide-x-circle' })
+    toast.add({ title: t('ui.uninstallation_failed'), description: translateError(e.message || String(e)), color: 'error', icon: 'i-lucide-x-circle' })
   } finally {
     removingDriver.value = null
     pendingDriver.value = null
@@ -875,22 +826,22 @@ async function uploadDriver() {
     }, () => emit('logout'))
     if (!resp.ok) {
       const msg = await readError(resp)
-      toast.add({ title: '上传失败', description: msg, color: 'error', icon: 'i-lucide-x-circle' })
+      toast.add({ title: t('ui.upload_failed'), description: msg, color: 'error', icon: 'i-lucide-x-circle' })
       return
     }
     const data = await resp.json()
     toast.add({
-      title: '上传成功',
+      title: t('ui.upload_complete'),
       // 正常情况下 .deb 会被归档并在容器重启时自动重装，没有 warning；
       // 只有归档失败（重启后恢复不了）时后端才给 warning，必须透传给用户
       description: data.warning
-        ? `驱动文件 ${uploadFile.value.name} 已安装。${data.warning}`
-        : `驱动文件 ${uploadFile.value.name} 已安装`,
+        ? t('ui.driver_file_installed', { p0: uploadFile.value.name, p1: translateError(data.warning) })
+        : t('ui.driver_file_installed_2', { p0: uploadFile.value.name }),
       color: data.warning ? 'warning' : 'success',
       icon: data.warning ? 'i-lucide-triangle-alert' : 'i-lucide-check-circle'
     })
     if (data.log) {
-      jobTitle.value = `上传安装 ${uploadFile.value.name}`
+      jobTitle.value = { key: 'ui.upload_and_install_2', params: { p0: uploadFile.value.name } }
       jobLog.value = data.log
       jobRunning.value = false
       jobFailed.value = false
@@ -899,7 +850,7 @@ async function uploadDriver() {
     if (fileInputRef.value) fileInputRef.value.value = ''
     await loadDrivers()
   } catch (e) {
-    toast.add({ title: '上传失败', description: String(e), color: 'error', icon: 'i-lucide-x-circle' })
+    toast.add({ title: t('ui.upload_failed'), description: String(e), color: 'error', icon: 'i-lucide-x-circle' })
   } finally {
     uploading.value = false
   }

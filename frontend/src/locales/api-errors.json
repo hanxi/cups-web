@@ -1,0 +1,1354 @@
+[
+  {
+    "key": "api.printer_connection_failed",
+    "pattern": "^cannot connect to the printer$"
+  },
+  {
+    "key": "api.scheduled_previous_submission_unconfirmed",
+    "pattern": "^上次提交结果未确认，请核实打印机后再恢复任务$"
+  },
+  {
+    "key": "api.scheduled_batch_incomplete",
+    "pattern": "^批次未完成，请核实打印机后再恢复任务$"
+  },
+  {
+    "key": "api.scheduled_ipp_submission_unconfirmed",
+    "pattern": "^提交结果未确认，请核实打印机后再恢复任务：IPP 提交结果未确认：([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.scheduled_submission_unconfirmed",
+    "pattern": "^提交结果未确认，请核实打印机后再恢复任务：([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.task_cancelled",
+    "pattern": "^任务已取消$"
+  },
+  {
+    "key": "api.probe_timeout_limit",
+    "pattern": "^探测超时\\(>12s\\)$"
+  },
+  {
+    "key": "api.probe_timeout_detail",
+    "pattern": "^探测超时: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.custom_deb_recovery_notice",
+    "pattern": "^上传的 \\.deb 包已归档，容器重启时会自动重新安装；若某个包始终装不上，可在宿主的 \\./\\.drivers/custom-deb/packages/ 下删除它。$"
+  },
+  {
+    "key": "api.postscript_driver_warning",
+    "pattern": "^PostScript 驱动（依赖打印机 PS 解释器，老机型可能不稳定）$"
+  },
+  {
+    "key": "api.no_matching_driver_was_found_choose_one_manually_from_the",
+    "pattern": "^未能为该打印机匹配到驱动。请在候选列表中手动选择，或确认建立 raw 队列（无驱动，将无法选择纸盒/双面，多数打印机会打出乱码）$"
+  },
+  {
+    "key": "api.libreoffice_is_not_installed_on_the_server_ask_an_administrator",
+    "pattern": "^服务器未安装 LibreOffice，无法转换 Office 文档。请联系管理员安装 LibreOffice。$"
+  },
+  {
+    "key": "api.identity_card_mode_requires_exactly_2_files_front_and_back",
+    "pattern": "^id card mode requires exactly 2 files \\(front and back\\)$"
+  },
+  {
+    "key": "api.this_cups_installation_does_not_support_ipp_everywhere_no_everywhere",
+    "pattern": "^当前 CUPS 不支持 IPP Everywhere（lpinfo -m 中无 everywhere 条目）$"
+  },
+  {
+    "key": "api.ghostscript_was_not_found_cannot_render_pdf_pages_as_images",
+    "pattern": "^ghostscript not found, cannot render PDF to images$"
+  },
+  {
+    "key": "api.ghostscript_pdfwrite_succeeded_with_font_errors",
+    "pattern": "^gs pdfwrite\\(([\\s\\S]*?)\\) succeeded but has font errors: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.the_original_file_was_not_found_it_may_have_been",
+    "pattern": "^original file not found, may have been cleaned up$"
+  },
+  {
+    "key": "api.canon_imageclass_i_sensys_imagerunner_laser_printers",
+    "pattern": "^Canon imageCLASS / i-SENSYS / imageRUNNER 系列激光打印机$"
+  },
+  {
+    "key": "api.could_not_normalise_pdf_for_page_counting",
+    "pattern": "^countPDFPagesWithFallback: normalize failed: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.hp_laserjet_1000_1005_1018_p1005_p1006_p1505_firmware",
+    "pattern": "^HP LaserJet 1000/1005/1018/P1005/P1006/P1505 固件$"
+  },
+  {
+    "key": "api.recent_epson_inkjet_printers_including_et_18100_l8050_l8160_and",
+    "pattern": "^Epson ET-18100, L8050, L8160, WF-7840 等新款喷墨打印机$"
+  },
+  {
+    "key": "api.invalid_ppd_file_missing_ppd_adobe_header",
+    "pattern": "^invalid PPD file \\(missing \\*PPD-Adobe header\\)$"
+  },
+  {
+    "key": "api.dpkg_i_failed_and_apt_get_f_install_also_failed",
+    "pattern": "^dpkg -i 失败 \\(([\\s\\S]*?)\\)，apt-get -f install 也失败 \\(([\\s\\S]*?)\\)$"
+  },
+  {
+    "key": "api.the_deb_package_was_installed_but_could_not_be_archived",
+    "pattern": "^该 \\.deb 安装成功但归档失败，容器重启后需要重新上传安装（且列表中不会显示该包）。$"
+  },
+  {
+    "key": "api.too_many_attempts_please_try_again_later",
+    "pattern": "^too many attempts, please try again later$"
+  },
+  {
+    "key": "api.ghostscript_pdfwrite_produced_empty_output",
+    "pattern": "^gs pdfwrite\\(([\\s\\S]*?)\\) produced empty output: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.dpkg_i_failed_repairing_dependencies_with_apt_get_f_install",
+    "pattern": "^dpkg -i 失败，尝试用 apt-get -f install 修复依赖后重试$"
+  },
+  {
+    "key": "api.ofd_to_pdf_conversion_produced_no_output",
+    "pattern": "^OFD to PDF conversion produced no output$"
+  },
+  {
+    "key": "api.unsupported_file_type_use_ppd_or_deb",
+    "pattern": "^unsupported file type \\(use \\.ppd or \\.deb\\)$"
+  },
+  {
+    "key": "api.no_even_pages_to_extract_total_pages",
+    "pattern": "^no even pages to extract \\(totalPages=([\\s\\S]*?)\\)$"
+  },
+  {
+    "key": "api.no_model_match_falling_back_to_ipp_everywhere_m_everywhere",
+    "pattern": "^无型号匹配，降级使用 IPP Everywhere（-m everywhere）$"
+  },
+  {
+    "key": "api.the_ppd_was_not_applied_lpoptions_returned_no_output_the",
+    "pattern": "^PPD 未真正生效（lpoptions 输出为空），队列可能是 raw 模式$"
+  },
+  {
+    "key": "api.lpoptions_l_returned_no_output_the_ppd_may_not_have",
+    "pattern": "^lpoptions -l 输出为空——PPD 可能未真正生效（raw 队列）$"
+  },
+  {
+    "key": "api.ofd_to_pdf_conversion_failed",
+    "pattern": "^OFD to PDF conversion failed: ([\\s\\S]*?) - ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.ppd_name_contains_invalid_characters_only_letters_numbers_and_are",
+    "pattern": "^PPD 名含非法字符（只允许字母、数字与 \\. _ : % \\+ / -）$"
+  },
+  {
+    "key": "api.konica_minolta_bizhub_3000mf_monochrome_laser_printers",
+    "pattern": "^Konica Minolta bizhub 3000MF 黑白激光打印机$"
+  },
+  {
+    "key": "api.the_guest_account_is_managed_automatically",
+    "pattern": "^guest user is managed automatically$"
+  },
+  {
+    "key": "api.connections_do_not_support_ipp_everywhere_ipp_connections_only",
+    "pattern": "^([\\s\\S]*?) 连接不支持 IPP Everywhere（仅 IPP 连接可用）$"
+  },
+  {
+    "key": "api.the_protected_administrator_s_role_cannot_be_changed",
+    "pattern": "^protected admin role cannot change$"
+  },
+  {
+    "key": "api.lpoptions_reports_a_missing_ppd_the_queue_may_be_in",
+    "pattern": "^lpoptions 报告 PPD 不存在——队列可能是 raw 模式$"
+  },
+  {
+    "key": "api.ghostscript_could_not_render_page",
+    "pattern": "^gs render page ([\\s\\S]*?) failed: ([\\s\\S]*?) - ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.could_not_read_rendered_image",
+    "pattern": "^failed to read rendered image: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.the_printer_supports_ipp_everywhere_verified_ipp_attributes",
+    "pattern": "^打印机确认支持 IPP Everywhere（IPP 属性已验证）$"
+  },
+  {
+    "key": "api.could_not_reload_scheduled_job",
+    "pattern": "^failed to reload scheduled print$"
+  },
+  {
+    "key": "api.could_not_delete_scheduled_job",
+    "pattern": "^failed to delete scheduled print$"
+  },
+  {
+    "key": "api.sharp_postscript_printers_including_mx_c2622r",
+    "pattern": "^Sharp MX-C2622R 等 PostScript 打印机$"
+  },
+  {
+    "key": "api.using_ipp_everywhere_m_everywhere",
+    "pattern": "^使用 IPP Everywhere（-m everywhere）$"
+  },
+  {
+    "key": "api.the_default_administrator_cannot_be_deleted",
+    "pattern": "^default admin cannot be deleted$"
+  },
+  {
+    "key": "api.could_not_process_identity_card_files",
+    "pattern": "^failed to process id card files$"
+  },
+  {
+    "key": "api.ghostscript_pdfwrite_failed",
+    "pattern": "^gs pdfwrite\\(([\\s\\S]*?)\\) failed: ([\\s\\S]*?) - ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.mode_must_be_color_gray_or_lineart",
+    "pattern": "^mode 只支持 Color / Gray / Lineart$"
+  },
+  {
+    "key": "api.could_not_load_scheduled_jobs",
+    "pattern": "^failed to load scheduled prints$"
+  },
+  {
+    "key": "api.hp_laserjet_1020_firmware_and_a4_default_ppd",
+    "pattern": "^HP LaserJet 1020 固件 \\+ A4 默认 PPD$"
+  },
+  {
+    "key": "api.username_and_password_are_required",
+    "pattern": "^username and password required$"
+  },
+  {
+    "key": "api.driver_installation_failed",
+    "pattern": "^driver installation failed: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.could_not_save_scheduled_job",
+    "pattern": "^failed to save scheduled print$"
+  },
+  {
+    "key": "api.could_not_load_scheduled_job",
+    "pattern": "^failed to load scheduled print$"
+  },
+  {
+    "key": "api.ipp_connection_discovered_by_dns_sd_cups_supports_driverless_printing",
+    "pattern": "^IPP 连接（DNS-SD 发现），CUPS 支持免驱动模式$"
+  },
+  {
+    "key": "api.the_guest_account_is_managed_automatically_disable_guest_mode_in",
+    "pattern": "^guest 账号由访客模式自动管理，请通过设置关闭访客模式$"
+  },
+  {
+    "key": "api.could_not_open_converted_file",
+    "pattern": "^failed to open converted file$"
+  },
+  {
+    "key": "api.creating_a_raw_queue_requires_allowraw_true",
+    "pattern": "^建立 raw 队列需要显式设置 allowRaw=true$"
+  },
+  {
+    "key": "api.could_not_save_converted_file",
+    "pattern": "^failed to save converted file$"
+  },
+  {
+    "key": "api.could_not_create_print_record",
+    "pattern": "^failed to create print record$"
+  },
+  {
+    "key": "api.gutenprint_high_quality_drivers_supports_many_printer_models",
+    "pattern": "^Gutenprint 高质量打印驱动（支持大量打印机型号）$"
+  },
+  {
+    "key": "api.the_administrator_s_username_cannot_be_changed",
+    "pattern": "^admin username cannot change$"
+  },
+  {
+    "key": "api.the_guest_account_cannot_be_deleted",
+    "pattern": "^guest user cannot be deleted$"
+  },
+  {
+    "key": "api.could_not_read_input_pdf_information",
+    "pattern": "^normalizePDF: stat input: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.resolution_is_outside_the_range_50_4800",
+    "pattern": "^resolution ([\\s\\S]*?) 超出 50\\.\\.4800 范围$"
+  },
+  {
+    "key": "api.the_server_is_missing_a_conversion_tool_ask_an_administrator",
+    "pattern": "^服务器缺少文件转换所需的工具，请联系管理员安装相关依赖。$"
+  },
+  {
+    "key": "api.driverless_ipp_everywhere_capabilities_reported_by_the_printer",
+    "pattern": "^免驱动 IPP Everywhere（由打印机自报能力）$"
+  },
+  {
+    "key": "api.missing_printeruri_or_jobid",
+    "pattern": "^missing printerUri or jobId$"
+  },
+  {
+    "key": "api.could_not_import_pdf",
+    "pattern": "^failed to import PDF ([\\s\\S]*?): ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.format_must_be_png_jpeg_or_pdf",
+    "pattern": "^format 只支持 png / jpeg / pdf$"
+  },
+  {
+    "key": "api.could_not_create_watermark_configuration",
+    "pattern": "^create watermark config: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.generic_postscript_pcl_features_may_be_limited",
+    "pattern": "^通用 PostScript / PCL（功能可能受限）$"
+  },
+  {
+    "key": "api.you_cannot_delete_your_own_account",
+    "pattern": "^cannot delete current user$"
+  },
+  {
+    "key": "api.api_keys_cannot_create_new_keys_sign_in_with_a",
+    "pattern": "^API 密钥不能签发新密钥，请使用浏览器登录后再创建$"
+  },
+  {
+    "key": "api.conversion_failed",
+    "pattern": "^conversion failed: ([\\s\\S]*?) - ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.conversion_produced_no_pdf",
+    "pattern": "^conversion produced no PDF$"
+  },
+  {
+    "key": "api.this_device_already_has_queue_delete_it_before_reconfiguring",
+    "pattern": "^该设备已添加为队列 ([\\s\\S]*?)，如需重新配置请先删除该队列$"
+  },
+  {
+    "key": "api.file_too_large_or_invalid_form_maximum_driver_file_size",
+    "pattern": "^文件过大或表单格式错误（单个驱动文件上限 64MB）$"
+  },
+  {
+    "key": "api.could_not_create_temporary_file",
+    "pattern": "^failed to create temp file$"
+  },
+  {
+    "key": "api.could_not_get_printer_information",
+    "pattern": "^failed to get printer info$"
+  },
+  {
+    "key": "api.could_not_create_temporary_output_directory",
+    "pattern": "^create output temp dir: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.api_keys_cannot_delete_keys_sign_in_with_a_browser",
+    "pattern": "^API 密钥不能删除密钥，请使用浏览器登录后再操作$"
+  },
+  {
+    "key": "api.driver_removal_failed",
+    "pattern": "^driver removal failed: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.could_not_detect_printers",
+    "pattern": "^failed to detect printers$"
+  },
+  {
+    "key": "api.could_not_add_printer",
+    "pattern": "^failed to add printer: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.cannot_process_pdf",
+    "pattern": "^cannot process PDF ([\\s\\S]*?): ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.scanimage_a_d_failed",
+    "pattern": "^scanimage -A -d ([\\s\\S]*?) 失败: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.connections_do_not_support_driverless_printing_ipp_connections_only",
+    "pattern": "^([\\s\\S]*?) 连接不支持免驱动模式（仅 IPP 连接可用）$"
+  },
+  {
+    "key": "api.epson_china_market_inkjet_printers_including_l380_and_l455",
+    "pattern": "^Epson L380, L455 等国行喷墨打印机$"
+  },
+  {
+    "key": "api.the_administrator_s_role_cannot_be_changed",
+    "pattern": "^admin role cannot change$"
+  },
+  {
+    "key": "api.could_not_create_api_key",
+    "pattern": "^failed to create api key$"
+  },
+  {
+    "key": "api.could_not_delete_api_key",
+    "pattern": "^failed to delete api key$"
+  },
+  {
+    "key": "api.the_embedded_font_is_missing",
+    "pattern": "^embedded font is missing$"
+  },
+  {
+    "key": "api.invalid_image_dimensions",
+    "pattern": "^invalid image dimensions$"
+  },
+  {
+    "key": "api.schedule_weekday_must_be_between_0_and_6",
+    "pattern": "^schedule_weekday 必须在 0-6$"
+  },
+  {
+    "key": "api.cups_driverd_fingerprint_matching_found_entries",
+    "pattern": "^cups-driverd 指纹匹配命中 ([\\s\\S]*?) 条$"
+  },
+  {
+    "key": "api.could_not_hash_the_password",
+    "pattern": "^failed to hash password$"
+  },
+  {
+    "key": "api.the_administrator_cannot_be_deleted",
+    "pattern": "^admin cannot be deleted$"
+  },
+  {
+    "key": "api.could_not_load_settings",
+    "pattern": "^failed to load settings$"
+  },
+  {
+    "key": "api.could_not_list_api_keys",
+    "pattern": "^failed to list api keys$"
+  },
+  {
+    "key": "api.a_driver_name_is_required",
+    "pattern": "^driver name is required$"
+  },
+  {
+    "key": "api.could_not_list_printers",
+    "pattern": "^failed to list printers$"
+  },
+  {
+    "key": "api.unsupported_file_type",
+    "pattern": "^unsupported file type: ([\\s\\S]*)$"
+  },
+  {
+    "key": "api.could_not_generate_blank_page",
+    "pattern": "^generate blank page: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.no_image_files_provided",
+    "pattern": "^no image files provided$"
+  },
+  {
+    "key": "api.schedule_time_must_use_hh_mm",
+    "pattern": "^schedule_time 必须是 HH:MM$"
+  },
+  {
+    "key": "api.could_not_write_watermark_pdf",
+    "pattern": "^write watermark pdf: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.could_not_set_a4_as_the_default_paper_printing_is",
+    "pattern": "^设置 A4 默认纸张失败（不影响使用）: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.the_guest_account_is_managed_automatically_and_cannot_be_edited",
+    "pattern": "^guest 账号由访客模式自动管理，不能编辑$"
+  },
+  {
+    "key": "api.invalid_maximum_pages_per_job",
+    "pattern": "^invalid maxPagesPerJob$"
+  },
+  {
+    "key": "api.invalid_maximum_upload_size",
+    "pattern": "^invalid maxUploadBytes$"
+  },
+  {
+    "key": "api.invalid_multipart_form",
+    "pattern": "^invalid multipart form$"
+  },
+  {
+    "key": "api.could_not_cancel_job",
+    "pattern": "^failed to cancel job: ([\\s\\S]*)$"
+  },
+  {
+    "key": "api.the_selected_driver_does_not_exist_scan_again_and_select",
+    "pattern": "^指定的驱动不存在: ([\\s\\S]*?)（请重新扫描后再选）$"
+  },
+  {
+    "key": "api.could_not_load_records",
+    "pattern": "^failed to load records$"
+  },
+  {
+    "key": "api.could_not_load_account",
+    "pattern": "^failed to load profile$"
+  },
+  {
+    "key": "api.could_not_generate_watermark",
+    "pattern": "^generate watermark: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.could_not_open_watermark_pdf",
+    "pattern": "^open watermark pdf: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.could_not_create_user",
+    "pattern": "^failed to create user$"
+  },
+  {
+    "key": "api.could_not_update_user",
+    "pattern": "^failed to update user$"
+  },
+  {
+    "key": "api.could_not_delete_user",
+    "pattern": "^failed to delete user$"
+  },
+  {
+    "key": "api.invalid_retention_period",
+    "pattern": "^invalid retentionDays$"
+  },
+  {
+    "key": "api.invalid_expiry_period",
+    "pattern": "^invalid expiresInDays$"
+  },
+  {
+    "key": "api.the_api_key_limit_has_been_reached",
+    "pattern": "^api key limit reached$"
+  },
+  {
+    "key": "api.deviceuri_is_required",
+    "pattern": "^deviceUri is required$"
+  },
+  {
+    "key": "api.dpkg_i_still_failed_after_repairing_dependencies",
+    "pattern": "^修复依赖后 dpkg -i 仍失败: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.ppd_name_is_too_long_bytes_maximum_512",
+    "pattern": "^PPD 名过长（([\\s\\S]*?) 字节，上限 512）$"
+  },
+  {
+    "key": "api.missing_uri_parameter",
+    "pattern": "^missing uri parameter$"
+  },
+  {
+    "key": "api.missing_printer_field",
+    "pattern": "^missing printer field$"
+  },
+  {
+    "key": "api.could_not_load_record",
+    "pattern": "^failed to load record$"
+  },
+  {
+    "key": "api.invalid_schedule_type",
+    "pattern": "^非法的 schedule_type: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.schedule_day_must_be_between_1_and_31",
+    "pattern": "^schedule_day 必须在 1-31$"
+  },
+  {
+    "key": "api.ipp_attribute_lookup_failed_printing_is_still_available",
+    "pattern": "^IPP 属性查询失败（不影响使用）: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.could_not_list_users",
+    "pattern": "^failed to list users$"
+  },
+  {
+    "key": "api.invalid_request_body",
+    "pattern": "^invalid request body$"
+  },
+  {
+    "key": "api.could_not_read_page_count",
+    "pattern": "^failed to read pages$"
+  },
+  {
+    "key": "api.page_is_out_of_range",
+    "pattern": "^page ([\\s\\S]*?) out of range$"
+  },
+  {
+    "key": "api.all_50_variants_of_queue_name_are_in_use",
+    "pattern": "^队列名 ([\\s\\S]*?) 的 50 个变体全部被占用$"
+  },
+  {
+    "key": "api.a_driver_task_is_already_running_wait_for_it_to",
+    "pattern": "^已有驱动任务正在执行，请等待其完成后重试$"
+  },
+  {
+    "key": "api.missing_csrf_cookie",
+    "pattern": "^missing csrf cookie$"
+  },
+  {
+    "key": "api.enter_your_username_and_password",
+    "pattern": "^missing credentials$"
+  },
+  {
+    "key": "api.incorrect_username_or_password",
+    "pattern": "^invalid credentials$"
+  },
+  {
+    "key": "api.could_not_save_file",
+    "pattern": "^failed to save file$"
+  },
+  {
+    "key": "api.could_not_list_jobs",
+    "pattern": "^failed to list jobs$"
+  },
+  {
+    "key": "api.could_not_read_file",
+    "pattern": "^failed to read file$"
+  },
+  {
+    "key": "api.update_manifest",
+    "pattern": "^update manifest: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.no_pages_to_compose",
+    "pattern": "^no pages to compose$"
+  },
+  {
+    "key": "api.could_not_create_temporary_directory",
+    "pattern": "^create temp dir: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.could_not_open_file",
+    "pattern": "^failed to open file$"
+  },
+  {
+    "key": "api.could_not_read_file_information",
+    "pattern": "^failed to stat file$"
+  },
+  {
+    "key": "api.could_not_copy_file",
+    "pattern": "^failed to copy file$"
+  },
+  {
+    "key": "api.scanimage_l_failed",
+    "pattern": "^scanimage -L 失败: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.could_not_apply_watermark",
+    "pattern": "^apply watermark: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.ipp_connection_cups_supports_driverless_printing",
+    "pattern": "^IPP 连接，CUPS 支持免驱动模式$"
+  },
+  {
+    "key": "api.lpstat_p_failed",
+    "pattern": "^lpstat -p ([\\s\\S]*?) 失败: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.lpoptions_l_failed",
+    "pattern": "^lpoptions -l 失败: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.invalid_csrf_token",
+    "pattern": "^invalid csrf token$"
+  },
+  {
+    "key": "api.custom_css_is_too_long",
+    "pattern": "^customCss too long$"
+  },
+  {
+    "key": "api.missing_mode_field",
+    "pattern": "^missing mode field$"
+  },
+  {
+    "key": "api.unsupported_mode",
+    "pattern": "^unsupported mode: ([\\s\\S]*)$"
+  },
+  {
+    "key": "api.missing_file_field",
+    "pattern": "^missing file field$"
+  },
+  {
+    "key": "api.write_metadata",
+    "pattern": "^write metadata: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.pdf_text_processing_failed",
+    "pattern": "^pdf text panic: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.pdfcpu_collect",
+    "pattern": "^pdfcpu collect: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.invalid_date_range",
+    "pattern": "^invalid date range$"
+  },
+  {
+    "key": "api.the_selected_scanner_does_not_exist_refresh_the_device_list",
+    "pattern": "^指定的扫描设备不存在,请刷新设备列表$"
+  },
+  {
+    "key": "api.username_is_required",
+    "pattern": "^username required$"
+  },
+  {
+    "key": "api.api_key_not_found",
+    "pattern": "^api key not found$"
+  },
+  {
+    "key": "api.no_files_provided",
+    "pattern": "^no files provided$"
+  },
+  {
+    "key": "api.invalid_filename",
+    "pattern": "^invalid file name$"
+  },
+  {
+    "key": "api.conversion_failed_2",
+    "pattern": "^conversion failed$"
+  },
+  {
+    "key": "api.invalid_record_id",
+    "pattern": "^invalid record id$"
+  },
+  {
+    "key": "api.invalid_resolution",
+    "pattern": "^resolution 非法: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.hp_open_source_driver_hplip",
+    "pattern": "^HP 官方开源驱动 \\(HPLIP\\)$"
+  },
+  {
+    "key": "api.ppd_was_not_applied_rolling_back_queue",
+    "pattern": "^PPD 未生效，回滚删除队列 ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.ppd_list_lines",
+    "pattern": "^PPD 列表: ([\\s\\S]*?) → ([\\s\\S]*?) 行$"
+  },
+  {
+    "key": "api.clean_up_failed",
+    "pattern": "^cleanup failed: ([\\s\\S]*)$"
+  },
+  {
+    "key": "api.guest_accounts_cannot_use_api_keys",
+    "pattern": "^guest 不支持 API 密钥$"
+  },
+  {
+    "key": "api.could_not_compose_document",
+    "pattern": "^compose failed: ([\\s\\S]*)$"
+  },
+  {
+    "key": "api.unknown_driver",
+    "pattern": "^unknown driver: ([\\s\\S]*)$"
+  },
+  {
+    "key": "api.a_file_is_required",
+    "pattern": "^file is required$"
+  },
+  {
+    "key": "api.pdfcpu_merge",
+    "pattern": "^pdfcpu merge: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.record_not_found",
+    "pattern": "^record not found$"
+  },
+  {
+    "key": "api.scanimage_failed",
+    "pattern": "^scanimage 失败: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.driver_does_not_support_the_current_architecture",
+    "pattern": "^驱动 ([\\s\\S]*?) 不支持当前架构 ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.gutenprint_high_quality_driver",
+    "pattern": "^Gutenprint 高质量驱动$"
+  },
+  {
+    "key": "api.driver_is_already_installed_skipping_installation",
+    "pattern": "^驱动 ([\\s\\S]*?) 已安装，跳过安装步骤$"
+  },
+  {
+    "key": "api.using_administrator_selected_ppd",
+    "pattern": "^使用管理员指定的 PPD: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.invalid_request",
+    "pattern": "^invalid payload$"
+  },
+  {
+    "key": "api.guest_is_reserved_for_guest_mode",
+    "pattern": "^guest 是访客模式保留账号$"
+  },
+  {
+    "key": "api.invalid_user_id",
+    "pattern": "^invalid user id$"
+  },
+  {
+    "key": "api.could_not_fetch_ppd_list",
+    "pattern": "^获取 PPD 列表失败: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.save_ppd",
+    "pattern": "^persist ppd: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.page_is_empty",
+    "pattern": "^page ([\\s\\S]*?) is null$"
+  },
+  {
+    "key": "api.unsupported_format",
+    "pattern": "^不支持的 format: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.could_not_read_output_file_information",
+    "pattern": "^stat 输出文件失败: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.could_not_list_scanners",
+    "pattern": "^列出扫描设备失败: ([\\s\\S]*?)\n([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.could_not_get_scanner_settings",
+    "pattern": "^获取扫描参数失败: ([\\s\\S]*?)\n([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.community_driver_foomatic",
+    "pattern": "^社区驱动 \\(Foomatic\\)$"
+  },
+  {
+    "key": "api.user_not_found",
+    "pattern": "^user not found$"
+  },
+  {
+    "key": "api.the_file_exceeds_the_administrator_s_size_limit",
+    "pattern": "^文件超出管理员设置的大小上限$"
+  },
+  {
+    "key": "api.libreoffice",
+    "pattern": "^libreoffice ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.unknown_job_id",
+    "pattern": "^unknown job id$"
+  },
+  {
+    "key": "api.ghostscript",
+    "pattern": "^ghostscript ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.the_file_exceeds_the_administrator_s_page_limit",
+    "pattern": "^文件页数超出管理员设置的上限$"
+  },
+  {
+    "key": "api.file_not_found",
+    "pattern": "^file not found$"
+  },
+  {
+    "key": "api.this_scan_has_not_succeeded_and_cannot_be_downloaded",
+    "pattern": "^该扫描任务尚未成功,无法下载$"
+  },
+  {
+    "key": "api.office_conversion_failed",
+    "pattern": "^office 转换失败：([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.invalid_ppduri",
+    "pattern": "^ppdUri 不合法: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.ipp_attribute_lookup_failed",
+    "pattern": "^IPP 属性查询失败: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.a_name_is_required",
+    "pattern": "^name required$"
+  },
+  {
+    "key": "api.the_name_is_too_long",
+    "pattern": "^name too long$"
+  },
+  {
+    "key": "api.session_error",
+    "pattern": "^session error$"
+  },
+  {
+    "key": "api.not_installed",
+    "pattern": "^not installed$"
+  },
+  {
+    "key": "api.create",
+    "pattern": "^create ([\\s\\S]*?): ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.lpinfo_m",
+    "pattern": "^lpinfo -m: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.print_error",
+    "pattern": "^print error: ([\\s\\S]*)$"
+  },
+  {
+    "key": "api.could_not_load_font",
+    "pattern": "^load font: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.ppd_file_does_not_exist",
+    "pattern": "^PPD 文件 ([\\s\\S]*?) 不存在$"
+  },
+  {
+    "key": "api.please_sign_in_again",
+    "pattern": "^unauthorized$"
+  },
+  {
+    "key": "api.invalid_role",
+    "pattern": "^invalid role$"
+  },
+  {
+    "key": "api.sign_in_failed",
+    "pattern": "^login failed$"
+  },
+  {
+    "key": "api.invalid_json",
+    "pattern": "^invalid json$"
+  },
+  {
+    "key": "api.driver_candidate_lookup_is_busy_try_again_shortly",
+    "pattern": "^候选查询繁忙，请稍后重试$"
+  },
+  {
+    "key": "api.write",
+    "pattern": "^write ([\\s\\S]*?): ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.ppd_name_cannot_contain",
+    "pattern": "^PPD 名不能包含 \\.\\.$"
+  },
+  {
+    "key": "api.ppd_name_cannot_be_an_absolute_path",
+    "pattern": "^PPD 名不能是绝对路径$"
+  },
+  {
+    "key": "api.missing_device_parameter",
+    "pattern": "^缺少 device 参数$"
+  },
+  {
+    "key": "api.the_request_body_is_not_valid_json",
+    "pattern": "^请求体不是合法 JSON$"
+  },
+  {
+    "key": "api.could_not_open_file_for_printing",
+    "pattern": "^打开待打印文件失败：([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.printer_is_required",
+    "pattern": "^printer 不能为空$"
+  },
+  {
+    "key": "api.ppd_matching_failed",
+    "pattern": "^PPD 匹配失败: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.could_not_list_scanners_2",
+    "pattern": "^列出扫描设备失败: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.could_not_load_scan_history",
+    "pattern": "^查询扫描记录失败: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.the_scan_file_no_longer_exists",
+    "pattern": "^扫描文件已不存在: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.ppd_matching_failed_2",
+    "pattern": "^PPD 匹配出错: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.automatically_matched_ppd",
+    "pattern": "^自动匹配 PPD: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.page",
+    "pattern": "^page ([\\s\\S]*?): ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.eof_bounded",
+    "pattern": "^EOF-bounded$"
+  },
+  {
+    "key": "api.cannot_calculate_the_next_execution_time",
+    "pattern": "^无法计算下一次执行时间$"
+  },
+  {
+    "key": "api.ofd_conversion_failed",
+    "pattern": "^ofd 转换失败：([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.could_not_read_fallback_file",
+    "pattern": "^回退文件读取失败：([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.ipp_submission_failed",
+    "pattern": "^IPP 提交失败：([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.command_failed",
+    "pattern": "^!! 命令失败: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.invalid_id",
+    "pattern": "^invalid id$"
+  },
+  {
+    "key": "api.could_not_save_print_history",
+    "pattern": "^落打印历史失败：([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.could_not_delete_record",
+    "pattern": "^删除记录失败: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.ppd_uploaded_by_an_administrator",
+    "pattern": "^管理员上传的 PPD$"
+  },
+  {
+    "key": "api.epson_china_market_driver",
+    "pattern": "^Epson 国行驱动$"
+  },
+  {
+    "key": "api.access_denied",
+    "pattern": "^forbidden$"
+  },
+  {
+    "key": "api.the_api_key_limit_has_been_reached",
+    "pattern": "^已达到密钥数量上限$"
+  },
+  {
+    "key": "api.front",
+    "pattern": "^front: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.ppd_name_cannot_be_empty",
+    "pattern": "^PPD 名不能为空$"
+  },
+  {
+    "key": "api.missing_device",
+    "pattern": "^缺少 device$"
+  },
+  {
+    "key": "api.the_job_does_not_exist_or_has_expired",
+    "pattern": "^任务不存在或已过期$"
+  },
+  {
+    "key": "api.not_found",
+    "pattern": "^not found$"
+  },
+  {
+    "key": "api.source_file_missing",
+    "pattern": "^原始文件缺失：([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.could_not_parse_page_count",
+    "pattern": "^解析页数失败：([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.image_conversion_failed",
+    "pattern": "^图片转换失败：([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.could_not_read_page_count_2",
+    "pattern": "^读取页数失败：([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.text_conversion_failed",
+    "pattern": "^文本转换失败：([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.back",
+    "pattern": "^back: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.device_check_failed",
+    "pattern": "^探测失败: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.could_not_save_to_the_database",
+    "pattern": "^落库失败: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.file_conversion_failed",
+    "pattern": "^文件转换失败：([\\s\\S]*)$"
+  },
+  {
+    "key": "api.you_do_not_have_permission_to_view_this_job",
+    "pattern": "^无权访问该任务$"
+  },
+  {
+    "key": "api.you_do_not_have_permission_to_cancel_this_job",
+    "pattern": "^无权取消该任务$"
+  },
+  {
+    "key": "api.manufacturer_driver",
+    "pattern": "^厂商原厂驱动$"
+  },
+  {
+    "key": "api.invalid_id_2",
+    "pattern": "^id 非法$"
+  },
+  {
+    "key": "api.record_not_found",
+    "pattern": "^记录不存在$"
+  },
+  {
+    "key": "api.file_missing",
+    "pattern": "^文件缺失$"
+  },
+  {
+    "key": "api.unknown_source",
+    "pattern": "^未知来源$"
+  },
+  {
+    "key": "api.conversion_produced_no_pdf_2",
+    "pattern": "^conversion produced no PDF: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.conversion_produced_an_invalid_pdf",
+    "pattern": "^conversion produced invalid PDF: ([\\s\\S]*?) - ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.output_is_not_a_non_empty_regular_file",
+    "pattern": "^output is not a non-empty regular file$"
+  },
+  {
+    "key": "api.could_not_compress_the_image_below_800_kb",
+    "pattern": "^无法将图片压缩至 800KB 以下$"
+  },
+  {
+    "key": "api.invalid_image_content_area",
+    "pattern": "^invalid image content area$"
+  },
+  {
+    "key": "api.photo_date_parameter_is_too_long",
+    "pattern": "^照片日期参数过长$"
+  },
+  {
+    "key": "api.photo_dates_must_correspond_to_the_number_of_images",
+    "pattern": "^照片日期必须与图片数量一一对应$"
+  },
+  {
+    "key": "api.photo_dates_must_use_yyyy_mm_dd",
+    "pattern": "^照片日期格式必须为 YYYY-MM-DD$"
+  },
+  {
+    "key": "api.select_from_1_to_100_photos",
+    "pattern": "^照片数量必须为 1–100 张$"
+  },
+  {
+    "key": "api.unsupported_number_of_photos_per_page",
+    "pattern": "^不支持的每页照片张数$"
+  },
+  {
+    "key": "api.rotation_values_must_correspond_to_each_photo",
+    "pattern": "^旋转参数必须与照片一一对应$"
+  },
+  {
+    "key": "api.rotation_must_be_0_90_180_or_270_degrees",
+    "pattern": "^旋转角度必须为 0、90、180 或 270$"
+  },
+  {
+    "key": "api.photo_queues_only_support_images",
+    "pattern": "^照片队列仅支持图片$"
+  },
+  {
+    "key": "api.could_not_prepare_reprint",
+    "pattern": "^failed to prepare reprint$"
+  },
+  {
+    "key": "api.original_photo_not_found",
+    "pattern": "^original photo not found$"
+  },
+  {
+    "key": "api.could_not_prepare_photo",
+    "pattern": "^failed to prepare photo$"
+  },
+  {
+    "key": "api.invalid_driver_options",
+    "pattern": "^invalid driver options$"
+  },
+  {
+    "key": "api.could_not_prepare_print_options",
+    "pattern": "^failed to prepare options$"
+  },
+  {
+    "key": "api.the_file_and_files_fields_cannot_be_used_together",
+    "pattern": "^file 和 files 不能混用$"
+  },
+  {
+    "key": "api.invalid_number_of_files",
+    "pattern": "^文件数量无效$"
+  },
+  {
+    "key": "api.the_files_field_only_supports_photos",
+    "pattern": "^files 仅支持照片$"
+  },
+  {
+    "key": "api.could_not_save_photo",
+    "pattern": "^failed to save photo$"
+  },
+  {
+    "key": "api.conversion_failed_3",
+    "pattern": "^conversion failed: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.could_not_read_photo_page_count",
+    "pattern": "^failed to read photo pages$"
+  },
+  {
+    "key": "api.could_not_save_print_pdf",
+    "pattern": "^failed to save print PDF$"
+  },
+  {
+    "key": "api.invalid_original_photo_index",
+    "pattern": "^invalid source index$"
+  },
+  {
+    "key": "api.print_pdf_is_not_available",
+    "pattern": "^print PDF not available$"
+  },
+  {
+    "key": "api.could_not_read_printer_options",
+    "pattern": "^无法读取打印机选项$"
+  },
+  {
+    "key": "api.invalid_driver_options_2",
+    "pattern": "^invalid driver_options$"
+  },
+  {
+    "key": "api.img2pdf_could_not_compose_the_pdf",
+    "pattern": "^img2pdf 合成 PDF 失败: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.the_file_and_files_fields_cannot_be_combined",
+    "pattern": "^file 与 files 不能混用$"
+  },
+  {
+    "key": "api.select_a_file_photo_queues_support_up_to_100_photos",
+    "pattern": "^请选择文件；照片队列最多 100 张$"
+  },
+  {
+    "key": "api.could_not_read_uploaded_file",
+    "pattern": "^无法读取上传文件$"
+  },
+  {
+    "key": "api.photos_per_run_must_be_from_1_to_100",
+    "pattern": "^每次打印张数应为 1–100$"
+  },
+  {
+    "key": "api.the_job_is_running_try_again_later",
+    "pattern": "^任务正在执行，请稍后再试$"
+  },
+  {
+    "key": "api.the_job_is_running_do_not_submit_it_again",
+    "pattern": "^任务正在执行，请勿重复提交$"
+  },
+  {
+    "key": "api.all_photos_have_been_submitted",
+    "pattern": "^照片已全部提交$"
+  },
+  {
+    "key": "api.could_not_read_thumbnail",
+    "pattern": "^无法读取缩略图$"
+  },
+  {
+    "key": "api.photo_queue_completed",
+    "pattern": "^照片队列已完成$"
+  },
+  {
+    "key": "api.could_not_save_scheduled_run_result",
+    "pattern": "^保存定时执行结果失败：([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.photo_was_not_submitted_successfully",
+    "pattern": "^照片未成功提交：([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.photo_queues_only_support_jpg_png_and_gif_images",
+    "pattern": "^照片队列仅支持 JPG、PNG、GIF 图片$"
+  },
+  {
+    "key": "api.the_photo_extension_does_not_match_its_format_use_a",
+    "pattern": "^照片扩展名与实际格式不一致，请使用正确的 JPG、PNG、GIF 文件$"
+  },
+  {
+    "key": "api.photo_exceeds_the_60_megapixel_limit",
+    "pattern": "^照片尺寸超出上限（6000 万像素）$"
+  },
+  {
+    "key": "api.could_not_decode_photo",
+    "pattern": "^照片无法解码：([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.could_not_determine_photo_orientation",
+    "pattern": "^判断照片方向失败：([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.ipp_submission_result_is_unconfirmed",
+    "pattern": "^IPP 提交结果未确认：([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.automatic_orientation_is_only_supported_for_scheduled_photo_queues",
+    "pattern": "^自动方向仅支持照片定时队列$"
+  },
+  {
+    "key": "api.could_not_read_image_dimensions",
+    "pattern": "^读取图片尺寸失败：([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.photo_queues_require_valid_jpg_png_or_gif_images",
+    "pattern": "^照片队列仅支持有效的 JPG、PNG、GIF 图片$"
+  },
+  {
+    "key": "api.start_date_must_use_yyyy_mm_dd",
+    "pattern": "^start_date 必须是 YYYY-MM-DD$"
+  },
+  {
+    "key": "api.choose_daily_weekly_or_monthly_for_a_photo_queue",
+    "pattern": "^照片队列请选择每天、每周或每月$"
+  },
+  {
+    "key": "api.all_photos_have_been_submitted_create_a_new_schedule_or",
+    "pattern": "^照片已全部提交，请新建任务；或开启循环后继续$"
+  },
+  {
+    "key": "api.invalid_orientation",
+    "pattern": "^非法的 orientation: ([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.the_printer_does_not_support_refresh_printer_options",
+    "pattern": "^打印机不支持选项 ([\\s\\S]*?)=([\\s\\S]*?)，请刷新打印机选项$"
+  },
+  {
+    "key": "api.invalid_printer_uri",
+    "pattern": "^invalid printer uri$"
+  },
+  {
+    "key": "api.unsupported_printer_uri_scheme",
+    "pattern": "^unsupported printer uri scheme$"
+  },
+  {
+    "key": "api.printer_uri_is_missing_a_host",
+    "pattern": "^printer uri missing host$"
+  },
+  {
+    "key": "api.invalid_cups_socket_request_uri",
+    "pattern": "^invalid CUPS socket request uri$"
+  },
+  {
+    "key": "api.printer_host_is_not_allowed",
+    "pattern": "^printer host not allowed$"
+  },
+  {
+    "key": "api.printer_host_address_is_not_allowed",
+    "pattern": "^printer host address not allowed$"
+  },
+  {
+    "key": "api.api_key_expired",
+    "pattern": "^api key expired$"
+  },
+  {
+    "key": "api.guest_accounts_cannot_use_api_keys_2",
+    "pattern": "^guest api key$"
+  }
+]

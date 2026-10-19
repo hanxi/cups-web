@@ -5,6 +5,7 @@ import { runInNewContext } from 'node:vm'
 import { parse, compileScript } from '@vue/compiler-sfc'
 import { ref, computed, watch, effectScope, nextTick } from 'vue'
 import { appendPhotoUploads, isPhotoFile } from '../utils/photo-upload.js'
+import { i18n } from '../i18n.js'
 
 test('single, combined and batch photos submit originals even when a PDF preview exists', async () => {
   const { descriptor } = parse(readFileSync(new URL('./PrintView.vue', import.meta.url), 'utf8'))
@@ -13,6 +14,8 @@ test('single, combined and batch photos submit originals even when a PDF preview
     const requests = []
     const component = runInNewContext(script.replace(/^import .*$/gm, '').replace('export default', 'const component =') + '\ncomponent', {
       ref, computed, watch, onMounted: () => {}, onUnmounted: () => {},
+      useI18n: () => i18n.global,
+      readPreference: () => null, writePreference: () => {}, translateError: value => value, jobStateText: () => '', printerChoiceLabel: choice => choice?.label || '',
       File, Blob, FormData, URL,
       appendPhotoUploads, isPhotoFile,
       useToast: () => ({ add: () => {} }),

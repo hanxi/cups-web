@@ -2,9 +2,7 @@
   <div class="p-3 sm:p-4 md:p-6 max-w-5xl mx-auto space-y-4">
     <div class="flex items-center justify-between gap-2 flex-wrap">
       <h1 class="text-lg font-bold flex items-center gap-2">
-        <UIcon name="i-lucide-calendar-clock" class="w-5 h-5 text-primary" />
-        定时打印
-      </h1>
+        <UIcon name="i-lucide-calendar-clock" class="w-5 h-5 text-primary" /> {{ t('ui.scheduled_printing') }} </h1>
       <div class="flex items-center gap-2">
         <UButton
           variant="ghost"
@@ -12,13 +10,13 @@
           icon="i-lucide-refresh-cw"
           :loading="loading"
           @click="loadRecords()"
-        >刷新</UButton>
+        >{{ t('ui.refresh') }}</UButton>
         <UButton
           size="sm"
           color="primary"
           icon="i-lucide-plus"
           @click="openCreate"
-        >新建定时任务</UButton>
+        >{{ t('ui.new_scheduled_job') }}</UButton>
       </div>
     </div>
 
@@ -26,17 +24,15 @@
       color="neutral"
       variant="soft"
       icon="i-lucide-info"
-      title="使用说明"
-      description="任务按服务器本地时区触发，执行记录按浏览器本地时间显示。错过时间不补跑；照片队列会保留当前照片。"
+      :title="t('ui.usage')"
+      :description="t('ui.schedules_run_in_the_server_s_local_time_zone_history')"
     />
 
     <div v-if="loading" class="flex items-center justify-center py-10 text-muted gap-2">
-      <UIcon name="i-lucide-loader-circle" class="w-5 h-5 animate-spin" />
-      加载中…
-    </div>
+      <UIcon name="i-lucide-loader-circle" class="w-5 h-5 animate-spin" /> {{ t('ui.loading') }} </div>
     <div v-else-if="!records.length" class="text-center py-16 text-muted">
       <UIcon name="i-lucide-calendar-off" class="w-10 h-10 mx-auto mb-2 opacity-40" />
-      <div>还没有定时任务</div>
+      <div>{{ t('ui.no_scheduled_jobs_yet') }}</div>
     </div>
     <div v-else class="space-y-3">
       <UCard v-for="rec in records" :key="rec.id" class="overflow-hidden">
@@ -48,7 +44,7 @@
                 :color="rec.enabled || rec.completed ? 'success' : rec.running ? 'primary' : 'neutral'"
                 :variant="rec.enabled ? 'subtle' : 'outline'"
                 size="sm"
-              >{{ rec.running ? '正在提交' : rec.completed ? '已完成' : rec.enabled ? '启用' : '已暂停' }}</UBadge>
+              >{{ rec.running ? t('ui.submitting') : rec.completed ? t('ui.completed') : rec.enabled ? t('ui.enabled') : t('ui.paused') }}</UBadge>
               <UBadge color="primary" variant="outline" size="sm">
                 {{ scheduleLabel(rec) }}
               </UBadge>
@@ -60,33 +56,31 @@
               >{{ lastStatusLabel(rec.lastStatus) }}</UBadge>
             </div>
             <div class="text-xs text-muted flex flex-wrap gap-x-4 gap-y-0.5">
-              <span>文件：{{ rec.files?.length ? rec.files.length + ' 张照片' : rec.filename }}</span>
-              <span>打印机：{{ shortPrinter(rec.printerUri) }}</span>
-              <span>下次：{{ rec.completed ? '—' : formatTime(rec.nextRunAt) }}</span>
-              <span v-if="rec.lastRunAt">上次：{{ formatTime(rec.lastRunAt) }}</span>
+              <span>{{ t('ui.file_3') }}{{ rec.files?.length ? t('ui.photo_count', { count: rec.files.length }) : rec.filename }}</span>
+              <span>{{ t('ui.printer_2') }}{{ shortPrinter(rec.printerUri) }}</span>
+              <span>{{ t('ui.next_run') }}{{ rec.completed ? '—' : formatTime(rec.nextRunAt) }}</span>
+              <span v-if="rec.lastRunAt">{{ t('ui.last_run') }}{{ formatTime(rec.lastRunAt) }}</span>
             </div>
-            <div v-if="rec.lastError && !rec.running" class="text-xs text-error truncate">
-              上次错误：{{ rec.lastError }}
+            <div v-if="rec.lastError && !rec.running" class="text-xs text-error truncate"> {{ t('ui.last_error') }}{{ translateError(rec.lastError) }}
             </div>
           </div>
           <div class="flex items-center gap-1 flex-shrink-0">
-            <UButton size="xs" variant="ghost" icon="i-lucide-play" :loading="rec.running || rec._running" :disabled="rec.completed || rec.running" @click="runNow(rec)">{{ rec.files?.length ? '打印下一批' : '立即' }}</UButton>
+            <UButton size="xs" variant="ghost" icon="i-lucide-play" :loading="rec.running || rec._running" :disabled="rec.completed || rec.running" @click="runNow(rec)">{{ rec.files?.length ? t('ui.print_next_batch') : t('ui.run_now') }}</UButton>
             <UButton size="xs" variant="ghost" :icon="rec.enabled ? 'i-lucide-pause' : 'i-lucide-play-circle'" :disabled="rec.completed || rec.running" @click="toggleEnabled(rec)">
-              {{ rec.enabled ? '暂停' : '恢复' }}
+              {{ rec.enabled ? t('ui.pause') : t('ui.resume') }}
             </UButton>
-            <UButton size="xs" variant="ghost" icon="i-lucide-pencil" :disabled="rec.running" @click="openEdit(rec)">编辑</UButton>
-            <UButton size="xs" variant="ghost" color="error" icon="i-lucide-trash-2" :disabled="rec.running" @click="confirmDelete(rec)">删除</UButton>
+            <UButton size="xs" variant="ghost" icon="i-lucide-pencil" :disabled="rec.running" @click="openEdit(rec)">{{ t('ui.edit') }}</UButton>
+            <UButton size="xs" variant="ghost" color="error" icon="i-lucide-trash-2" :disabled="rec.running" @click="confirmDelete(rec)">{{ t('ui.delete') }}</UButton>
           </div>
         </div>
         <div v-if="rec.files?.length" class="mt-4 space-y-3">
           <div class="flex items-center justify-between text-sm">
-            <span>{{ rec.loop ? '本轮已提交' : '已提交' }} {{ rec.nextFileIndex }} / {{ rec.files.length }} 张
-              <span v-if="rec.loop" class="text-muted"> · 累计 {{ rec.submittedCount }} 张</span>
+            <span>{{ t(rec.loop ? 'ui.queue_cycle_progress' : 'ui.queue_progress', { submitted: rec.nextFileIndex, count: rec.files.length }) }} <span v-if="rec.loop" class="text-muted"> · {{ t('ui.queue_total', { count: rec.submittedCount }) }}</span>
             </span>
             <span class="text-muted">{{ Math.round(rec.nextFileIndex / rec.files.length * 100) }}%</span>
           </div>
           <div class="h-2 rounded-full bg-elevated overflow-hidden" role="progressbar"
-            :aria-valuenow="rec.nextFileIndex" :aria-valuemax="rec.files.length" aria-valuemin="0" aria-label="本轮照片提交进度">
+            :aria-valuenow="rec.nextFileIndex" :aria-valuemax="rec.files.length" aria-valuemin="0" :aria-label="t('ui.photo_submission_progress_this_cycle')">
             <div class="h-full bg-primary rounded-full transition-all" :style="{ width: (rec.nextFileIndex / rec.files.length * 100) + '%' }" />
           </div>
           <div class="flex gap-2 overflow-x-auto pb-1">
@@ -98,23 +92,23 @@
                 <span v-if="index < rec.nextFileIndex" class="absolute bottom-1 right-1 rounded-full bg-primary text-white p-0.5 flex">
                   <UIcon name="i-lucide-check" class="w-3 h-3" />
                 </span>
-                <span v-else-if="index === rec.nextFileIndex" class="absolute bottom-1 left-1 text-xs rounded bg-primary text-white px-1">下一张</span>
+                <span v-else-if="index === rec.nextFileIndex" class="absolute bottom-1 left-1 text-xs rounded bg-primary text-white px-1">{{ t('ui.next_photo') }}</span>
               </div>
               <div class="text-xs text-muted truncate mt-1" :title="photo.filename">{{ photo.filename }}</div>
             </div>
           </div>
           <div class="rounded-lg bg-elevated/50 px-3 py-2 text-xs text-muted space-y-1">
-            <div v-if="!rec.completed">下一张：{{ rec.files[rec.nextFileIndex]?.filename }}</div>
-            <div>{{ rec.loop ? '全部提交后从第一张继续循环。' : '照片全部提交后，任务自动结束。' }} 每次打印 {{ rec.photosPerRun || 1 }} 张，每张 {{ rec.copies }} 份；进度表示 CUPS 已接受任务。</div>
+            <div v-if="!rec.completed">{{ t('ui.next_photo_2') }}{{ rec.files[rec.nextFileIndex]?.filename }}</div>
+            <div>{{ rec.loop ? t('ui.after_submitting_all_photos_start_again_from_the_first') : t('ui.the_schedule_ends_after_all_photos_have_been_submitted') }} {{ t('ui.run_photo_summary', { photos: t('ui.photo_count', rec.photosPerRun || 1), copies: t('ui.copy_count', rec.copies) }) }}</div>
           </div>
           <details v-if="rec.history?.length" class="text-sm">
-            <summary class="cursor-pointer text-muted">最近执行（{{ rec.history.length }}）</summary>
+            <summary class="cursor-pointer text-muted">{{ t('ui.recent_run_count', { count: rec.history.length }) }}</summary>
             <div class="mt-2 divide-y divide-default">
               <div v-for="(run, index) in rec.history" :key="index" class="flex items-start gap-3 py-2 text-xs">
                 <span class="text-muted shrink-0">{{ formatTime(run.runAt) }}</span>
                 <span class="min-w-0 flex-1 truncate" :title="run.filename">{{ run.filename }}</span>
-                <span :class="run.status === 'failed' ? 'text-error' : 'text-muted'" :title="run.error">
-                  {{ run.status === 'printed' ? '已提交' : run.status === 'skipped' ? '已跳过' : '失败' }}
+                <span :class="run.status === 'failed' ? 'text-error' : 'text-muted'" :title="translateError(run.error)">
+                  {{ run.status === 'printed' ? t('ui.submitted') : run.status === 'skipped' ? t('ui.skipped') : t('ui.failed') }}
                 </span>
               </div>
             </div>
@@ -124,24 +118,22 @@
     </div>
 
     <!-- 新建 / 编辑抽屉 -->
-    <UModal v-model:open="modalOpen" :title="editing ? '编辑定时任务' : '新建定时任务'" :ui="{ content: 'sm:max-w-3xl' }">
+    <UModal v-model:open="modalOpen" :title="editing ? t('ui.edit_scheduled_job') : t('ui.new_scheduled_job')" :ui="{ content: 'sm:max-w-3xl' }">
       <template #body>
         <div class="space-y-3">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <UFormField v-if="!editing" label="任务类型">
+            <UFormField v-if="!editing" :label="t('ui.schedule_type')">
               <USelect v-model="form.mode" :items="modeItems" value-key="value" label-key="label" class="w-full" />
             </UFormField>
-            <UFormField label="任务名称（可选）">
-              <UInput class="w-full" v-model="form.name" placeholder="例如：每周会议纪要" />
+            <UFormField :label="t('ui.job_name_optional')">
+              <UInput class="w-full" v-model="form.name" :placeholder="t('ui.for_example_weekly_meeting_minutes')" />
             </UFormField>
           </div>
 
-          <UFormField v-if="form.mode === 'queue'" label="照片队列" required>
+          <UFormField v-if="form.mode === 'queue'" :label="t('ui.photo_queue')" required>
             <div class="flex items-center justify-between text-xs text-muted mb-2">
-              <span>已选择 {{ editing ? form.existingFiles.length : form.photos.length }} 张 · 按顺序打印</span>
-              <label v-if="!editing" class="cursor-pointer text-primary hover:underline">
-                ＋ 添加照片
-                <input type="file" multiple accept="image/jpeg,image/png,image/gif" class="sr-only" @change="onPhotoPick" />
+              <span>{{ t('ui.selected_photo_count', { count: editing ? form.existingFiles.length : form.photos.length }) }}</span>
+              <label v-if="!editing" class="cursor-pointer text-primary hover:underline"> {{ t('ui.add_photos') }} <input type="file" multiple accept="image/jpeg,image/png,image/gif" class="sr-only" @change="onPhotoPick" />
               </label>
             </div>
             <div v-if="!editing" class="grid grid-cols-3 sm:grid-cols-5 gap-2">
@@ -154,9 +146,9 @@
                 </div>
                 <div class="text-xs truncate mt-1" :title="photo.file.name">{{ photo.file.name }}</div>
                 <div class="flex justify-between mt-1">
-                  <UButton size="xs" variant="ghost" icon="i-lucide-chevron-left" :disabled="index === 0" :aria-label="'前移 ' + photo.file.name" @click="movePhoto(index, index - 1)" />
-                  <UButton size="xs" variant="ghost" icon="i-lucide-chevron-right" :disabled="index === form.photos.length - 1" :aria-label="'后移 ' + photo.file.name" @click="movePhoto(index, index + 1)" />
-                  <UButton size="xs" variant="ghost" color="error" icon="i-lucide-x" :aria-label="'移除 ' + photo.file.name" @click="removePhoto(index)" />
+                  <UButton size="xs" variant="ghost" icon="i-lucide-chevron-left" :disabled="index === 0" :aria-label="t('ui.move_earlier') + photo.file.name" @click="movePhoto(index, index - 1)" />
+                  <UButton size="xs" variant="ghost" icon="i-lucide-chevron-right" :disabled="index === form.photos.length - 1" :aria-label="t('ui.move_later') + photo.file.name" @click="movePhoto(index, index + 1)" />
+                  <UButton size="xs" variant="ghost" color="error" icon="i-lucide-x" :aria-label="t('ui.remove') + photo.file.name" @click="removePhoto(index)" />
                 </div>
               </div>
             </div>
@@ -166,33 +158,32 @@
                 <div class="text-xs truncate mt-1">{{ photo.filename }}</div>
               </div>
             </div>
-            <template #help>{{ editing ? '更换照片或顺序请新建任务；已提交的进度会保留。' : '支持 JPG / PNG / GIF，最多 100 张。拖动或使用箭头调整顺序，按设定张数依次打印。' }}</template>
+            <template #help>{{ editing ? t('ui.create_a_new_schedule_to_change_photos_or_their_order') : t('ui.supports_up_to_100_jpg_png_gif_photos_drag_or') }}</template>
           </UFormField>
-          <UFormField v-else-if="!editing" label="文件" required>
+          <UFormField v-else-if="!editing" :label="t('ui.file')" required>
             <input type="file"
               class="block w-full text-sm text-default file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
               @change="onFilePick" />
-            <div v-if="form.file" class="text-xs text-muted mt-1 truncate">
-              已选择：{{ form.file.name }}（{{ formatSize(form.file.size) }}）
+            <div v-if="form.file" class="text-xs text-muted mt-1 truncate"> {{ t('ui.selected_2') }}{{ form.file.name }}（{{ formatSize(form.file.size) }}）
             </div>
           </UFormField>
-          <UFormField v-else label="文件">
-            <div class="text-sm text-muted truncate">{{ form.filename }}（更换文件请重新创建任务）</div>
+          <UFormField v-else :label="t('ui.file')">
+            <div class="text-sm text-muted truncate">{{ form.filename }}{{ t('ui.create_a_new_job_to_replace_the_file') }}</div>
           </UFormField>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <UFormField label="打印机" required>
+            <UFormField :label="t('ui.printer')" required>
               <USelect class="w-full"
                 v-model="form.printerUri"
                 :items="printerItems"
                 value-key="value"
                 label-key="label"
-                placeholder="选择打印机"
+                :placeholder="t('ui.select_a_printer')"
                 icon="i-lucide-printer"
               />
             </UFormField>
 
-            <UFormField label="触发方式" required>
+            <UFormField :label="t('ui.schedule_type_2')" required>
               <USelect class="w-full"
                 v-model="form.scheduleType"
                 :items="form.mode === 'queue' ? scheduleTypeItems.filter(item => item.value !== 'once') : scheduleTypeItems"
@@ -201,18 +192,18 @@
               />
             </UFormField>
 
-            <UFormField v-if="form.scheduleType === 'once'" label="执行时间" required>
+            <UFormField v-if="form.scheduleType === 'once'" :label="t('ui.execution_time')" required>
               <UInput class="w-full" v-model="form.runAtLocal" type="datetime-local" />
             </UFormField>
             <template v-else>
-              <UFormField label="开始日期">
+              <UFormField :label="t('ui.start_date')">
                 <UInput class="w-full" v-model="form.startDate" type="date" />
-                <template #help>按服务器时区执行。</template>
+                <template #help>{{ t('ui.runs_in_the_server_s_time_zone') }}</template>
               </UFormField>
-              <UFormField label="执行时间" required>
+              <UFormField :label="t('ui.execution_time')" required>
                 <UInput class="w-full" v-model="form.scheduleTime" type="time" />
               </UFormField>
-              <UFormField v-if="form.scheduleType === 'weekly'" label="星期" required>
+              <UFormField v-if="form.scheduleType === 'weekly'" :label="t('ui.day_of_the_week')" required>
                 <USelect class="w-full"
                   v-model.number="form.scheduleWeekday"
                   :items="weekdayItems"
@@ -220,9 +211,9 @@
                   label-key="label"
                 />
               </UFormField>
-              <UFormField v-if="form.scheduleType === 'monthly'" label="日期" required>
+              <UFormField v-if="form.scheduleType === 'monthly'" :label="t('ui.day_of_the_month')" required>
                 <UInput class="w-full" v-model.number="form.scheduleDay" type="number" min="1" max="31" />
-                <template #help>该日期超出当月天数时，在月末执行。</template>
+                <template #help>{{ t('ui.if_the_day_exceeds_the_number_of_days_in_the') }}</template>
               </UFormField>
             </template>
 
@@ -231,50 +222,49 @@
           <PrinterMediaOptions :key="editing?.id || 'new'" :printer-uri="form.printerUri"
             v-model:driverOptions="form.driverOptions" v-model:paperSize="form.paperSize" v-model:paperType="form.paperType"
             :paper-size-items="paperSizeItems" :paper-type-items="paperTypeItems" />
-          <UFormField v-if="form.mode === 'queue'" label="每次打印张数">
+          <UFormField v-if="form.mode === 'queue'" :label="t('ui.photos_per_run')">
             <UInput class="w-full" v-model.number="form.photosPerRun" type="number" min="1" max="100" />
-            <template #help>按队列顺序打印；每张的份数单独设置。</template>
+            <template #help>{{ t('ui.prints_in_queue_order_copies_per_photo_are_configured_separately') }}</template>
           </UFormField>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <UFormField label="缩放">
+            <UFormField :label="t('ui.scaling')">
               <USelect class="w-full" v-model="form.printScaling" :items="scalingItems" value-key="value" label-key="label" />
             </UFormField>
-            <UFormField label="方向">
+            <UFormField :label="t('ui.orientation')">
               <USelect class="w-full" v-model="form.orientation" :items="orientationItems" value-key="value" label-key="label" />
-              <template v-if="form.orientation === 'auto'" #help>每张按照片宽高选择方向，正方形使用纵向。</template>
+              <template v-if="form.orientation === 'auto'" #help>{{ t('ui.orientation_follows_each_photo_s_dimensions_square_photos_use_portrait') }}</template>
             </UFormField>
-            <UFormField label="双面">
+            <UFormField :label="t('ui.duplex')">
               <USelect class="w-full" v-model="form.duplex" :items="duplexItems" value-key="value" label-key="label" />
             </UFormField>
-            <UFormField label="色彩">
+            <UFormField :label="t('ui.colour')">
               <USelect class="w-full" v-model="form.color" :items="colorItems" value-key="value" label-key="label" />
             </UFormField>
-            <UFormField label="份数">
+            <UFormField :label="t('ui.copies')">
               <UInput class="w-full" v-model.number="form.copies" type="number" min="1" max="99" />
             </UFormField>
           </div>
 
-          <UFormField v-if="form.mode === 'queue'" label="全部照片提交后">
+          <UFormField v-if="form.mode === 'queue'" :label="t('ui.after_all_photos_are_submitted')">
             <USelect :model-value="form.loop ? 'loop' : 'stop'" @update:model-value="form.loop = $event === 'loop'" :items="endModeItems" value-key="value" label-key="label" class="w-full" />
-            <template #help>中途失败会停止本批次，已成功的照片保留进度；下一次从失败照片继续。立即打印会提前执行下一次计划。</template>
+            <template #help>{{ t('ui.a_failure_stops_the_batch_and_preserves_successful_submissions_the') }}</template>
           </UFormField>
           <div v-if="form.mode === 'queue' && !editing" class="rounded-lg bg-primary/10 px-3 py-2 text-sm text-primary">
-            {{ scheduleLabel(form) }} 打印 {{ form.photosPerRun }} 张，每张 {{ form.copies }} 份；
-            {{ form.loop ? '按顺序循环打印' : form.photos.length + ' 张全部提交后结束' }}。
+            {{ t('ui.queue_form_summary', { schedule: scheduleLabel(form), photos: t('ui.photo_count', form.photosPerRun), copies: t('ui.copy_count', form.copies), ending: form.loop ? t('ui.repeat_in_queue_order') : t('ui.queue_stop_summary', { count: form.photos.length }) }) }}
           </div>
-          <UFormField v-if="form.mode === 'queue' || /\.(jpe?g|png|gif)$/i.test(form.file?.name || form.filename || '')" label="拍摄日期" help="在照片右下角打印 EXIF 拍摄日期，缺少有效日期时跳过。">
-            <USwitch v-model="form.photoDateWatermark" label="打印拍摄日期" />
+          <UFormField v-if="form.mode === 'queue' || /\.(jpe?g|png|gif)$/i.test(form.file?.name || form.filename || '')" :label="t('ui.photo_date')" :help="t('ui.print_the_exif_capture_date_at_the_bottom_right_of')">
+            <USwitch v-model="form.photoDateWatermark" :label="t('ui.print_photo_date')" />
           </UFormField>
-          <UFormField label="水印文字（可选）">
-            <UInput class="w-full" v-model="form.watermarkText" placeholder="留空表示不加水印" />
+          <UFormField :label="t('ui.watermark_text_optional')">
+            <UInput class="w-full" v-model="form.watermarkText" :placeholder="t('ui.leave_blank_for_no_watermark')" />
           </UFormField>
         </div>
       </template>
       <template #footer>
         <div class="flex justify-end gap-2 w-full">
-          <UButton variant="ghost" @click="modalOpen = false">取消</UButton>
+          <UButton variant="ghost" @click="modalOpen = false">{{ t('ui.cancel') }}</UButton>
           <UButton color="primary" :loading="submitting" @click="submit">
-            {{ editing ? '保存' : '创建' }}
+            {{ editing ? t('ui.save') : t('ui.create') }}
           </UButton>
         </div>
       </template>
@@ -283,9 +273,13 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import PrinterMediaOptions from '../components/print/PrinterMediaOptions.vue'
 import { apiFetch, readError } from '../utils/api'
+import { translateError } from '../utils/translate-error.js'
+
+const { t, locale, n } = useI18n()
 
 const emit = defineEmits(['logout'])
 const toast = useToast()
@@ -305,23 +299,23 @@ let refreshTimer
 let unmounted = false
 let refreshing = 0
 let recordsRequestVersion = 0
-const modeItems = [
-  { value: 'queue', label: '照片按顺序打印' },
-  { value: 'single', label: '单文件定时打印' }
-]
-const endModeItems = [
-  { value: 'stop', label: '全部提交后结束' },
-  { value: 'loop', label: '循环打印（重复执行）' }
-]
-const paperTypeItems = [
-  { value: 'plain', label: '普通纸' }, { value: 'photo', label: '照片纸' },
-  { value: 'glossy', label: '光面照片纸' }, { value: 'matte', label: '哑光照片纸' },
-  { value: 'auto', label: '自动选择' }
-]
-const scalingItems = [
-  { value: 'fit', label: '适应纸张' }, { value: 'fill', label: '填充纸张' },
-  { value: 'auto', label: '自动' }, { value: 'none', label: '无缩放' }
-]
+const modeItems = computed(() => ([
+  { value: 'queue', label: t('ui.photo_queue_2') },
+  { value: 'single', label: t('ui.single_file_schedule') }
+]))
+const endModeItems = computed(() => ([
+  { value: 'stop', label: t('ui.stop_after_all_photos') },
+  { value: 'loop', label: t('ui.loop_repeat') }
+]))
+const paperTypeItems = computed(() => ([
+  { value: 'plain', label: t('ui.plain_paper') }, { value: 'photo', label: t('ui.photo_paper') },
+  { value: 'glossy', label: t('ui.glossy_photo_paper') }, { value: 'matte', label: t('ui.matt_photo_paper') },
+  { value: 'auto', label: t('ui.automatic_selection') }
+]))
+const scalingItems = computed(() => ([
+  { value: 'fit', label: t('ui.fit_to_paper') }, { value: 'fill', label: t('ui.fill_paper') },
+  { value: 'auto', label: t('ui.automatic') }, { value: 'none', label: t('ui.no_scaling') }
+]))
 watch(() => form.value.mode, (mode) => {
   if (editing.value) return
   clearPhotoPreviews()
@@ -366,46 +360,46 @@ function defaultRunAtLocal() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-const scheduleTypeItems = [
-  { value: 'once', label: '一次性' },
-  { value: 'daily', label: '每天' },
-  { value: 'weekly', label: '每周' },
-  { value: 'monthly', label: '每月' }
-]
+const scheduleTypeItems = computed(() => ([
+  { value: 'once', label: t('ui.once') },
+  { value: 'daily', label: t('ui.daily') },
+  { value: 'weekly', label: t('ui.weekly') },
+  { value: 'monthly', label: t('ui.monthly') }
+]))
 
-const weekdayItems = [
-  { value: 0, label: '周日' },
-  { value: 1, label: '周一' },
-  { value: 2, label: '周二' },
-  { value: 3, label: '周三' },
-  { value: 4, label: '周四' },
-  { value: 5, label: '周五' },
-  { value: 6, label: '周六' }
-]
+const weekdayItems = computed(() => ([
+  { value: 0, label: t('ui.sunday') },
+  { value: 1, label: t('ui.monday') },
+  { value: 2, label: t('ui.tuesday') },
+  { value: 3, label: t('ui.wednesday') },
+  { value: 4, label: t('ui.thursday') },
+  { value: 5, label: t('ui.friday') },
+  { value: 6, label: t('ui.saturday') }
+]))
 
-const paperSizeItems = [
+const paperSizeItems = computed(() => ([
   { value: 'A4', label: 'A4' },
   { value: 'A3', label: 'A3' },
   { value: 'Letter', label: 'Letter' },
-  { value: '5inch', label: '5 寸相纸' },
-  { value: '6inch', label: '6 寸相纸' },
-  { value: '7inch', label: '7 寸相纸' },
-  { value: '8inch', label: '8 寸相纸' },
-  { value: '10inch', label: '10 寸相纸' }
-]
+  { value: '5inch', label: t('ui.option_3_5_5_in_photo_paper') },
+  { value: '6inch', label: t('ui.option_4_6_in_photo_paper') },
+  { value: '7inch', label: t('ui.option_5_7_in_photo_paper') },
+  { value: '8inch', label: t('ui.option_6_8_in_photo_paper') },
+  { value: '10inch', label: t('ui.option_8_10_in_photo_paper') }
+]))
 const orientationItems = computed(() => [
-  ...(form.value.mode === 'queue' ? [{ value: 'auto', label: '自动' }] : []),
-  { value: 'portrait', label: '纵向' },
-  { value: 'landscape', label: '横向' }
+  ...(form.value.mode === 'queue' ? [{ value: 'auto', label: t('ui.automatic') }] : []),
+  { value: 'portrait', label: t('ui.portrait') },
+  { value: 'landscape', label: t('ui.landscape') }
 ])
-const duplexItems = [
-  { value: 'one-sided', label: '单面' },
-  { value: 'two-sided-long-edge', label: '双面（长边）' }
-]
-const colorItems = [
-  { value: 'color', label: '彩色' },
-  { value: 'monochrome', label: '黑白' }
-]
+const duplexItems = computed(() => ([
+  { value: 'one-sided', label: t('ui.single_sided') },
+  { value: 'two-sided-long-edge', label: t('ui.double_sided_long_edge') }
+]))
+const colorItems = computed(() => ([
+  { value: 'color', label: t('ui.colour_2') },
+  { value: 'monochrome', label: t('ui.black_and_white') }
+]))
 
 const printerItems = computed(() =>
   printers.value.map((p) => ({ value: p.uri || p.deviceUri || p.name, label: p.name || p.uri }))
@@ -420,7 +414,8 @@ function shortPrinter(uri) {
 function formatTime(iso) {
   if (!iso) return '—'
   try {
-    return new Date(iso).toLocaleString()
+    const date = new Date(iso)
+    return Number.isNaN(date.getTime()) ? iso : date.toLocaleString(locale.value)
   } catch (e) {
     return iso
   }
@@ -429,29 +424,29 @@ function formatTime(iso) {
 function formatSize(bytes) {
   if (!bytes) return ''
   const units = ['B', 'KB', 'MB', 'GB']
-  let n = bytes
+  let size = bytes
   let i = 0
-  while (n >= 1024 && i < units.length - 1) { n /= 1024; i++ }
-  return `${n.toFixed(1)} ${units[i]}`
+  while (size >= 1024 && i < units.length - 1) { size /= 1024; i++ }
+  return `${n(size, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${units[i]}`
 }
 
 function scheduleLabel(rec) {
   switch (rec.scheduleType) {
-    case 'once': return '一次性'
-    case 'daily': return `每天 ${rec.scheduleTime}`
-    case 'weekly': return `每${weekdayLabel(rec.scheduleWeekday)} ${rec.scheduleTime}`
-    case 'monthly': return `每月 ${rec.scheduleDay} 日 ${rec.scheduleTime}`
+    case 'once': return t('ui.once')
+    case 'daily': return t('ui.every_day_at', { p0: rec.scheduleTime })
+    case 'weekly': return t('ui.every_at', { p0: weekdayLabel(rec.scheduleWeekday), p1: rec.scheduleTime })
+    case 'monthly': return t('ui.day_of_each_month_at', { p0: rec.scheduleDay, p1: rec.scheduleTime })
     default: return rec.scheduleType
   }
 }
 function weekdayLabel(w) {
-  return ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][((w % 7) + 7) % 7]
+  return [t('ui.sunday'), t('ui.monday'), t('ui.tuesday'), t('ui.wednesday'), t('ui.thursday'), t('ui.friday'), t('ui.saturday')][((w % 7) + 7) % 7]
 }
 function lastStatusLabel(s) {
-  if (s === 'running') return '结果待确认'
-  if (s === 'printed') return '上次已提交'
-  if (s === 'failed') return '上次失败'
-  if (s === 'skipped') return '错过窗口'
+  if (s === 'running') return t('ui.result_awaiting_confirmation')
+  if (s === 'printed') return t('ui.last_run_submitted')
+  if (s === 'failed') return t('ui.last_run_failed')
+  if (s === 'skipped') return t('ui.missed_window')
   return s
 }
 function lastStatusColor(s) {
@@ -472,7 +467,7 @@ async function loadRecords(silent = false) {
     const data = await resp.json()
     if (!unmounted && version === recordsRequestVersion) records.value = data
   } catch (e) {
-    if (!silent && !unmounted && version === recordsRequestVersion) toast.add({ title: '加载失败', description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
+    if (!silent && !unmounted && version === recordsRequestVersion) toast.add({ title: t('ui.could_not_load'), description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
   } finally {
     refreshing--
     if (version === recordsRequestVersion) loading.value = false
@@ -547,12 +542,12 @@ function clearPhotoPreviews() {
 function onPhotoPick(e) {
   const selected = Array.from(e.target.files || [])
   if (form.value.photos.length + selected.length > 100) {
-    toast.add({ title: '最多选择 100 张照片', color: 'warning' })
+    toast.add({ title: t('ui.select_up_to_100_photos'), color: 'warning' })
     e.target.value = ''
     return
   }
   if (selected.some(file => !/\.(jpe?g|png|gif)$/i.test(file.name))) {
-    toast.add({ title: '请选择 JPG、PNG 或 GIF 图片', color: 'warning' })
+    toast.add({ title: t('ui.select_jpg_png_or_gif_images'), color: 'warning' })
     e.target.value = ''
     return
   }
@@ -580,9 +575,9 @@ function onFilePick(e) {
 
 async function submit() {
   const v = form.value
-  if (!v.printerUri) { toast.add({ title: '请选择打印机', color: 'warning' }); return }
-  if (!editing.value && (v.mode === 'queue' ? !v.photos.length : !v.file)) { toast.add({ title: '请选择文件', color: 'warning' }); return }
-  if (v.scheduleType === 'once' && !v.runAtLocal) { toast.add({ title: '请选择执行时间', color: 'warning' }); return }
+  if (!v.printerUri) { toast.add({ title: t('ui.select_a_printer_2'), color: 'warning' }); return }
+  if (!editing.value && (v.mode === 'queue' ? !v.photos.length : !v.file)) { toast.add({ title: t('ui.select_a_file'), color: 'warning' }); return }
+  if (v.scheduleType === 'once' && !v.runAtLocal) { toast.add({ title: t('ui.choose_an_execution_time'), color: 'warning' }); return }
 
   submitting.value = true
   try {
@@ -594,7 +589,7 @@ async function submit() {
     modalOpen.value = false
     await loadRecords()
   } catch (e) {
-    toast.add({ title: '保存失败', description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
+    toast.add({ title: t('ui.could_not_save'), description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
   } finally {
     submitting.value = false
   }
@@ -603,7 +598,7 @@ async function submit() {
 async function createNew(v) {
   const fd = new FormData()
   if (v.mode === 'queue') {
-    if (!Number.isInteger(v.photosPerRun) || v.photosPerRun < 1 || v.photosPerRun > 100) throw new Error('每次打印张数应为 1–100')
+    if (!Number.isInteger(v.photosPerRun) || v.photosPerRun < 1 || v.photosPerRun > 100) throw new Error(t('ui.photos_per_run_must_be_from_1_to_100'))
     for (const photo of v.photos) fd.append('files', photo.file, photo.file.name)
     fd.append('loop', String(v.loop))
   } else {
@@ -638,11 +633,11 @@ async function createNew(v) {
   }
   const resp = await apiFetch('/api/scheduled-prints', { method: 'POST', body: fd }, () => emit('logout'))
   if (!resp.ok) throw new Error(await readError(resp))
-  toast.add({ title: '已创建定时任务', color: 'success', icon: 'i-lucide-check-circle' })
+  toast.add({ title: t('ui.scheduled_job_created'), color: 'success', icon: 'i-lucide-check-circle' })
 }
 
 async function saveEdit(v) {
-  if (v.mode === 'queue' && (!Number.isInteger(v.photosPerRun) || v.photosPerRun < 1 || v.photosPerRun > 100)) throw new Error('每次打印张数应为 1–100')
+  if (v.mode === 'queue' && (!Number.isInteger(v.photosPerRun) || v.photosPerRun < 1 || v.photosPerRun > 100)) throw new Error(t('ui.photos_per_run_must_be_from_1_to_100'))
   const payload = buildPayloadFromRecord(editing.value, {
     name: v.name,
     loop: v.loop,
@@ -671,7 +666,7 @@ async function saveEdit(v) {
     body: JSON.stringify(payload)
   }, () => emit('logout'))
   if (!resp.ok) throw new Error(await readError(resp))
-  toast.add({ title: '已更新', color: 'success', icon: 'i-lucide-check-circle' })
+  toast.add({ title: t('ui.updated'), color: 'success', icon: 'i-lucide-check-circle' })
 }
 
 async function runNow(rec) {
@@ -679,10 +674,10 @@ async function runNow(rec) {
   try {
     const resp = await apiFetch(`/api/scheduled-prints/${rec.id}/run`, { method: 'POST' }, () => emit('logout'))
     if (!resp.ok) throw new Error(await readError(resp))
-    toast.add({ title: '正在提交到打印机', color: 'success', icon: 'i-lucide-check-circle' })
+    toast.add({ title: t('ui.submitting_to_printer'), color: 'success', icon: 'i-lucide-check-circle' })
     await loadRecords()
   } catch (e) {
-    toast.add({ title: '立即执行失败', description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
+    toast.add({ title: t('ui.could_not_run_now'), description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
   } finally {
     rec._running = false
   }
@@ -697,19 +692,19 @@ async function toggleEnabled(rec) {
     if (!resp.ok) throw new Error(await readError(resp))
     await loadRecords()
   } catch (e) {
-    toast.add({ title: '操作失败', description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
+    toast.add({ title: t('ui.operation_failed'), description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
   }
 }
 
 async function confirmDelete(rec) {
-  if (!confirm(`确认删除任务「${rec.name || rec.filename}」？源文件也会一并清理，无法恢复。`)) return
+  if (!confirm(t('ui.delete_job_its_source_file_will_also_be_permanently_removed', { p0: rec.name || rec.filename }))) return
   try {
     const resp = await apiFetch(`/api/scheduled-prints/${rec.id}`, { method: 'DELETE' }, () => emit('logout'))
     if (!resp.ok) throw new Error(await readError(resp))
-    toast.add({ title: '已删除', color: 'success', icon: 'i-lucide-check-circle' })
+    toast.add({ title: t('ui.deleted'), color: 'success', icon: 'i-lucide-check-circle' })
     await loadRecords()
   } catch (e) {
-    toast.add({ title: '删除失败', description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
+    toast.add({ title: t('ui.could_not_delete'), description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
   }
 }
 

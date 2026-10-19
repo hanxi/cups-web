@@ -1,34 +1,34 @@
 <template>
-  <UModal v-model:open="isOpen">
+  <UModal :title="t('ui.crop_identity_card')" v-model:open="isOpen">
     <template #content>
       <div class="p-4 space-y-4">
         <h3 class="text-lg font-semibold flex items-center gap-2">
-          <UIcon name="i-lucide-crop" class="w-5 h-5" />
-          裁剪身份证
-        </h3>
+          <UIcon name="i-lucide-crop" class="w-5 h-5" /> {{ t('ui.crop_identity_card') }} </h3>
         <div class="relative bg-elevated rounded-lg overflow-hidden" style="max-height: 60vh;">
-          <img ref="imgRef" :src="imageUrl" class="max-w-full block" />
+          <img :alt="t('accessibility.preview')" ref="imgRef" :src="imageUrl" class="max-w-full block" />
         </div>
-        <div class="flex items-center gap-2">
-          <div class="flex gap-1 shrink-0">
-            <UButton variant="outline" size="sm" icon="i-lucide-rotate-ccw" @click="rotateLeft">左旋</UButton>
-            <UButton variant="outline" size="sm" icon="i-lucide-rotate-cw" @click="rotateRight">右旋</UButton>
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="flex flex-wrap gap-1">
+            <UButton variant="outline" size="sm" icon="i-lucide-rotate-ccw" @click="rotateLeft">{{ t('ui.rotate_left') }}</UButton>
+            <UButton variant="outline" size="sm" icon="i-lucide-rotate-cw" @click="rotateRight">{{ t('ui.rotate_right') }}</UButton>
           </div>
-          <input
-            type="range"
-            :min="-45"
-            :max="45"
-            step="0.5"
-            v-model.number="fineAngle"
-            class="flex-1 h-1.5 accent-[var(--ui-primary)]"
-            @input="onFineRotate"
-          />
-          <span class="text-xs text-muted tabular-nums w-12 text-right shrink-0">{{ fineAngle.toFixed(1) }}°</span>
-          <UButton v-if="fineAngle !== 0" variant="ghost" size="xs" icon="i-lucide-undo-2" @click="resetFine" />
+          <div class="flex flex-1 min-w-0 basis-48 items-center gap-2">
+            <input :aria-label="t('accessibility.fine_rotation')"
+              type="range"
+              :min="-45"
+              :max="45"
+              step="0.5"
+              v-model.number="fineAngle"
+              class="flex-1 min-w-0 h-1.5 accent-[var(--ui-primary)]"
+              @input="onFineRotate"
+            />
+            <span class="text-xs text-muted tabular-nums w-12 text-right shrink-0">{{ n(fineAngle, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) }}°</span>
+            <UButton :aria-label="t('accessibility.reset')" v-if="fineAngle !== 0" variant="ghost" size="xs" icon="i-lucide-undo-2" class="shrink-0" @click="resetFine" />
+          </div>
         </div>
         <div class="flex justify-end gap-2">
-          <UButton variant="ghost" @click="cancel">取消</UButton>
-          <UButton color="primary" icon="i-lucide-check" @click="confirm">确认裁剪</UButton>
+          <UButton variant="ghost" @click="cancel">{{ t('ui.cancel') }}</UButton>
+          <UButton color="primary" icon="i-lucide-check" @click="confirm">{{ t('ui.confirm_crop') }}</UButton>
         </div>
       </div>
     </template>
@@ -36,9 +36,12 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import Cropper from 'cropperjs'
 import 'cropperjs/dist/cropper.min.css'
+
+const { t, n } = useI18n()
 
 const props = defineProps({
   imageUrl: { type: String, default: '' },

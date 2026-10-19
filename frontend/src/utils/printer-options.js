@@ -1,3 +1,14 @@
+import { t } from '../i18n.js'
+
+export function printerChoiceLabel(choice) {
+  if (!choice) return ''
+  const quality = { 3: 'ui.quality_draft', 4: 'ui.quality_standard', 5: 'ui.quality_high' }
+  if (choice.attribute === 'print-quality' && quality[choice.value]) return t(quality[choice.value])
+  // This suffix is added by cups-web. PPD/vendor-provided names stay verbatim.
+  const label = choice.label || choice.value || ''
+  return label.endsWith('（无边距）') ? t('ui.borderless_label', { label: label.slice(0, -5) }) : label
+}
+
 export function paperDimensions(size) {
   const match = /^custom:([0-9.]+)x([0-9.]+)$/.exec(size || '')
   if (match) {

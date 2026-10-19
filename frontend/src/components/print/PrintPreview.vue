@@ -3,9 +3,7 @@
     <template #header>
       <div class="flex items-center justify-between gap-2 flex-wrap">
         <div class="flex items-center gap-2 font-semibold">
-          <UIcon name="i-lucide-eye" class="w-5 h-5" />
-          预览
-          <!-- 纵向/横向快捷切换（取代移动端冗余尺寸文本） -->
+          <UIcon name="i-lucide-eye" class="w-5 h-5" /> {{ t('ui.preview') }} <!-- 纵向/横向快捷切换（取代移动端冗余尺寸文本） -->
           <div class="flex rounded-md border border-muted overflow-hidden ml-1">
             <button
               v-for="item in orientationItems"
@@ -38,7 +36,7 @@
       >
         <div v-if="previewType === 'image'" class="absolute inset-0 transition-transform duration-200" :style="contentScaleStyle">
           <div class="absolute overflow-hidden" :style="imageContentStyle">
-            <img :src="previewUrl" class="w-full h-full" :style="{ objectFit: printScaling === 'fill' ? 'cover' : 'contain' }" />
+            <img :alt="t('accessibility.preview')" :src="previewUrl" class="w-full h-full" :style="{ objectFit: printScaling === 'fill' ? 'cover' : 'contain' }" />
           </div>
         </div>
         <PdfCanvas v-else-if="previewType === 'pdf'" :src="previewUrl" :watermark-text="watermarkText" :content-scale="contentScale" @preview-failed="onPreviewFailed" />
@@ -54,21 +52,18 @@
         </div>
       </div>
     </div>
-    <div v-else class="py-6 text-center text-xs text-muted">
-      上传文件后显示预览
-    </div>
-    <p v-if="pdfPreviewFailed && previewType === 'pdf'" class="mt-2 text-center text-xs text-muted">
-      PDF 预览加载失败，不影响打印，可直接点击"开始打印"。
-    </p>
-    <p v-if="isMultiImage && previewType === 'image'" class="mt-2 text-center text-xs text-muted">
-      当前显示首张原图，合并 PDF 后可查看完整排版。
-    </p>
+    <div v-else class="py-6 text-center text-xs text-muted"> {{ t('ui.upload_a_file_to_see_a_preview') }} </div>
+    <p v-if="pdfPreviewFailed && previewType === 'pdf'" class="mt-2 text-center text-xs text-muted"> {{ t('ui.the_pdf_preview_could_not_be_loaded_printing_is_still') }} </p>
+    <p v-if="isMultiImage && previewType === 'image'" class="mt-2 text-center text-xs text-muted"> {{ t('ui.showing_the_first_original_photo_merge_to_pdf_to_preview') }} </p>
   </UCard>
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import PdfCanvas from './PdfCanvas.vue'
+
+const { t } = useI18n()
 
 const props = defineProps({
   selectedFile: { type: [File, null], default: null },
@@ -114,10 +109,10 @@ const imageContentStyle = computed(() => {
 
 defineEmits(['update:orientation'])
 
-const orientationItems = [
-  { label: '纵向', value: 'portrait', icon: 'i-lucide-rectangle-vertical' },
-  { label: '横向', value: 'landscape', icon: 'i-lucide-rectangle-horizontal' }
-]
+const orientationItems = computed(() => ([
+  { label: t('ui.portrait'), value: 'portrait', icon: 'i-lucide-rectangle-vertical' },
+  { label: t('ui.landscape'), value: 'landscape', icon: 'i-lucide-rectangle-horizontal' }
+]))
 
 const isMobile = ref(false)
 let mediaQuery = null

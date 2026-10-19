@@ -1,16 +1,17 @@
 <template>
-  <UApp>
+  <UApp :locale="uiLocale">
     <div v-if="!sessionLoaded" class="flex items-center justify-center min-h-screen bg-default">
       <UIcon name="i-lucide-loader-circle" class="w-8 h-8 animate-spin text-primary" />
     </div>
     <div v-else class="grid grid-rows-[auto_1fr_auto] min-h-screen w-full bg-default">
-      <header class="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-default bg-default">
+      <header class="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 py-3 border-b border-default bg-default">
         <div class="flex items-center gap-3 min-w-0">
-          <h1 class="text-xl font-bold shrink-0">CUPS 打印</h1>
+          <h1 class="text-xl font-bold shrink-0">{{ t('ui.cups_printing') }}</h1>
           <span v-if="session" class="text-sm text-muted truncate">{{ session.username }}</span>
         </div>
         <div class="flex items-center gap-2">
           <!-- 桌面端（sm+）：分段按钮 + 文字，一目了然 -->
+          <LanguageSelect />
           <div class="hidden sm:flex items-center gap-2">
             <!-- 导航分段容器：与主 CTA 视觉区分。
                  「打印 / 定时」对所有登录用户开放；「管理 / 驱动」仅管理员可见。 -->
@@ -24,27 +25,21 @@
                 size="xs"
                 icon="i-lucide-file-text"
                 @click="router.push('/print')"
-              >
-                打印
-              </UButton>
+              > {{ t('ui.print') }} </UButton>
               <UButton
                 :variant="route.path === '/scheduled' ? 'soft' : 'ghost'"
                 :color="route.path === '/scheduled' ? 'primary' : 'neutral'"
                 size="xs"
                 icon="i-lucide-calendar-clock"
                 @click="router.push('/scheduled')"
-              >
-                定时
-              </UButton>
+              > {{ t('ui.schedules') }} </UButton>
               <UButton
                 :variant="route.path === '/scan' ? 'soft' : 'ghost'"
                 :color="route.path === '/scan' ? 'primary' : 'neutral'"
                 size="xs"
                 icon="i-lucide-scan-line"
                 @click="router.push('/scan')"
-              >
-                扫描
-              </UButton>
+              > {{ t('ui.scan') }} </UButton>
               <UButton
                 v-if="canManageKeys"
                 :variant="route.path === '/api-keys' ? 'soft' : 'ghost'"
@@ -52,9 +47,7 @@
                 size="xs"
                 icon="i-lucide-key-round"
                 @click="router.push('/api-keys')"
-              >
-                密钥
-              </UButton>
+              > {{ t('ui.api_keys') }} </UButton>
               <UButton
                 v-if="isAdmin"
                 :variant="route.path === '/admin' ? 'soft' : 'ghost'"
@@ -62,9 +55,7 @@
                 size="xs"
                 icon="i-lucide-settings"
                 @click="router.push('/admin')"
-              >
-                管理
-              </UButton>
+              > {{ t('ui.administration') }} </UButton>
               <UButton
                 v-if="isAdmin"
                 :variant="route.path === '/drivers' ? 'soft' : 'ghost'"
@@ -72,9 +63,7 @@
                 size="xs"
                 icon="i-lucide-puzzle"
                 @click="router.push('/drivers')"
-              >
-                驱动
-              </UButton>
+              > {{ t('ui.drivers') }} </UButton>
             </div>
             <UButton
               v-if="session"
@@ -83,9 +72,7 @@
               size="xs"
               icon="i-lucide-log-out"
               @click="logout"
-            >
-              登出
-            </UButton>
+            > {{ t('ui.sign_out') }} </UButton>
           </div>
           <!-- 移动端（<sm）：折叠为汉堡菜单，图标+文字，易点易读 -->
           <UDropdownMenu
@@ -94,7 +81,7 @@
             :content="{ align: 'end' }"
             class="sm:hidden"
           >
-            <UButton variant="ghost" color="neutral" size="sm" icon="i-lucide-menu" square />
+            <UButton variant="ghost" color="neutral" size="sm" icon="i-lucide-menu" :aria-label="t('language.navigation')" square />
           </UDropdownMenu>
         </div>
       </header>
@@ -103,7 +90,7 @@
       </div>
       <footer class="px-6 py-3 border-t border-default bg-default text-sm text-muted flex items-center justify-center gap-3 flex-wrap">
         <span>
-          Powered by
+          {{ t('language.powered_by') }}
           <a href="https://github.com/hanxi/cups-web" target="_blank" class="text-primary hover:underline">cups-web</a>
         </span>
         <span v-if="appVersion" class="text-default/40">·</span>
@@ -119,29 +106,27 @@
           @click="showSponsorModal = true"
         >
           <UIcon name="i-lucide-heart" class="w-4 h-4" />
-          <span>赞赏支持</span>
+          <span>{{ t('ui.support_the_project') }}</span>
         </button>
       </footer>
     </div>
 
-    <UModal v-model:open="showSponsorModal">
+    <UModal :title="t('ui.support_the_project')" v-model:open="showSponsorModal">
       <template #content>
         <div class="p-6 space-y-4">
           <div class="flex items-center gap-2">
             <UIcon name="i-lucide-heart" class="w-5 h-5 text-primary" />
-            <h3 class="text-lg font-semibold">赞赏支持</h3>
+            <h3 class="text-lg font-semibold">{{ t('ui.support_the_project') }}</h3>
           </div>
-          <p class="text-sm text-muted">
-            如果 cups-web 对你有帮助，欢迎通过以下方式支持作者持续维护 ❤️
-          </p>
+          <p class="text-sm text-muted"> {{ t('ui.if_cups_web_is_useful_to_you_you_can_support') }} </p>
           <div class="flex flex-col items-center gap-3 py-2">
             <img
               src="/sponsor.png"
-              alt="赞赏码"
+              :alt="t('ui.donation_qr_code')"
               class="w-60 h-60 object-contain rounded-lg border border-default bg-white"
               loading="lazy"
             />
-            <div class="text-sm text-muted">扫码请作者喝杯奶茶 ☕</div>
+            <div class="text-sm text-muted">{{ t('ui.scan_to_buy_the_author_a_cup_of_tea') }}</div>
           </div>
           <div class="flex flex-col sm:flex-row gap-2 sm:justify-between sm:items-center pt-2 border-t border-default">
             <a
@@ -150,10 +135,8 @@
               rel="noopener"
               class="inline-flex items-center gap-1 text-primary hover:underline text-sm"
             >
-              <UIcon name="i-lucide-external-link" class="w-4 h-4" />
-              爱发电主页
-            </a>
-            <UButton variant="ghost" @click="showSponsorModal = false">关闭</UButton>
+              <UIcon name="i-lucide-external-link" class="w-4 h-4" /> {{ t('ui.support_on_afdian') }} </a>
+            <UButton variant="ghost" @click="showSponsorModal = false">{{ t('ui.close') }}</UButton>
           </div>
         </div>
       </template>
@@ -162,9 +145,16 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { clearSessionCache, updateSessionCache } from './router'
+import { en, zh_cn } from '@nuxt/ui/locale'
+import LanguageSelect from './components/LanguageSelect.vue'
+
+const { t, locale } = useI18n()
+
+const uiLocale = computed(() => locale.value === 'zh-CN' ? zh_cn : en)
 
 const router = useRouter()
 const route = useRoute()
@@ -185,18 +175,18 @@ const canManageKeys = computed(() => session.value && session.value.username !==
 const menuItems = computed(() => {
   const nav = []
   if (session.value) {
-    nav.push({ label: '打印', icon: 'i-lucide-file-text', onSelect: () => router.push('/print') })
-    nav.push({ label: '定时', icon: 'i-lucide-calendar-clock', onSelect: () => router.push('/scheduled') })
-    nav.push({ label: '扫描', icon: 'i-lucide-scan-line', onSelect: () => router.push('/scan') })
+    nav.push({ label: t('ui.print'), icon: 'i-lucide-file-text', onSelect: () => router.push('/print') })
+    nav.push({ label: t('ui.schedules'), icon: 'i-lucide-calendar-clock', onSelect: () => router.push('/scheduled') })
+    nav.push({ label: t('ui.scan'), icon: 'i-lucide-scan-line', onSelect: () => router.push('/scan') })
   }
   if (canManageKeys.value) {
-    nav.push({ label: '密钥', icon: 'i-lucide-key-round', onSelect: () => router.push('/api-keys') })
+    nav.push({ label: t('ui.api_keys'), icon: 'i-lucide-key-round', onSelect: () => router.push('/api-keys') })
   }
   if (isAdmin.value) {
-    nav.push({ label: '管理', icon: 'i-lucide-settings', onSelect: () => router.push('/admin') })
-    nav.push({ label: '驱动', icon: 'i-lucide-puzzle', onSelect: () => router.push('/drivers') })
+    nav.push({ label: t('ui.administration'), icon: 'i-lucide-settings', onSelect: () => router.push('/admin') })
+    nav.push({ label: t('ui.drivers'), icon: 'i-lucide-puzzle', onSelect: () => router.push('/drivers') })
   }
-  const account = [{ label: '登出', icon: 'i-lucide-log-out', onSelect: () => logout() }]
+  const account = [{ label: t('ui.sign_out'), icon: 'i-lucide-log-out', onSelect: () => logout() }]
   return nav.length ? [nav, account] : [account]
 })
 

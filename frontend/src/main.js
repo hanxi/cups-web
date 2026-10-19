@@ -7,6 +7,7 @@ import App from './App.vue'
 import router from './router'
 import './index.css'
 import ui from '@nuxt/ui/vue-plugin'
+import { i18n } from './i18n.js'
 
 // 离线内联 lucide 图标集：Nuxt UI 的 UIcon 默认在运行时从 api.iconify.design 拉取
 // SVG，国内网络常不可达，导致图标加载失败。带文字的按钮尚能看到、能点，但纯图标
@@ -16,6 +17,7 @@ addCollection(lucideIcons)
 
 const app = createApp(App)
 
+app.use(i18n)
 app.use(router)
 app.use(ui)
 app.mount('#app')

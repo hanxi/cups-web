@@ -1,27 +1,31 @@
 <template>
   <div class="space-y-2">
     <div class="flex items-center justify-between text-xs text-muted">
-      <span>{{ loading ? '读取打印机选项…' : error || (options?.source === 'ppd' ? '使用打印机驱动提供的选项' : options ? '使用打印机提供的选项' : '') }}</span>
-      <UButton v-if="printerUri" size="xs" variant="ghost" icon="i-lucide-refresh-cw" :loading="loading" @click="load(true)">刷新选项</UButton>
+      <span>{{ loading ? t('ui.loading_printer_options') : translateError(error) || (options?.source === 'ppd' ? t('ui.options_provided_by_the_printer_driver') : options ? t('ui.options_provided_by_the_printer') : '') }}</span>
+      <UButton v-if="printerUri" size="xs" variant="ghost" icon="i-lucide-refresh-cw" :loading="loading" @click="load(true)">{{ t('ui.refresh_options') }}</UButton>
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <UFormField label="纸张大小">
+      <UFormField :label="t('ui.paper_size')">
         <USelect :model-value="selectedValue('pageSize', paperSize)" :items="items('pageSize', paperSizeItems)" value-key="value" label-key="label" class="w-full" :disabled="loading" @update:model-value="select('pageSize', $event)" />
       </UFormField>
-      <UFormField label="介质类型">
+      <UFormField :label="t('ui.media_type')">
         <USelect :model-value="selectedValue('mediaType', paperType)" :items="items('mediaType', paperTypeItems)" value-key="value" label-key="label" class="w-full" :disabled="loading" @update:model-value="select('mediaType', $event)" />
       </UFormField>
-      <UFormField v-if="choices('quality').length || driverOptions.quality" label="打印质量">
-        <USelect :model-value="selectedValue('quality', '')" :items="items('quality', [{ label: '打印机默认', value: '' }])" value-key="value" label-key="label" class="w-full" :disabled="loading" @update:model-value="select('quality', $event)" />
+      <UFormField v-if="choices('quality').length || driverOptions.quality" :label="t('ui.print_quality')">
+        <USelect :model-value="selectedValue('quality', '')" :items="items('quality', [{ label: t('ui.printer_default'), value: '' }])" value-key="value" label-key="label" class="w-full" :disabled="loading" @update:model-value="select('quality', $event)" />
       </UFormField>
     </div>
   </div>
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import { ref, watch, onUnmounted } from 'vue'
 import { apiFetch, readError } from '../../utils/api'
-import { paperDimensions } from '../../utils/printer-options'
+import { translateError } from '../../utils/translate-error.js'
+import { paperDimensions, printerChoiceLabel } from '../../utils/printer-options'
+
+const { t } = useI18n()
 
 const props = defineProps({
   printerUri: { type: String, default: '' },
@@ -45,15 +49,15 @@ function selectedValue(group, legacy) {
 }
 function items(group, fallback) {
   const available = choices(group)
-  let result = available.length ? available.map(c => ({ label: c.label, value: choiceID(c) })) : fallback.map(c => ({ ...c, value: `legacy:${c.value}` }))
-  if (group === 'quality' && available.length) result.unshift({ label: '打印机默认', value: 'legacy:' })
-  if (group === 'mediaType' && available.length) result.unshift({ label: '打印机默认', value: 'legacy:auto' })
+  let result = available.length ? available.map(c => ({ label: printerChoiceLabel(c), value: choiceID(c) })) : fallback.map(c => ({ ...c, value: `legacy:${c.value}` }))
+  if (group === 'quality' && available.length) result.unshift({ label: t('ui.printer_default'), value: 'legacy:' })
+  if (group === 'mediaType' && available.length) result.unshift({ label: t('ui.printer_default'), value: 'legacy:auto' })
   const saved = props.driverOptions[group]
-  if (saved && !result.some(c => c.value === choiceID(saved))) result.push({ label: `${saved.label || saved.value}（已保存，待验证）`, value: choiceID(saved) })
+  if (saved && !result.some(c => c.value === choiceID(saved))) result.push({ label: t('ui.saved_not_yet_verified', { p0: printerChoiceLabel(saved) }), value: choiceID(saved) })
   const value = selectedValue(group, group === 'pageSize' ? props.paperSize : group === 'mediaType' ? props.paperType : '')
   if (!result.some(c => c.value === value) && !saved) {
     const legacy = group === 'pageSize' ? props.paperSize : props.paperType
-    result.push({ label: fallback.find(c => c.value === legacy)?.label || legacy || '打印机默认', value })
+    result.push({ label: fallback.find(c => c.value === legacy)?.label || legacy || t('ui.printer_default'), value })
   }
   return result
 }
@@ -102,7 +106,7 @@ async function load(force = false, reset = false) {
     if (next.pageSize) emit('update:paperSize', `custom:${next.pageSize.widthMM}x${next.pageSize.heightMM}`)
     emit('update:driverOptions', next)
   } catch (e) {
-    if (version === requestVersion) error.value = e.message || '读取失败，可刷新重试'
+    if (version === requestVersion) error.value = e.message || t('ui.could_not_load_refresh_to_try_again')
   } finally {
     if (version === requestVersion) loading.value = false
   }

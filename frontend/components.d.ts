@@ -27,6 +27,7 @@ declare module 'vue' {
     UIdCardUpload: typeof import('./src/components/print/IdCardUpload.vue')['default']
     UImageCropModal: typeof import('./src/components/print/ImageCropModal.vue')['default']
     UInput: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/Input.vue')['default']
+    ULanguageSelect: typeof import('./src/components/LanguageSelect.vue')['default']
     UModal: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/Modal.vue')['default']
     UPaperPreview: typeof import('./src/components/print/PaperPreview.vue')['default']
     UPdfCanvas: typeof import('./src/components/print/PdfCanvas.vue')['default']

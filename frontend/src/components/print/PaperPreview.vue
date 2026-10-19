@@ -3,9 +3,7 @@
     <template #header>
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2 font-semibold">
-          <UIcon name="i-lucide-eye" class="w-5 h-5" />
-          预览
-        </div>
+          <UIcon name="i-lucide-eye" class="w-5 h-5" /> {{ t('ui.preview') }} </div>
         <span class="text-sm text-muted">
           {{ paperSizeLabel }} · {{ orientationLabel }} · {{ paperDimText }}
         </span>
@@ -17,7 +15,7 @@
       <div :style="adjustedPreviewStyle"
            class="bg-white shadow-lg border border-default overflow-hidden transition-all duration-300 ease-in-out relative mx-auto">
         <!-- 内容预览嵌入 -->
-        <img v-if="previewType === 'image'" :src="previewUrl" class="w-full h-full object-contain" />
+        <img :alt="t('accessibility.preview')" v-if="previewType === 'image'" :src="previewUrl" class="w-full h-full object-contain" />
         <PdfCanvas v-else-if="previewType === 'pdf'" :src="previewUrl" @preview-failed="onPreviewFailed" />
         <div v-else-if="previewType === 'text'" class="p-3 text-[8px] leading-tight overflow-hidden h-full text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
           {{ textPreview?.substring(0, 800) }}
@@ -28,15 +26,16 @@
         </div>
       </div>
     </div>
-    <p v-if="pdfPreviewFailed && previewType === 'pdf'" class="mt-2 text-center text-xs text-muted">
-      PDF 预览加载失败，不影响打印，可直接点击"开始打印"。
-    </p>
+    <p v-if="pdfPreviewFailed && previewType === 'pdf'" class="mt-2 text-center text-xs text-muted"> {{ t('ui.the_pdf_preview_could_not_be_loaded_printing_is_still') }} </p>
   </UCard>
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import PdfCanvas from './PdfCanvas.vue'
+
+const { t } = useI18n()
 
 const props = defineProps({
   selectedFile: { type: [File, null], default: null },

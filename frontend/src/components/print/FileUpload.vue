@@ -15,13 +15,13 @@
           <!-- 移动端：单行紧凑 -->
           <div class="flex sm:hidden items-center justify-center gap-2 text-sm text-muted py-1">
             <UIcon name="i-lucide-upload-cloud" class="w-4 h-4" />
-            <span>点击或拖拽上传文件</span>
+            <span>{{ t('ui.click_or_drag_files_here_to_upload') }}</span>
           </div>
           <!-- 桌面端：维持原样 -->
           <div class="hidden sm:block">
             <UIcon name="i-lucide-upload-cloud" class="w-8 h-8 sm:w-10 sm:h-10 mx-auto text-muted mb-2" />
-            <p class="text-sm text-muted">点击或拖拽文件上传</p>
-            <p class="text-xs text-muted mt-1">支持 PDF、Word、Excel、PPT、OFD、图片等格式（可多选图片）</p>
+            <p class="text-sm text-muted">{{ t('ui.click_or_drag_files_to_upload') }}</p>
+            <p class="text-xs text-muted mt-1">{{ t('ui.supports_pdf_word_excel_powerpoint_ofd_and_images_multiple_images') }}</p>
           </div>
         </div>
         <div v-else class="flex items-center gap-2 sm:gap-3 w-full">
@@ -29,9 +29,9 @@
           <div class="flex-1 min-w-0 text-left">
             <p class="text-sm font-medium break-all line-clamp-2 leading-snug">{{ displayName || (selectedFile && selectedFile.name) }}</p>
             <p v-if="selectedFile" class="text-xs text-muted mt-0.5">{{ formatFileSize(selectedFile.size) }}</p>
-            <p v-else-if="isMultiImage && totalSize > 0" class="text-xs text-muted mt-0.5">共 {{ formatFileSize(totalSize) }}</p>
+            <p v-else-if="isMultiImage && totalSize > 0" class="text-xs text-muted mt-0.5">{{ t('ui.total_2') }} {{ formatFileSize(totalSize) }}</p>
           </div>
-          <UButton
+          <UButton :aria-label="t('accessibility.remove')"
             variant="ghost"
             size="xs"
             icon="i-lucide-x"
@@ -54,8 +54,8 @@
           <UIcon v-else name="i-lucide-clock" class="w-3.5 h-3.5 shrink-0" />
           <span class="truncate">
             {{ converting
-              ? (isMultiImage ? '正在合并图片…' : '正在转换为 PDF…')
-              : (converted ? '已转换为 PDF，可以打印' : '等待转换') }}
+              ? (isMultiImage ? t('ui.merging_images') : t('ui.converting_to_pdf'))
+              : (converted ? t('ui.converted_to_pdf_and_ready_to_print') : t('ui.awaiting_conversion')) }}
           </span>
         </div>
         <!-- 右侧：按钮 -->
@@ -67,7 +67,7 @@
             icon="i-lucide-file-text"
             :loading="converting"
             @click="$emit('convert')"
-          >{{ isMultiImage ? '合并' : '转 PDF' }}</UButton>
+          >{{ isMultiImage ? t('ui.merge') : t('ui.convert_to_pdf') }}</UButton>
           <!--
             "应用 GS 规范化"按钮：仅在已上传 PDF 时显示。点击后调用
             /api/convert?normalize=true 走 Ghostscript 重写 PDF（嵌入所有字体、统一为 1.4 版本），
@@ -81,7 +81,7 @@
             :loading="gsApplying"
             :disabled="gsApplied || gsApplying"
             @click="$emit('apply-gs')"
-          >{{ gsApplied ? '已规范化' : '应用 GS 规范化' }}</UButton>
+          >{{ gsApplied ? t('ui.normalised') : t('ui.apply_ghostscript_normalisation') }}</UButton>
           <UButton
             v-if="converted && pdfBlob && previewUrl"
             variant="ghost"
@@ -90,7 +90,7 @@
             :href="previewUrl"
             :download="downloadName"
             tag="a"
-          >下载</UButton>
+          >{{ t('ui.download') }}</UButton>
         </div>
       </div>
     </div>
@@ -98,8 +98,11 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import { ref, computed } from 'vue'
 import { formatFileSize } from '../../utils/format'
+
+const { t } = useI18n()
 
 const props = defineProps({
   selectedFile: { type: [File, null], default: null },

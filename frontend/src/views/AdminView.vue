@@ -4,18 +4,16 @@
       <UCard>
         <template #header>
           <h2 class="text-xl font-bold flex items-center gap-2">
-            <UIcon name="i-lucide-users" class="w-5 h-5" />
-            用户管理
-          </h2>
+            <UIcon name="i-lucide-users" class="w-5 h-5" /> {{ t('ui.user_management') }} </h2>
         </template>
         <UForm @submit="saveUser" :state="form" class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <UInput v-model="form.username" :disabled="form.protected" placeholder="登录名" :color="formErrors.username ? 'error' : undefined" />
-            <p v-if="formErrors.username" class="text-xs text-error mt-1">{{ formErrors.username }}</p>
+            <UInput :aria-label="t('ui.username')" v-model="form.username" :disabled="form.protected" :placeholder="t('ui.username')" :color="formErrors.username ? 'error' : undefined" />
+            <p v-if="formErrors.username" class="text-xs text-error mt-1">{{ t(formErrors.username) }}</p>
           </div>
           <div>
-            <UInput type="password" v-model="form.password" :placeholder="isEditing ? '留空不修改密码' : '密码'" :color="formErrors.password ? 'error' : undefined" />
-            <p v-if="formErrors.password" class="text-xs text-error mt-1">{{ formErrors.password }}</p>
+            <UInput :aria-label="t('ui.password')" type="password" v-model="form.password" :placeholder="isEditing ? t('ui.leave_blank_to_keep_the_current_password') : t('ui.password')" :color="formErrors.password ? 'error' : undefined" />
+            <p v-if="formErrors.password" class="text-xs text-error mt-1">{{ t(formErrors.password) }}</p>
           </div>
           <USelect
             v-model="form.role"
@@ -24,24 +22,25 @@
             value-key="value"
             label-key="label"
           />
-          <UInput v-model="form.contactName" placeholder="联系人" />
-          <UInput v-model="form.phone" placeholder="联系电话" />
+          <UInput :aria-label="t('ui.contact_name')" v-model="form.contactName" :placeholder="t('ui.contact_name')" />
+          <UInput :aria-label="t('ui.phone')" v-model="form.phone" :placeholder="t('ui.contact_telephone')" />
           <div>
-            <UInput v-model="form.email" placeholder="邮箱" :color="formErrors.email ? 'error' : undefined" />
-            <p v-if="formErrors.email" class="text-xs text-error mt-1">{{ formErrors.email }}</p>
+            <UInput :aria-label="t('ui.email')" v-model="form.email" :placeholder="t('ui.email')" :color="formErrors.email ? 'error' : undefined" />
+            <p v-if="formErrors.email" class="text-xs text-error mt-1">{{ t(formErrors.email) }}</p>
           </div>
           <div class="flex gap-2 md:col-span-2">
-            <UButton type="submit" color="primary" :loading="savingUser" :disabled="savingUser">{{ isEditing ? '保存' : '新增用户' }}</UButton>
-            <UButton type="button" variant="ghost" @click="resetForm">重置</UButton>
+            <UButton type="submit" color="primary" :loading="savingUser" :disabled="savingUser">{{ isEditing ? t('ui.save') : t('ui.add_user') }}</UButton>
+            <UButton type="button" variant="ghost" @click="resetForm">{{ t('ui.reset') }}</UButton>
           </div>
         </UForm>
 
         <div class="overflow-x-auto mt-4">
           <UTable :columns="userColumns" :data="users">
+            <template #role-cell="{ row }">{{ row.original.role === 'admin' ? t('ui.administrator') : row.original.role === 'user' ? t('ui.standard_user') : row.original.role }}</template>
             <template #actions-cell="{ row }">
               <div class="flex gap-2">
-                <UButton size="sm" variant="ghost" icon="i-lucide-pencil" @click="editUser(row.original)">编辑</UButton>
-                <UButton size="sm" variant="outline" color="error" icon="i-lucide-trash-2" :disabled="row.original.username === 'admin'" @click="confirmDelete(row.original)">删除</UButton>
+                <UButton size="sm" variant="ghost" icon="i-lucide-pencil" @click="editUser(row.original)">{{ t('ui.edit') }}</UButton>
+                <UButton size="sm" variant="outline" color="error" icon="i-lucide-trash-2" :disabled="row.original.username === 'admin'" @click="confirmDelete(row.original)">{{ t('ui.delete') }}</UButton>
               </div>
             </template>
           </UTable>
@@ -51,20 +50,20 @@
       <UCard>
         <template #header>
           <h2 class="text-xl font-bold flex items-center gap-2">
-            <UIcon name="i-lucide-file-text" class="w-5 h-5" />
-            打印记录
-          </h2>
+            <UIcon name="i-lucide-file-text" class="w-5 h-5" /> {{ t('ui.print_history') }} </h2>
         </template>
         <div class="flex flex-wrap gap-3 items-end mb-4">
-          <UInput v-model="printFilters.username" placeholder="用户名" />
-          <UInput type="date" v-model="printFilters.start" />
-          <UInput type="date" v-model="printFilters.end" />
-          <UButton variant="outline" @click="loadPrintRecords" icon="i-lucide-search">查询</UButton>
+          <UInput :aria-label="t('ui.username')" v-model="printFilters.username" :placeholder="t('ui.username_2')" />
+          <UInput :aria-label="t('accessibility.start_date')" type="date" v-model="printFilters.start" />
+          <UInput :aria-label="t('accessibility.end_date')" type="date" v-model="printFilters.end" />
+          <UButton variant="outline" @click="loadPrintRecords" icon="i-lucide-search">{{ t('ui.search') }}</UButton>
         </div>
         <div class="overflow-x-auto">
           <UTable :columns="printColumns" :data="printRecords">
+            <template #createdAt-cell="{ row }">{{ formatTime(row.original.createdAt) }}</template>
+            <template #status-cell="{ row }">{{ statusText(row.original.status) }}</template>
             <template #download-cell="{ row }">
-              <UButton size="xs" variant="ghost" icon="i-lucide-download" @click="downloadFile(row.original.id)">下载</UButton>
+              <UButton size="xs" variant="ghost" icon="i-lucide-download" @click="downloadFile(row.original.id)">{{ t('ui.download') }}</UButton>
             </template>
           </UTable>
         </div>
@@ -74,78 +73,76 @@
     <UCard>
       <template #header>
         <h2 class="text-xl font-bold flex items-center gap-2">
-          <UIcon name="i-lucide-settings" class="w-5 h-5" />
-          系统设置
-        </h2>
+          <UIcon name="i-lucide-settings" class="w-5 h-5" /> {{ t('ui.system_settings') }} </h2>
       </template>
       <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
         <div>
-          <label class="block text-sm font-medium mb-1">自动清理天数</label>
-          <UInput type="number" step="1" v-model="settings.retentionDays" placeholder="例如 30" />
+          <label class="block text-sm font-medium mb-1">{{ t('ui.automatically_delete_after_days') }}</label>
+          <UInput :aria-label="t('ui.automatically_delete_after_days')" type="number" step="1" v-model="settings.retentionDays" :placeholder="t('ui.for_example_30')" />
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">单个任务最大页数</label>
-          <UInput type="number" step="1" min="0" v-model="settings.maxPagesPerJob" placeholder="0 表示不限" />
+          <label class="block text-sm font-medium mb-1">{{ t('ui.maximum_pages_per_job') }}</label>
+          <UInput :aria-label="t('ui.maximum_pages_per_job')" type="number" step="1" min="0" v-model="settings.maxPagesPerJob" :placeholder="t('ui.option_0_means_unlimited')" />
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">单个文件最大大小 (MB)</label>
-          <UInput type="number" step="1" min="0" v-model="settings.maxUploadMB" placeholder="0 表示不限" />
+          <label class="block text-sm font-medium mb-1">{{ t('ui.maximum_file_size_mb') }}</label>
+          <UInput :aria-label="t('ui.maximum_file_size_mb')" type="number" step="1" min="0" v-model="settings.maxUploadMB" :placeholder="t('ui.option_0_means_unlimited')" />
         </div>
         <div>
           <label class="flex items-center gap-2 cursor-pointer h-9">
             <UCheckbox v-model="settings.saveHistory" />
-            <span class="text-sm">保存打印历史</span>
+            <span class="text-sm">{{ t('ui.save_print_history') }}</span>
           </label>
         </div>
         <div class="md:col-span-4">
           <label class="flex items-center gap-2 cursor-pointer">
             <UCheckbox v-model="settings.guestMode" />
-            <span class="text-sm">开启访客模式（免登录）</span>
+            <span class="text-sm">{{ t('ui.enable_guest_mode_no_sign_in_required') }}</span>
           </label>
-          <p class="text-xs text-muted mt-1 ml-6">开启后未登录访问会自动以内置 guest 账号进入打印页；管理页仍需登录 admin。仅建议在可信内网使用。</p>
+          <p class="text-xs text-muted mt-1 ml-6">{{ t('ui.visitors_automatically_enter_the_print_page_using_the_built_in') }}</p>
         </div>
         <div class="flex items-end gap-2 md:col-span-4">
-          <UButton color="primary" @click="saveSettings" icon="i-lucide-save" :loading="savingSettings" :disabled="savingSettings">保存设置</UButton>
-          <UButton variant="outline" @click="showCleanupConfirm = true" icon="i-lucide-trash-2" :loading="cleaningUp" :disabled="cleaningUp">立即清理</UButton>
+          <UButton color="primary" @click="saveSettings" icon="i-lucide-save" :loading="savingSettings" :disabled="savingSettings">{{ t('ui.save_settings') }}</UButton>
+          <UButton variant="outline" @click="showCleanupConfirm = true" icon="i-lucide-trash-2" :loading="cleaningUp" :disabled="cleaningUp">{{ t('ui.clean_up_now') }}</UButton>
         </div>
       </div>
-      <div class="text-sm text-muted mt-2">自动清理会在设定天数后删除过期打印记录与文件。"立即清理"将删除所有打印记录和文件。关闭"保存打印历史"后，新的打印任务将不再产生记录。页数/大小上限用于阻止超规格文件占用打印机，0 表示不限制。</div>
+      <div class="text-sm text-muted mt-2">{{ t('ui.automatic_clean_up_removes_expired_print_records_and_files_after') }}</div>
 
       <div class="mt-4 pt-4 border-t border-default">
-        <label class="block text-sm font-medium mb-1">自定义 CSS</label>
+        <label class="block text-sm font-medium mb-1">{{ t('ui.custom_css') }}</label>
         <UTextarea
           v-model="settings.customCss"
           :rows="6"
-          placeholder="/* 例如：调整主题色、字号、按钮渐变等；留空则不注入 */"
+          :placeholder="t('ui.for_example_change_theme_colours_font_sizes_or_button_gradients')"
           class="w-full font-mono text-xs"
           :maxlength="32768"
         />
-        <div class="text-xs text-muted mt-1">保存后立即生效，所有登录页与主界面都会应用（上限 32KB）。留空即恢复默认样式。</div>
+        <div class="text-xs text-muted mt-1">{{ t('ui.applies_immediately_to_the_login_page_and_main_interface_maximum') }}</div>
       </div>
     </UCard>
 
-    <UModal v-model:open="showDeleteModal">
+    <UModal :title="t('ui.confirm_deletion')" v-model:open="showDeleteModal">
       <template #content>
         <div class="p-6 space-y-4">
-          <h3 class="text-lg font-semibold">确认删除</h3>
-          <p>确定要删除用户 <strong>{{ pendingDeleteUser?.username }}</strong> 吗？</p>
-          <p class="text-sm text-muted">此操作不可撤销。</p>
+          <h3 class="text-lg font-semibold">{{ t('ui.confirm_deletion') }}</h3>
+          <p>{{ t('ui.delete_user_confirm', { name: pendingDeleteUser?.username }) }}</p>
+          <p class="text-sm text-muted">{{ t('ui.this_cannot_be_undone') }}</p>
           <div class="flex justify-end gap-2">
-            <UButton variant="ghost" @click="showDeleteModal = false">取消</UButton>
-            <UButton color="error" :loading="!!deletingUserId" @click="executeDelete">确认删除</UButton>
+            <UButton variant="ghost" @click="showDeleteModal = false">{{ t('ui.cancel') }}</UButton>
+            <UButton color="error" :loading="!!deletingUserId" @click="executeDelete">{{ t('ui.confirm_deletion') }}</UButton>
           </div>
         </div>
       </template>
     </UModal>
 
-    <UModal v-model:open="showCleanupConfirm">
+    <UModal :title="t('ui.confirm_clean_up')" v-model:open="showCleanupConfirm">
       <template #content>
         <div class="p-6 space-y-4">
-          <h3 class="text-lg font-semibold">确认清理</h3>
-          <p>此操作将<strong>删除所有打印记录和相关文件</strong>，且不可撤销。</p>
+          <h3 class="text-lg font-semibold">{{ t('ui.confirm_clean_up') }}</h3>
+          <p>{{ t('ui.cleanup_confirm') }}</p>
           <div class="flex justify-end gap-2">
-            <UButton variant="ghost" @click="showCleanupConfirm = false">取消</UButton>
-            <UButton color="error" :loading="cleaningUp" @click="triggerCleanup">确认清理</UButton>
+            <UButton variant="ghost" @click="showCleanupConfirm = false">{{ t('ui.cancel') }}</UButton>
+            <UButton color="error" :loading="cleaningUp" @click="triggerCleanup">{{ t('ui.confirm_clean_up') }}</UButton>
           </div>
         </div>
       </template>
@@ -154,8 +151,12 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import { ref, computed, onMounted } from 'vue'
 import { getCSRF, readError } from '../utils/api'
+import { formatTime, statusText } from '../utils/format'
+
+const { t } = useI18n()
 
 const toast = useToast()
 const emit = defineEmits(['logout'])
@@ -186,40 +187,40 @@ const formErrors = ref({})
 
 const isEditing = computed(() => !!form.value.id)
 
-const roleItems = [
-  { label: '普通用户', value: 'user' },
-  { label: '管理员', value: 'admin' }
-]
+const roleItems = computed(() => ([
+  { label: t('ui.standard_user'), value: 'user' },
+  { label: t('ui.administrator'), value: 'admin' }
+]))
 
-const userColumns = [
+const userColumns = computed(() => ([
   { accessorKey: 'id', header: 'ID' },
-  { accessorKey: 'username', header: '登录名' },
-  { accessorKey: 'role', header: '角色' },
-  { accessorKey: 'contactName', header: '联系人' },
-  { accessorKey: 'phone', header: '电话' },
-  { accessorKey: 'email', header: '邮箱' },
-  { id: 'actions', header: '操作' }
-]
+  { accessorKey: 'username', header: t('ui.username') },
+  { accessorKey: 'role', header: t('ui.role') },
+  { accessorKey: 'contactName', header: t('ui.contact_name') },
+  { accessorKey: 'phone', header: t('ui.phone') },
+  { accessorKey: 'email', header: t('ui.email') },
+  { id: 'actions', header: t('ui.actions') }
+]))
 
-const printColumns = [
-  { accessorKey: 'createdAt', header: '时间' },
-  { accessorKey: 'username', header: '用户' },
-  { accessorKey: 'filename', header: '文件' },
-  { accessorKey: 'pages', header: '页数' },
-  { accessorKey: 'status', header: '状态' },
-  { id: 'download', header: '下载' }
-]
+const printColumns = computed(() => ([
+  { accessorKey: 'createdAt', header: t('ui.time') },
+  { accessorKey: 'username', header: t('ui.user') },
+  { accessorKey: 'filename', header: t('ui.file') },
+  { accessorKey: 'pages', header: t('ui.pages') },
+  { accessorKey: 'status', header: t('ui.status') },
+  { id: 'download', header: t('ui.download') }
+]))
 
 function validateForm() {
   formErrors.value = {}
   if (!form.value.username.trim()) {
-    formErrors.value.username = '用户名不能为空'
+    formErrors.value.username = 'ui.username_is_required'
   }
   if (!isEditing.value && !form.value.password) {
-    formErrors.value.password = '新用户必须设置密码'
+    formErrors.value.password = 'ui.a_new_user_must_have_a_password'
   }
   if (form.value.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email)) {
-    formErrors.value.email = '邮箱格式无效'
+    formErrors.value.email = 'ui.invalid_email_address'
   }
   return Object.keys(formErrors.value).length === 0
 }
@@ -286,11 +287,11 @@ async function saveUser() {
     })
     if (!resp.ok) {
       const msg = await readError(resp)
-      toast.add({ title: '保存失败', description: msg, color: 'error', icon: 'i-lucide-x-circle' })
+      toast.add({ title: t('ui.could_not_save'), description: msg, color: 'error', icon: 'i-lucide-x-circle' })
       if (resp.status === 401) emit('logout')
       return
     }
-    toast.add({ title: isEditing.value ? '更新成功' : '创建成功', description: `用户 ${form.value.username} 已保存`, color: 'success', icon: 'i-lucide-check-circle' })
+    toast.add({ title: isEditing.value ? t('ui.updated_successfully') : t('ui.created_successfully'), description: t('ui.user_saved', { p0: form.value.username }), color: 'success', icon: 'i-lucide-check-circle' })
     await loadUsers()
     resetForm()
   } finally {
@@ -315,11 +316,11 @@ async function executeDelete() {
     })
     if (!resp.ok) {
       const msg = await readError(resp)
-      toast.add({ title: '删除失败', description: msg, color: 'error', icon: 'i-lucide-x-circle' })
+      toast.add({ title: t('ui.could_not_delete'), description: msg, color: 'error', icon: 'i-lucide-x-circle' })
       if (resp.status === 401) emit('logout')
       return
     }
-    toast.add({ title: '删除成功', description: `用户 ${user.username} 已删除`, color: 'success', icon: 'i-lucide-check-circle' })
+    toast.add({ title: t('ui.deleted_successfully'), description: t('ui.user_deleted', { p0: user.username }), color: 'success', icon: 'i-lucide-check-circle' })
     await loadUsers()
   } finally {
     deletingUserId.value = null
@@ -373,15 +374,15 @@ async function triggerCleanup() {
     })
     if (!resp.ok) {
       const msg = await readError(resp)
-      toast.add({ title: '清理失败', description: msg, color: 'error', icon: 'i-lucide-x-circle' })
+      toast.add({ title: t('ui.could_not_clean_up'), description: msg, color: 'error', icon: 'i-lucide-x-circle' })
       if (resp.status === 401) emit('logout')
       return
     }
     const data = await resp.json()
     const count = data.deleted || 0
     toast.add({
-      title: '清理完成',
-      description: count > 0 ? `已删除 ${count} 条打印记录及相关文件` : '没有需要清理的记录',
+      title: t('ui.clean_up_complete'),
+      description: count > 0 ? t('ui.deleted_print_records_and_associated_files', { p0: count }) : t('ui.no_records_need_cleaning_up'),
       color: 'success',
       icon: 'i-lucide-check-circle'
     })
@@ -415,11 +416,11 @@ async function saveSettings() {
     })
     if (!resp.ok) {
       const msg = await readError(resp)
-      toast.add({ title: '保存失败', description: msg, color: 'error', icon: 'i-lucide-x-circle' })
+      toast.add({ title: t('ui.could_not_save'), description: msg, color: 'error', icon: 'i-lucide-x-circle' })
       if (resp.status === 401) emit('logout')
       return
     }
-    toast.add({ title: '保存成功', description: '系统设置已更新', color: 'success', icon: 'i-lucide-check-circle' })
+    toast.add({ title: t('ui.saved_successfully'), description: t('ui.system_settings_updated'), color: 'success', icon: 'i-lucide-check-circle' })
     await loadSettings()
     // 立即把新的自定义 CSS 应用到当前页面，避免管理员必须手动 reload（Issue #57）。
     const el = document.getElementById('app-custom-css')

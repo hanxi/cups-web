@@ -1,3 +1,5 @@
+import { translateError } from './translate-error.js'
+
 // 从 Cookie 提取 CSRF 令牌
 export function getCSRF() {
   const m = document.cookie.match('(^|;)\\s*csrf_token\\s*=\\s*([^;]+)')
@@ -6,17 +8,14 @@ export function getCSRF() {
 
 // 统一解析错误响应
 export async function readError(resp) {
+  let raw
+  try { raw = await resp.text() } catch { return translateError(resp.statusText) }
+  let message = raw || resp.statusText
   try {
-    const data = await resp.json()
-    return data.error || resp.statusText
-  } catch (e) {
-    try {
-      const text = await resp.text()
-      return text || resp.statusText
-    } catch (err) {
-      return resp.statusText
-    }
-  }
+    const data = JSON.parse(raw)
+    return translateError(data?.error || data?.message || resp.statusText, data?.code, data || {})
+  } catch { /* A proxy or external service may return plain text. */ }
+  return translateError(message)
 }
 
 // 封装 fetch，自动附加 credentials 和 CSRF token，统一处理 401

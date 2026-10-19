@@ -1,14 +1,18 @@
+import { t, locale, formatNumber } from '../i18n.js'
 export function formatFileSize(bytes) {
   if (!bytes) return '0 B'
-  if (bytes < 1024) return bytes + ' B'
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+  if (bytes < 1024) return formatNumber(bytes) + ' B'
+  const options = { minimumFractionDigits: 1, maximumFractionDigits: 1 }
+  if (bytes < 1024 * 1024) return formatNumber(bytes / 1024, options) + ' KB'
+  return formatNumber(bytes / (1024 * 1024), options) + ' MB'
 }
 
 export function formatTime(iso) {
   if (!iso) return ''
   try {
-    return new Date(iso).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+    const date = new Date(iso)
+    if (Number.isNaN(date.getTime())) return iso
+    return date.toLocaleString(locale.value, { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
   } catch { return iso }
 }
 
@@ -40,14 +44,14 @@ export function printerDescription(printer) {
 }
 
 export function formatDurationSeconds(totalSeconds) {
-  if (!totalSeconds || totalSeconds < 0) return '未知'
+  if (!totalSeconds || totalSeconds < 0) return t('ui.unknown')
   const d = Math.floor(totalSeconds / 86400)
   const h = Math.floor((totalSeconds % 86400) / 3600)
   const m = Math.floor((totalSeconds % 3600) / 60)
-  if (d > 0) return `${d}天${h}小时`
-  if (h > 0) return `${h}小时${m}分钟`
-  if (m > 0) return `${m}分钟`
-  return `${totalSeconds}秒`
+  if (d > 0) return t('ui.duration_days_hours', { p0: d, p1: h })
+  if (h > 0) return t('ui.duration_hours_minutes', { p0: h, p1: m })
+  if (m > 0) return t('ui.duration_minutes', { p0: m })
+  return t('ui.duration_seconds', { p0: totalSeconds })
 }
 
 export function statusColor(status) {
@@ -56,7 +60,7 @@ export function statusColor(status) {
 }
 
 export function statusText(status) {
-  const map = { queued: '排队中', printed: '已打印', failed: '失败', cancelled: '已取消' }
+  const map = { queued: t('ui.queued'), printed: t('ui.printed'), failed: t('ui.failed'), cancelled: t('ui.cancelled') }
   return map[status] || status
 }
 
@@ -66,8 +70,13 @@ export function printerStateColor(state) {
 }
 
 export function printerStateText(state) {
-  const map = { idle: '空闲', processing: '打印中', stopped: '已停止' }
-  return map[state] || state || '未知'
+  const map = { idle: t('ui.idle'), processing: t('ui.printing'), stopped: t('ui.stopped') }
+  return map[state] || state || t('ui.unknown')
+}
+
+export function jobStateText(job) {
+  const keys = { 3: 'job.pending', 4: 'job.held', 5: 'job.processing', 6: 'job.stopped', 7: 'job.cancelled', 8: 'job.aborted', 9: 'job.completed' }
+  return keys[job.state] ? t(keys[job.state]) : job.stateText
 }
 
 export function markerLevelColor(level) {

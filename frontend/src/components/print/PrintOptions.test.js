@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
 import { parse, compileScript } from '@vue/compiler-sfc'
 import { ref, computed, watch, reactive, effectScope } from 'vue'
+import { i18n } from '../../i18n.js'
 
 // Compile the component's actual setup so the event contract is tested without a DOM.
 const { descriptor } = parse(readFileSync(new URL('./PrintOptions.vue', import.meta.url), 'utf8'))
@@ -11,7 +12,8 @@ const compiled = compileScript(descriptor, { id: 'print-options-test' }).content
 const component = runInNewContext(compiled
   .replace(/^import .*$/gm, '')
   .replace('export default', 'const component =') + '\ncomponent', {
-  ref, computed, watch, PrinterMediaOptions: {},
+  ref, computed, watch, PrinterMediaOptions: {}, useI18n: () => i18n.global,
+  readPreference: () => null, writePreference: () => {}, printerChoiceLabel: choice => choice?.label || '',
   localStorage: { getItem: () => null, setItem: () => {} }
 })
 

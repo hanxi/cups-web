@@ -3,15 +3,13 @@
     <template #header>
       <div class="flex items-center justify-between cursor-pointer select-none" @click="listExpanded = !listExpanded">
         <div class="flex items-center gap-2 font-semibold">
-          <UIcon name="i-lucide-history" class="w-5 h-5" />
-          打印记录
-          <!-- 折叠时显示最近一条摘要 -->
+          <UIcon name="i-lucide-history" class="w-5 h-5" /> {{ t('ui.print_history') }} <!-- 折叠时显示最近一条摘要 -->
           <span v-if="!listExpanded && records.length > 0" class="text-xs font-normal text-muted truncate max-w-48">
             — {{ records[0].filename }} · {{ formatTime(records[0].createdAt) }} · {{ statusText(records[0].status) }}
           </span>
         </div>
         <div class="flex items-center gap-1">
-          <UButton variant="ghost" size="xs" icon="i-lucide-refresh-cw" @click.stop="$emit('refresh')" />
+          <UButton :aria-label="t('accessibility.refresh')" variant="ghost" size="xs" icon="i-lucide-refresh-cw" @click.stop="$emit('refresh')" />
           <UIcon
             :name="listExpanded ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'"
             class="w-4 h-4 text-muted transition-transform duration-200"
@@ -27,9 +25,7 @@
         <div v-if="loading" class="text-center py-4">
           <UIcon name="i-lucide-loader-circle" class="w-5 h-5 animate-spin mx-auto text-muted" />
         </div>
-        <div v-else-if="records.length === 0" class="text-center py-6 text-muted text-sm">
-          暂无打印记录
-        </div>
+        <div v-else-if="records.length === 0" class="text-center py-6 text-muted text-sm"> {{ t('ui.no_print_history_yet') }} </div>
         <div
           v-for="rec in records"
           :key="rec.id"
@@ -39,7 +35,7 @@
           <div class="flex items-start gap-2">
             <div class="flex-1 min-w-0">
               <p class="text-sm font-medium truncate">{{ rec.filename }}</p>
-              <p class="text-xs text-muted mt-0.5">{{ recordPrinterName(rec.printerUri) }} · {{ rec.pages }}页</p>
+              <p class="text-xs text-muted mt-0.5">{{ recordPrinterName(rec.printerUri) }} · {{ t('ui.page_count', rec.pages) }}</p>
               <p class="text-xs text-muted">{{ formatTime(rec.createdAt) }}</p>
             </div>
             <UBadge :color="statusColor(rec.status)" variant="subtle" size="xs">
@@ -49,14 +45,14 @@
           <!-- 展开详情 -->
           <div v-if="expandedRecords.has(rec.id)" class="mt-2 pt-2 border-t">
             <div class="grid grid-cols-2 gap-1 text-xs text-muted">
-              <div><span class="font-medium">颜色：</span>{{ rec.isColor ? '彩色' : '黑白' }}</div>
-              <div><span class="font-medium">双面：</span>{{ rec.isDuplex ? '是' : '否' }}</div>
-              <div><span class="font-medium">页数：</span>{{ rec.pages }}</div>
-              <div v-if="rec.jobId"><span class="font-medium">任务ID：</span>{{ rec.jobId }}</div>
+              <div><span class="font-medium">{{ t('ui.colour_3') }}</span>{{ rec.isColor ? t('ui.colour_2') : t('ui.black_and_white') }}</div>
+              <div><span class="font-medium">{{ t('ui.double_sided') }}</span>{{ rec.isDuplex ? t('ui.yes') : t('ui.no') }}</div>
+              <div><span class="font-medium">{{ t('ui.pages_4') }}</span>{{ rec.pages }}</div>
+              <div v-if="rec.jobId"><span class="font-medium">{{ t('ui.job_id') }}</span>{{ rec.jobId }}</div>
             </div>
             <div class="mt-2 flex flex-wrap gap-2" @click.stop>
-              <a v-if="rec.hasRenderedPDF" :href="`/api/print-records/${rec.id}/file?variant=rendered`" class="text-xs text-primary">下载打印 PDF</a>
-              <a v-for="(source, index) in (rec.photoSources || [])" :key="index" :href="`/api/print-records/${rec.id}/file?source=${index}`" class="text-xs text-primary">原图：{{ source.filename }}</a>
+              <a v-if="rec.hasRenderedPDF" :href="`/api/print-records/${rec.id}/file?variant=rendered`" class="text-xs text-primary">{{ t('ui.download_print_pdf') }}</a>
+              <a v-for="(source, index) in (rec.photoSources || [])" :key="index" :href="`/api/print-records/${rec.id}/file?source=${index}`" class="text-xs text-primary">{{ t('ui.original_photos') }}{{ source.filename }}</a>
             </div>
             <div class="mt-2 flex justify-end">
               <UButton
@@ -65,29 +61,29 @@
                 icon="i-lucide-printer"
                 :loading="reprintingId === rec.id"
                 @click.stop="openReprintDialog(rec)"
-              >重新打印</UButton>
+              >{{ t('ui.print_again') }}</UButton>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <UModal v-model:open="showReprintModal" :ui="{ content: 'max-w-lg' }">
+    <UModal :title="t('ui.print_again')" v-model:open="showReprintModal" :ui="{ content: 'max-w-lg' }">
       <template #content>
         <div class="flex flex-col max-h-[85vh]">
           <div class="p-6 pb-3 border-b border-default shrink-0">
-            <h3 class="text-lg font-semibold">重新打印</h3>
-            <div class="text-sm text-muted truncate mt-1">文件：{{ reprintRecord?.filename }}</div>
+            <h3 class="text-lg font-semibold">{{ t('ui.print_again') }}</h3>
+            <div class="text-sm text-muted truncate mt-1">{{ t('ui.file_name', { name: reprintRecord?.filename }) }}</div>
           </div>
           <div class="flex-1 overflow-y-auto p-6 space-y-4">
             <div>
-              <label class="block text-sm font-medium mb-1">打印机</label>
+              <label class="block text-sm font-medium mb-1">{{ t('ui.printer') }}</label>
               <USelect
                 v-model="reprintForm.printer"
                 :items="printerSelectItems"
                 value-key="value"
                 label-key="label"
-                placeholder="选择打印机"
+                :placeholder="t('ui.select_a_printer')"
                 class="w-full"
               />
             </div>
@@ -118,8 +114,8 @@
             />
           </div>
           <div class="flex justify-end gap-2 p-6 pt-3 border-t border-default shrink-0">
-            <UButton variant="ghost" @click="showReprintModal = false">取消</UButton>
-            <UButton color="primary" :loading="reprintingId != null" @click="submitReprint">确认打印</UButton>
+            <UButton variant="ghost" @click="showReprintModal = false">{{ t('ui.cancel') }}</UButton>
+            <UButton color="primary" :loading="reprintingId != null" @click="submitReprint">{{ t('ui.confirm_printing') }}</UButton>
           </div>
         </div>
       </template>
@@ -128,9 +124,12 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import { ref, computed, watch } from 'vue'
 import { formatTime, formatPrinterName, printerLabel, printerDescription, statusColor, statusText } from '../../utils/format'
 import PrintOptions from './PrintOptions.vue'
+
+const { t } = useI18n()
 
 const props = defineProps({
   records: { type: Array, default: () => [] },

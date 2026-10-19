@@ -3,26 +3,24 @@
     <UCard class="w-full max-w-md shadow-lg">
       <template #header>
         <h2 class="text-xl font-bold flex items-center gap-2">
-          <UIcon name="i-lucide-user" class="w-5 h-5" />
-          登录
-        </h2>
+          <UIcon name="i-lucide-user" class="w-5 h-5" /> {{ t('ui.sign_in') }} </h2>
       </template>
       
       <!-- 错误提示 -->
       <UAlert
-        v-if="error"
+        v-if="errorText"
         icon="i-lucide-triangle-alert"
         color="error"
         variant="soft"
-        :title="error"
+        :title="errorText"
         class="mb-6"
       />
       
       <UForm @submit="login" :state="state" class="space-y-6">
-        <UFormField label="用户名" name="username" required>
+        <UFormField :label="t('ui.username_2')" name="username" required>
           <UInput v-model="state.username" icon="i-lucide-user" size="lg" class="w-full" />
         </UFormField>
-        <UFormField label="密码" name="password" required>
+        <UFormField :label="t('ui.password')" name="password" required>
           <UInput v-model="state.password" type="password" icon="i-lucide-lock" size="lg" class="w-full" />
         </UFormField>
         
@@ -34,9 +32,7 @@
             size="lg"
             class="w-full"
             :loading="loading"
-          >
-            登录
-          </UButton>
+          > {{ t('ui.sign_in') }} </UButton>
         </div>
       </UForm>
     </UCard>
@@ -44,25 +40,31 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { reactive, ref } from 'vue'
+import { translateError } from '../utils/translate-error.js'
+
+const { t } = useI18n()
 
 const state = reactive({
   username: '',
   password: ''
 })
-const error = ref('')
+const error = ref(null)
+const errorText = computed(() => error.value?.() || '')
 const loading = ref(false)
 
 const emit = defineEmits(['login-success'])
 
 // 后端 /api/login 的错误串是英文短语，直接展示对终端用户不友好，在此本地化。
-const BACKEND_MESSAGES = {
-  'invalid credentials': '用户名或密码错误',
-  'missing credentials': '请输入用户名和密码',
-  'too many attempts, please try again later': '登录失败次数过多，请稍后再试（默认锁定 15 分钟）',
-  'login failed': '服务端处理登录时出错，请查看服务端日志',
-  'session error': '会话创建失败，请查看服务端日志'
-}
+const BACKEND_MESSAGES = computed(() => ({
+  'invalid credentials': t('ui.incorrect_username_or_password'),
+  'missing credentials': t('ui.enter_your_username_and_password'),
+  'too many attempts, please try again later': t('ui.too_many_failed_sign_in_attempts_try_again_later_default'),
+  'login failed': t('ui.the_server_could_not_process_sign_in_check_the_server'),
+  'session error': t('ui.could_not_create_a_session_check_the_server_logs')
+}))
 
 // 把失败响应翻译成可诊断的中文提示。
 //
@@ -85,30 +87,32 @@ async function describeFailure(resp) {
     payload = null
   }
 
+  return () => {
   if (payload && (payload.error || payload.message)) {
     const msg = payload.error || payload.message
-    return BACKEND_MESSAGES[msg] || msg
+    return BACKEND_MESSAGES.value[msg] || translateError(msg, payload.code, payload)
   }
 
   const looksLikeHTML = raw.trimStart().startsWith('<')
   const detail = looksLikeHTML
-    ? '（服务端返回了 HTML 页面，通常来自反向代理或网关的错误页）'
+    ? t('ui.the_server_returned_html_usually_an_error_page_from_a')
     : raw.trim().slice(0, 200)
 
   if (resp.status === 403) {
-    return `请求被拒绝（403）。若你通过反向代理访问，请确认它转发了真实域名（nginx：proxy_set_header Host $host; proxy_set_header X-Forwarded-Host $host;）。${detail}`
+    return t('ui.request_rejected_403_if_using_a_reverse_proxy_check_that', { p0: detail })
   }
   if (resp.status === 404 || resp.status === 405) {
-    return `接口不可达（${resp.status}）：/api/login 没有到达 cups-web，请检查反向代理是否把 /api 转发到了正确的后端。${detail}`
+    return t('ui.endpoint_unavailable_api_login_did_not_reach_cups_web_check', { p0: resp.status, p1: detail })
   }
   if (resp.status >= 500) {
-    return `服务端错误（${resp.status}），请查看服务端日志。${detail}`
+    return t('ui.server_error_check_the_server_logs', { p0: resp.status, p1: detail })
   }
-  return `登录失败（HTTP ${resp.status}）${detail ? '：' + detail : ''}`
+  return t('ui.sign_in_failed_http', { p0: resp.status, p1: detail ? ': ' + detail : '' })
+  }
 }
 
 async function login() {
-  error.value = ''
+  error.value = null
   loading.value = true
   try {
     const resp = await fetch('/api/login', {
@@ -124,7 +128,7 @@ async function login() {
     emit('login-success')
   } catch (e) {
     // fetch 本身抛异常＝请求没能完成（网络不可达、TLS 失败、被浏览器策略阻断）。
-    error.value = `无法连接到服务端：${e.message}`
+    error.value = () => t('ui.cannot_connect_to_the_server', { p0: e.message })
   } finally {
     loading.value = false
   }
