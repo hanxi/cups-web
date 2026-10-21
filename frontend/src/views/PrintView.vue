@@ -269,7 +269,13 @@
           v-model:numberUpLayout="numberUpLayout"
           v-model:pageBorder="pageBorder"
           :printing="printing"
-        />
+          :driver-rematch-key="driverRematchKey"
+        >
+          <template #header-actions>
+            <PrintPresets v-if="printMode === 'standard'" :can-manage="canManagePresets" :snapshot="currentPrintSettings"
+              @apply="applyPrintSettings" @reset="resetPrintSettings" @logout="emit('logout')" />
+          </template>
+        </PrintOptions>
 
         <!-- 开始打印按钮 -->
         <UButton
@@ -397,12 +403,15 @@ import IdCardUpload from '../components/print/IdCardUpload.vue'
 import PrintPreview from '../components/print/PrintPreview.vue'
 import { paperDimensions, printerChoiceLabel } from '../utils/printer-options'
 import PrintOptions from '../components/print/PrintOptions.vue'
+import PrintPresets from '../components/print/PrintPresets.vue'
+import { DEFAULT_PRINT_SETTINGS, sanitizePrintSettings, snapshotPrintSettings, readLastPrintSettings, writeLastPrintSettings } from '../utils/print-settings.js'
 import PrintRecordList from '../components/print/PrintRecordList.vue'
 import PrinterStatus from '../components/print/PrinterStatus.vue'
 import { formatFileSize, printerLabel, printerDescription, jobStateText } from '../utils/format'
 
 const { t } = useI18n()
 
+const props = defineProps({ session: { type: Object, default: null } })
 const emit = defineEmits(['logout'])
 const toast = useToast()
 
@@ -463,6 +472,46 @@ const watermarkText = ref('')
 const numberUp = ref(1)
 const numberUpLayout = ref('lrtb')
 const pageBorder = ref('none')
+
+// ─── 打印参数记忆与预置（issue #128） ─────────────────────
+// 「上次设置」存 localStorage（跟随设备，guest 也可用），命名预置存服务端。
+const settingRefs = {
+  isColor, invert, compressImages, duplex, orientation, copies, paperSize, paperType, mediaSource,
+  printScaling, scalePercent, pageSet, mirror, photoDateWatermark, watermarkText, numberUp, numberUpLayout, pageBorder
+}
+// guest 为多人共享账号，预置会互相覆盖，只保留「恢复默认」。
+const canManagePresets = computed(() => !!props.session && props.session.username !== 'guest')
+// 递增后 PrinterMediaOptions 按当前纸张重新匹配本打印机的驱动选项。
+const driverRematchKey = ref(0)
+
+function currentPrintSettings(options) {
+  const values = Object.fromEntries(Object.entries(settingRefs).map(([key, r]) => [key, r.value]))
+  return snapshotPrintSettings({ ...values, printerUri: printer.value, driverOptions: driverOptions.value }, options)
+}
+
+// 缺失或非法字段一律回到出厂默认，保证套用后表单是一组完整、合法的参数。
+function applyPrintSettings(raw) {
+  const settings = { ...DEFAULT_PRINT_SETTINGS, ...sanitizePrintSettings(raw) }
+  for (const [key, r] of Object.entries(settingRefs)) r.value = settings[key]
+  const trays = printerInfo.value?.mediaSourceSupported
+  if (settings.mediaSource !== 'auto' && trays && !trays.includes(settings.mediaSource)) mediaSource.value = 'auto'
+  // 驱动选项的 attribute/value 只对保存时那台打印机有效，换打印机时按纸张重新匹配。
+  if (settings.printerUri && settings.printerUri === printer.value) {
+    driverOptions.value = settings.driverOptions
+  } else {
+    driverOptions.value = {}
+    driverRematchKey.value++
+  }
+}
+
+function resetPrintSettings() {
+  pageRange.value = ''
+  applyPrintSettings({})
+}
+
+function rememberPrintSettings() {
+  if (printMode.value === 'standard') writeLastPrintSettings(currentPrintSettings({ includeWatermark: false }))
+}
 
 // ─── 打印模式 ─────────────────────────────────────────────
 const printMode = ref(readPreference('print_mode') || 'standard')
@@ -1028,6 +1077,7 @@ async function uploadAndPrintBatch() {
       icon: failCount > 0 ? 'i-lucide-alert-triangle' : 'i-lucide-check-circle'
     })
     writePreference('last_printer', printer.value)
+    rememberPrintSettings()
     await loadPrintRecords()
   }
   batchPrinting.value = false
@@ -1207,6 +1257,7 @@ async function uploadAndPrint() {
       icon: 'i-lucide-check-circle'
     })
     writePreference('last_printer', printer.value)
+    rememberPrintSettings()
     await loadPrintRecords()
   } catch (e) {
     toast.add({ title: t('ui.printing_failed_2'), description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
@@ -1379,9 +1430,7 @@ function switchMode(mode) {
     paperSize.value = 'A4'
     driverOptions.value = { ...driverOptions.value, pageSize: undefined }
   } else {
-    isColor.value = true
-    printScaling.value = 'auto'
-    scalePercent.value = 100
+    applyPrintSettings(readLastPrintSettings())
   }
 }
 
@@ -1506,7 +1555,11 @@ let printerInfoTimer = null
 
 // ─── 生命周期 ─────────────────────────────────────────────
 onMounted(async () => {
+  // 先套用上次设置避免默认值闪烁；驱动选项要等打印机确定后才能判断是否同一台。
+  const last = printMode.value === 'standard' ? readLastPrintSettings() : null
+  if (last) applyPrintSettings(last)
   await loadPrinters()
+  if (last?.printerUri && last.printerUri === printer.value) driverOptions.value = last.driverOptions
   if (printer.value) loadPrinterInfo()
 
   await loadPrintRecords()

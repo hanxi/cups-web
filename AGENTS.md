@@ -143,6 +143,9 @@ cups-web/
 | GET | `/api/api-keys` | 列出自己名下的 API 密钥（不含明文）(issue #113) |
 | POST | `/api/api-keys` | 生成新密钥，明文仅此响应返回一次；仅浏览器 session 可调 |
 | DELETE | `/api/api-keys/{id}` | 删除自己名下的密钥；仅浏览器 session 可调 |
+| GET | `/api/print-presets` | 列出自己的打印预置（issue #128）；guest 403 |
+| POST | `/api/print-presets` | 新建 `{name, settings}`，同名 409，每人上限 20 |
+| PUT/DELETE | `/api/print-presets/{id}` | 改名 / 覆盖参数（字段可选）/ 删除，仅限本人 |
 
 #### 扫描异步任务要点(issue #111)
 
@@ -283,6 +286,20 @@ SQLite，`WAL` + `foreign_keys`；迁移在 `store.go::migrate()` 中用幂等 S
 ### `settings`
 
 KV 表。当前键：`retention_days`（`0` = 永久）、`session_hash_key` / `session_block_key`。
+
+### `print_presets`（issue #128）
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `id` | INTEGER PK | 自增 |
+| `user_id` | INTEGER FK | 归属用户（级联删除） |
+| `name` | TEXT | 名称，`UNIQUE(user_id, name)`，1–64 字符 |
+| `settings_json` | TEXT | 前端参数快照，JSON 对象 ≤16KB |
+| `created_at` / `updated_at` | TEXT | RFC3339 UTC |
+
+- 「上次设置」只存浏览器 localStorage `print_settings_last`（标准模式打印成功后写入，不含水印文字与页码范围），命名预置才落库；guest 共享账号禁用预置。
+- 服务端只校验「JSON 对象 + 大小」，字段白名单在 `frontend/src/utils/print-settings.js::sanitizePrintSettings`，套用时缺失/非法字段回到出厂默认；真正的可信校验仍在 `/api/print`。新增打印参数时记得同步白名单与 `DEFAULT_PRINT_SETTINGS`。
+- 🚫 `driverOptions` 是队列私有的 attribute/value，快照里与 `printerUri` 成对保存，只在同一台打印机上恢复；换打印机时清空并递增 `driverRematchKey`，由 `PrinterMediaOptions` 按纸张重新匹配，不能跨队列直接套用（`/api/print` 会拒绝）。
 
 ### 照片定时队列（issue #121）
 

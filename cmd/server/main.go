@@ -156,6 +156,12 @@ func main() {
 	protected.HandleFunc("/scan/records/{id:[0-9]+}/file", scanDownloadHandler).Methods("GET")
 	protected.HandleFunc("/scan/records/{id:[0-9]+}", scanDeleteRecordHandler).Methods("DELETE")
 
+	// 打印预置（issue #128）：按用户保存多组打印参数，guest 在 handler 内拒绝。
+	protected.HandleFunc("/print-presets", printPresetListHandler).Methods("GET")
+	protected.HandleFunc("/print-presets", printPresetCreateHandler).Methods("POST")
+	protected.HandleFunc("/print-presets/{id:[0-9]+}", printPresetUpdateHandler).Methods("PUT")
+	protected.HandleFunc("/print-presets/{id:[0-9]+}", printPresetDeleteHandler).Methods("DELETE")
+
 	// API 密钥自服务（issue #113）：登录用户管理自己名下的密钥。创建 / 删除
 	// 已在 handler 内禁止 API Key 通道调用（避免密钥自繁殖）。
 	protected.HandleFunc("/api-keys", apiKeyListHandler).Methods("GET")

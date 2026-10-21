@@ -1362,5 +1362,41 @@
   {
     "key": "api.guest_accounts_cannot_use_api_keys_2",
     "pattern": "^guest api key$"
+  },
+  {
+    "key": "api.print_presets_unavailable_for_guests",
+    "pattern": "^访客模式不支持打印预置$"
+  },
+  {
+    "key": "api.preset_name_required",
+    "pattern": "^预置名称不能为空$"
+  },
+  {
+    "key": "api.preset_name_too_long",
+    "pattern": "^预置名称过长$"
+  },
+  {
+    "key": "api.preset_settings_required",
+    "pattern": "^预置参数不能为空$"
+  },
+  {
+    "key": "api.preset_settings_too_large",
+    "pattern": "^预置参数过大$"
+  },
+  {
+    "key": "api.preset_settings_invalid",
+    "pattern": "^预置参数格式无效$"
+  },
+  {
+    "key": "api.preset_not_found",
+    "pattern": "^预置不存在$"
+  },
+  {
+    "key": "api.preset_name_exists",
+    "pattern": "^已存在同名预置$"
+  },
+  {
+    "key": "api.preset_limit_reached",
+    "pattern": "^已达到预置数量上限$"
   }
 ]

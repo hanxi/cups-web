@@ -34,6 +34,7 @@ declare module 'vue' {
     UPrinterMediaOptions: typeof import('./src/components/print/PrinterMediaOptions.vue')['default']
     UPrinterStatus: typeof import('./src/components/print/PrinterStatus.vue')['default']
     UPrintOptions: typeof import('./src/components/print/PrintOptions.vue')['default']
+    UPrintPresets: typeof import('./src/components/print/PrintPresets.vue')['default']
     UPrintPreview: typeof import('./src/components/print/PrintPreview.vue')['default']
     UPrintRecordList: typeof import('./src/components/print/PrintRecordList.vue')['default']
     URadioGroup: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/RadioGroup.vue')['default']

@@ -1,8 +1,12 @@
 <template>
   <UCard>
     <template #header>
-      <div class="flex items-center gap-2 font-semibold">
-        <UIcon name="i-lucide-settings-2" class="w-5 h-5" /> {{ t('ui.print_settings') }} </div>
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 font-semibold">
+          <UIcon name="i-lucide-settings-2" class="w-5 h-5" /> {{ t('ui.print_settings') }} </div>
+        <!-- 打印页放预置入口（issue #128）；重打对话框复用本组件时不提供 -->
+        <slot name="header-actions" />
+      </div>
     </template>
     <div class="space-y-4">
       <!-- ═══ 基础选项（始终显示） ═══ -->
@@ -71,7 +75,7 @@
           v-show="showAdvanced"
         >
           <div class="space-y-4 pt-3">
-            <PrinterMediaOptions :printer-uri="printerUri" :driver-options="driverOptions"
+            <PrinterMediaOptions :printer-uri="printerUri" :driver-options="driverOptions" :rematch-key="driverRematchKey"
               :paper-size="paperSize" :paper-type="paperType" :paper-size-items="paperSizeItems" :paper-type-items="paperTypeItems"
               @update:driver-options="$emit('update:driverOptions', $event)"
               @update:paper-size="$emit('update:paperSize', $event)" @update:paper-type="$emit('update:paperType', $event)" />
@@ -212,7 +216,8 @@ const props = defineProps({
   numberUp: { type: Number, default: 1 },
   numberUpLayout: { type: String, default: 'lrtb' },
   pageBorder: { type: String, default: 'none' },
-  printing: { type: Boolean, default: false }
+  printing: { type: Boolean, default: false },
+  driverRematchKey: { type: Number, default: 0 }
 })
 
 const emit = defineEmits([

@@ -33,7 +33,10 @@ const props = defineProps({
   paperSize: { type: String, default: 'A4' },
   paperType: { type: String, default: 'plain' },
   paperSizeItems: { type: Array, default: () => [] },
-  paperTypeItems: { type: Array, default: () => [] }
+  paperTypeItems: { type: Array, default: () => [] },
+  // 递增即按当前纸张重新匹配驱动选项：套用来自其他打印机的预置、恢复默认时，
+  // 旧驱动选项已清空，而本队列选项早已加载完，不会再走 load() 的匹配（issue #128）。
+  rematchKey: { type: Number, default: 0 }
 })
 const emit = defineEmits(['update:driverOptions', 'update:paperSize', 'update:paperType'])
 const options = ref(null)
@@ -94,22 +97,25 @@ async function load(force = false, reset = false) {
       if (saved) next[group] = data[field]?.find(c => choiceID(c) === choiceID(saved)) || saved
     }
     // Preserve saved selections, including choices removed by a changed driver.
-    if (!next.pageSize && data.paperSizes?.length) {
-      const dim = paperDimensions(props.paperSize)
-      next.pageSize = data.paperSizes.find(c => !c.borderless && dim && Math.abs(c.widthMM - dim.width) < 0.5 && Math.abs(c.heightMM - dim.height) < 0.5) || data.defaults?.pageSize || data.paperSizes[0]
-    }
-    if (!next.mediaType && data.mediaTypes?.length && props.paperType !== 'auto') {
-      const aliases = { plain: 'stationery', photo: 'photographic', glossy: 'photographic-glossy', matte: 'photographic-matte' }
-      const match = data.mediaTypes.find(c => c.value === aliases[props.paperType] || c.value.toLowerCase() === props.paperType.toLowerCase())
-      if (match) next.mediaType = match
-    }
-    if (next.pageSize) emit('update:paperSize', `custom:${next.pageSize.widthMM}x${next.pageSize.heightMM}`)
-    emit('update:driverOptions', next)
+    applyDefaults(data, next)
   } catch (e) {
     if (version === requestVersion) error.value = e.message || t('ui.could_not_load_refresh_to_try_again')
   } finally {
     if (version === requestVersion) loading.value = false
   }
+}
+function applyDefaults(data, next) {
+  if (!next.pageSize && data.paperSizes?.length) {
+    const dim = paperDimensions(props.paperSize)
+    next.pageSize = data.paperSizes.find(c => !c.borderless && dim && Math.abs(c.widthMM - dim.width) < 0.5 && Math.abs(c.heightMM - dim.height) < 0.5) || data.defaults?.pageSize || data.paperSizes[0]
+  }
+  if (!next.mediaType && data.mediaTypes?.length && props.paperType !== 'auto') {
+    const aliases = { plain: 'stationery', photo: 'photographic', glossy: 'photographic-glossy', matte: 'photographic-matte' }
+    const match = data.mediaTypes.find(c => c.value === aliases[props.paperType] || c.value.toLowerCase() === props.paperType.toLowerCase())
+    if (match) next.mediaType = match
+  }
+  if (next.pageSize) emit('update:paperSize', `custom:${next.pageSize.widthMM}x${next.pageSize.heightMM}`)
+  emit('update:driverOptions', next)
 }
 watch(() => props.printerUri, (uri, previous) => {
   const reset = !!previous && uri !== previous
@@ -127,6 +133,10 @@ watch(() => props.paperSize, (size) => {
   const next = { ...props.driverOptions }
   next.pageSize = choices('pageSize').find(c => !c.borderless && Math.abs(c.widthMM - dim.width) < 0.5 && Math.abs(c.heightMM - dim.height) < 0.5)
   emit('update:driverOptions', next)
+})
+// 选项仍在加载时不处理：load() 返回后会对已清空的驱动选项做同样的匹配。
+watch(() => props.rematchKey, () => {
+  if (options.value) applyDefaults(options.value, {})
 })
 onUnmounted(() => { requestVersion++ })
 </script>
