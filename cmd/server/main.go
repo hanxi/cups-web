@@ -123,6 +123,7 @@ func main() {
 	protected.HandleFunc("/convert", convertHandler).Methods("POST")
 	protected.HandleFunc("/compose", composeHandler).Methods("POST")
 	protected.HandleFunc("/estimate", estimateHandler).Methods("POST")
+	protected.HandleFunc("/preview-page", previewPageHandler).Methods("POST")
 	protected.HandleFunc("/print-records", printRecordsHandler).Methods("GET")
 	protected.HandleFunc("/print-records/{id:[0-9]+}/file", printRecordFileHandler).Methods("GET")
 	protected.HandleFunc("/print-records/{id:[0-9]+}/reprint", reprintHandler).Methods("POST")

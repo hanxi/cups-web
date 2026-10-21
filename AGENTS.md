@@ -63,6 +63,7 @@ cups-web/
 │   ├── convert_utils.go           # LibreOffice / OFD 转换工具
 │   ├── compose_handler.go         # /api/compose（多页拼版）
 │   ├── estimate_handler.go        # /api/estimate（预估页数）
+│   ├── preview_handler.go         # /api/preview-page（预览兜底：PDF 单页 → PNG）
 │   ├── driver_handlers.go         # /api/admin/drivers/* + 后台任务
 │   ├── driver_registry.go         # 驱动注册表
 │   ├── file_utils.go              # 文件保存 / 类型识别 / 页数
@@ -121,6 +122,7 @@ cups-web/
 | GET | `/api/printer-options?uri=<uri>&force=1` | 驱动纸张 / 介质 / 质量选项，force 可选 |
 | POST | `/api/estimate` | 估算页数 |
 | POST | `/api/convert` | 文档 → PDF（单文件 `file` / 多图 `files`） |
+| POST | `/api/preview-page` | PDF 单页渲染为 PNG（`file` + `page`，响应头 `X-Page-Count`），浏览器 pdf.js 加载失败时的预览兜底 |
 | POST | `/api/print` | 提交打印 |
 | POST | `/api/compose` | 多页拼版 |
 | GET/POST | `/api/scheduled-prints` | 定时任务列表 / 创建 |

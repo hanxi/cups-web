@@ -10,7 +10,8 @@
     <div v-show="!loading && !error" class="relative w-full h-full flex items-center justify-center">
       <!-- 自定义缩放只作用于画布本身，翻页控件留在外层不跟着缩小 -->
       <div class="relative w-full h-full flex items-center justify-center transition-transform duration-200" :style="contentScaleStyle">
-        <canvas ref="canvas" class="max-w-full max-h-full" />
+        <canvas v-show="!fallbackMode" ref="canvas" class="max-w-full max-h-full" />
+        <img v-if="fallbackMode && fallbackImgUrl" ref="fallbackImg" :src="fallbackImgUrl" :alt="t('accessibility.preview')" class="max-w-full max-h-full" @load="drawWatermark" />
         <canvas ref="watermarkCanvas" class="absolute top-0 left-0 pointer-events-none" />
       </div>
       <div v-if="totalPages > 1 && !loading && !error" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex flex-nowrap items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 bg-black/40 rounded-full w-max max-w-[90%] whitespace-nowrap" style="backdrop-filter: blur(4px)">
@@ -25,12 +26,12 @@
 <script setup>
 import { useI18n } from 'vue-i18n'
 import { ref, computed, onMounted, watch, onUnmounted, nextTick } from 'vue'
-import * as pdfjsLib from 'pdfjs-dist'
+// legacy 构建内置 core-js polyfill，兼容 iOS 旧版 Safari、Kiwi 等旧内核浏览器（issue #41/#86/#89）。
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs'
+import pdfjsWorker from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'
+import { apiFetch } from '../../utils/api.js'
 
 const { t } = useI18n()
-// 用包装过的 worker（内联了 Uint8Array base64/hex polyfill），修复旧内核浏览器
-// 在 worker 内调用 toHex 计算 fingerprints 时 `a.toHex is not a function` 导致预览失败（Issue #86）。
-import pdfjsWorker from '../../polyfills/pdf-worker.js?worker&url'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker
 
@@ -74,13 +75,84 @@ let lastHeight = 0
 // 规则：renderPdf 入口自增 token，仅当捕获异常时 token 仍为当前值才写状态；过期请求静默丢弃。
 let requestToken = 0
 
+// pdf.js 加载失败时改由后端 /api/preview-page 把单页渲染成 PNG 显示（issue #41）。
+const fallbackMode = ref(false)
+const fallbackImgUrl = ref('')
+const fallbackImg = ref(null)
+let fallbackBlob = null
+let fallbackPages = new Map()
+
+function resetFallback() {
+  fallbackMode.value = false
+  fallbackImgUrl.value = ''
+  fallbackBlob = null
+  for (const url of fallbackPages.values()) URL.revokeObjectURL(url)
+  fallbackPages = new Map()
+}
+
+async function fetchFallbackPage(pageNum) {
+  const form = new FormData()
+  form.append('file', fallbackBlob, 'preview.pdf')
+  form.append('page', String(pageNum))
+  const resp = await apiFetch('/api/preview-page', { method: 'POST', body: form })
+  if (!resp.ok) throw new Error(`preview-page HTTP ${resp.status}`)
+  const count = Number(resp.headers.get('X-Page-Count')) || 0
+  return { url: URL.createObjectURL(await resp.blob()), count }
+}
+
+async function showFallbackPage(pageNum, token) {
+  let url = fallbackPages.get(pageNum)
+  if (!url) {
+    const res = await fetchFallbackPage(pageNum)
+    if (token !== requestToken) {
+      URL.revokeObjectURL(res.url)
+      return
+    }
+    // 快速来回翻页时同一页可能并发请求两次，保留先到的那份
+    if (fallbackPages.has(pageNum)) {
+      URL.revokeObjectURL(res.url)
+    } else {
+      fallbackPages.set(pageNum, res.url)
+    }
+    url = fallbackPages.get(pageNum)
+  }
+  if (token === requestToken && currentPage.value === pageNum) fallbackImgUrl.value = url
+}
+
+async function startFallback(token) {
+  const srcResp = await fetch(props.src)
+  if (!srcResp.ok) throw new Error(`fetch preview source HTTP ${srcResp.status}`)
+  const blob = await srcResp.blob()
+  if (token !== requestToken) return
+
+  fallbackBlob = blob
+  const res = await fetchFallbackPage(1)
+  if (token !== requestToken) {
+    URL.revokeObjectURL(res.url)
+    return
+  }
+  fallbackPages.set(1, res.url)
+  totalPages.value = res.count || 1
+  currentPage.value = 1
+  fallbackMode.value = true
+  fallbackImgUrl.value = res.url
+  loading.value = false
+}
+
 function drawWatermark() {
   const wc = watermarkCanvas.value
-  const pc = canvas.value
-  if (!wc || !pc) return
+  if (!wc) return
 
-  const cssW = parseFloat(pc.style.width)
-  const cssH = parseFloat(pc.style.height)
+  let cssW, cssH
+  if (fallbackMode.value) {
+    // clientWidth 不受 contentScale 的 CSS transform 影响，和画布分支的 style 尺寸口径一致
+    cssW = fallbackImg.value?.clientWidth
+    cssH = fallbackImg.value?.clientHeight
+  } else {
+    if (!canvas.value) return
+    cssW = parseFloat(canvas.value.style.width)
+    cssH = parseFloat(canvas.value.style.height)
+  }
   if (!cssW || !cssH) return
 
   const dpr = window.devicePixelRatio || 1
@@ -179,6 +251,7 @@ async function renderPdf() {
 
   loading.value = true
   error.value = false
+  resetFallback()
 
   try {
     if (renderTask) {
@@ -223,23 +296,38 @@ async function renderPdf() {
     if (e?.name === 'RenderingCancelledException') return
     // 过期请求的失败不污染最新状态（常见于 blob URL 在第一次 fetch 进行中被 revoke）
     if (myToken !== requestToken) return
-    console.error('PDF render error:', e)
+    console.error('PDF render error, falling back to server rendering:', e)
+    try {
+      await startFallback(myToken)
+      return
+    } catch (fallbackErr) {
+      if (myToken !== requestToken) return
+      console.error('Server preview fallback failed:', fallbackErr)
+    }
+    resetFallback()
     error.value = true
     loading.value = false
     emit('preview-failed', e)
   }
 }
 
+function goToPage(pageNum) {
+  currentPage.value = pageNum
+  if (!fallbackMode.value) {
+    renderPage(pageNum)
+    return
+  }
+  showFallbackPage(pageNum, requestToken).catch(e => console.error('Server preview page failed:', e))
+}
+
 function prevPage() {
   if (currentPage.value <= 1) return
-  currentPage.value--
-  renderPage(currentPage.value)
+  goToPage(currentPage.value - 1)
 }
 
 function nextPage() {
   if (currentPage.value >= totalPages.value) return
-  currentPage.value++
-  renderPage(currentPage.value)
+  goToPage(currentPage.value + 1)
 }
 
 watch(() => props.src, () => {
@@ -253,7 +341,7 @@ watch(() => props.watermarkText, () => {
 })
 
 watch(superSample, () => {
-  if (pdfDoc && currentPage.value > 0 && !loading.value) renderPage(currentPage.value)
+  if (!fallbackMode.value && pdfDoc && currentPage.value > 0 && !loading.value) renderPage(currentPage.value)
 })
 
 onMounted(() => {
@@ -267,7 +355,9 @@ onMounted(() => {
     if (Math.abs(width - lastWidth) > 1 || Math.abs(height - lastHeight) > 1) {
       lastWidth = width
       lastHeight = height
-      if (pdfDoc && currentPage.value > 0 && !loading.value) {
+      if (fallbackMode.value) {
+        drawWatermark()
+      } else if (pdfDoc && currentPage.value > 0 && !loading.value) {
         renderPage(currentPage.value)
       }
     }
@@ -290,5 +380,8 @@ onUnmounted(() => {
     pdfDoc.destroy()
     pdfDoc = null
   }
+  // 让仍在进行中的兜底请求作废，避免卸载后再写入状态或泄漏 object URL
+  requestToken++
+  resetFallback()
 })
 </script>
