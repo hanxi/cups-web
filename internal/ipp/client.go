@@ -20,7 +20,8 @@ import (
 type PrintJobOptions struct {
 	DriverOptions DriverOptions
 
-	IsDuplex     bool   // true = two-sided-long-edge, false = one-sided
+	Sides        string // explicit IPP sides keyword; takes precedence over IsDuplex
+	IsDuplex     bool   // legacy fallback: true = long-edge, false = one-sided
 	IsColor      bool   // true = color, false = monochrome
 	Copies       int    // number of copies, 0 or 1 means 1
 	Orientation  string // "portrait" | "landscape"
@@ -43,7 +44,11 @@ type PrintJobOptions struct {
 // IPP Print-Job request. It returns a human-readable status or job identifier
 // when available.
 func SendPrintJob(printerURI string, r io.Reader, mime string, username string, jobName string, opts PrintJobOptions) (string, error) {
-	printerURI, err := printerRequestURI(printerURI)
+	sides, err := ResolveSides(opts.Sides, opts.IsDuplex)
+	if err != nil {
+		return "", err
+	}
+	printerURI, err = printerRequestURI(printerURI)
 	if err != nil {
 		return "", err
 	}
@@ -66,21 +71,9 @@ func SendPrintJob(printerURI string, r io.Reader, mime string, username string, 
 	}
 	req.Operation.Add(goipp.MakeAttribute("document-format", goipp.TagMimeType, goipp.String(mime)))
 
-	// Duplex
-	// page-set=odd/even/even-reverse 都是"手动双面"用法（先打奇数，翻纸再打偶数），
-	// 语义上必然是单面输出。若同时传 sides=two-sided-*，CUPS pdftopdf 会保留原页序
-	// 并用空白页填补被过滤掉的页，产生"间隔空白页"（issue #109）。这里强制退回单面
-	// 作防御——正常调用方（cmd/server 的 handlers）已在业务层保证 IsDuplex=false，
-	// 这里额外兜住外部直接调用 ipp 包的场景。
-	isDuplex := opts.IsDuplex
-	if set := normalizePageSet(opts.PageSet); set == "odd" || set == "even" || set == "even-reverse" {
-		isDuplex = false
-	}
-	if isDuplex {
-		req.Job.Add(goipp.MakeAttribute("sides", goipp.TagKeyword, goipp.String("two-sided-long-edge")))
-	} else {
-		req.Job.Add(goipp.MakeAttribute("sides", goipp.TagKeyword, goipp.String("one-sided")))
-	}
+	// Keep manual duplex single-sided even for direct callers (issue #109).
+	sides = SidesForPageSet(sides, opts.PageSet)
+	req.Job.Add(goipp.MakeAttribute("sides", goipp.TagKeyword, goipp.String(sides)))
 
 	// Color mode
 	if opts.IsColor {

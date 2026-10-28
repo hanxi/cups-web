@@ -394,7 +394,8 @@ const orientationItems = computed(() => [
 ])
 const duplexItems = computed(() => ([
   { value: 'one-sided', label: t('ui.single_sided') },
-  { value: 'two-sided-long-edge', label: t('ui.double_sided_long_edge') }
+  { value: 'two-sided-long-edge', label: t('ui.double_sided_long_edge') },
+  { value: 'two-sided-short-edge', label: t('ui.double_sided_short_edge_binding') }
 ]))
 const colorItems = computed(() => ([
   { value: 'color', label: t('ui.colour_2') },
@@ -515,7 +516,7 @@ function openEdit(rec) {
     scheduleWeekday: rec.scheduleWeekday,
     scheduleDay: rec.scheduleDay || 1,
     copies: rec.copies || 1,
-    duplex: rec.isDuplex ? 'two-sided-long-edge' : 'one-sided',
+    duplex: rec.sides || (rec.isDuplex ? 'two-sided-long-edge' : 'one-sided'),
     color: rec.isColor ? 'color' : 'monochrome',
     paperSize: rec.paperSize || 'A4',
     driverOptions: rec.driverOptions || {}, photosPerRun: rec.photosPerRun || 1,
@@ -608,7 +609,8 @@ async function createNew(v) {
   fd.append('name', v.name)
   fd.append('printer', v.printerUri)
   fd.append('copies', String(v.copies))
-  fd.append('duplex', v.duplex === 'two-sided-long-edge' ? 'true' : 'false')
+  fd.append('sides', v.duplex)
+  fd.append('duplex', v.duplex !== 'one-sided' ? 'true' : 'false')
   fd.append('color', v.color === 'color' ? 'true' : 'false')
   fd.append('orientation', v.orientation)
   fd.append('paper_size', v.paperSize)
@@ -643,7 +645,8 @@ async function saveEdit(v) {
     loop: v.loop,
     startDate: v.scheduleType === 'once' ? '' : v.startDate,
     printerUri: v.printerUri,
-    isDuplex: v.duplex === 'two-sided-long-edge',
+    sides: v.duplex,
+    isDuplex: v.duplex !== 'one-sided',
     isColor: v.color === 'color',
     copies: v.copies,
     orientation: v.orientation,
@@ -714,6 +717,7 @@ function buildPayloadFromRecord(rec, overrides = {}) {
     loop: rec.loop || false, startDate: rec.startDate || '',
     printerUri: rec.printerUri,
     enabled: rec.enabled,
+    sides: rec.sides || (rec.isDuplex ? 'two-sided-long-edge' : 'one-sided'),
     isDuplex: rec.isDuplex,
     isColor: rec.isColor,
     copies: rec.copies || 1,

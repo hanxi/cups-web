@@ -255,6 +255,12 @@ func (s *Store) migrate(ctx context.Context) error {
 			return err
 		}
 	}
+	// Issue #129: empty sides preserves the legacy boolean meaning on old rows.
+	for _, table := range []string{"print_jobs", "scheduled_prints"} {
+		if err := addColumnIfMissing(ctx, s.DB, table, "sides TEXT NOT NULL DEFAULT ''"); err != nil {
+			return err
+		}
+	}
 	// 完整打印参数落库，供「重新打印」精确预填第一次的每一项设置（Issue #68）。
 	// 旧库热升级：老记录这些列取默认值，重打时即退化为合理默认。
 	printJobOptionCols := []string{

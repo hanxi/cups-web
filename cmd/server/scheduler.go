@@ -98,6 +98,11 @@ func persistScheduledResult(s *store.Store, id int64, lastRunAt, lastStatus, las
 // 避免依赖 HTTP request 上下文。返回值 status ∈ {printed, failed}。
 func executeScheduled(s *store.Store, uploads string, task store.ScheduledPrint) (string, error) {
 	ctx := context.Background()
+	sides, err := ipp.ResolveSides(task.Sides, task.IsDuplex)
+	if err != nil {
+		return "failed", err
+	}
+	sides = ipp.SidesForPageSet(sides, task.PageSet)
 	driverOpts, err := ipp.ResolveDriverOptions(ctx, task.PrinterURI, task.DriverOptions)
 	if err != nil {
 		return "failed", err
@@ -234,10 +239,7 @@ func executeScheduled(s *store.Store, uploads string, task store.ScheduledPrint)
 		}
 	}
 
-	isDuplex := task.IsDuplex
-	if task.PageSet == "odd" || task.PageSet == "even" || task.PageSet == "even-reverse" {
-		isDuplex = false
-	}
+	isDuplex := sides != ipp.SidesOneSided
 
 	recordStoredPath := task.StoredPath
 	var recordPhotoLayout store.PhotoLayout
@@ -278,6 +280,7 @@ func executeScheduled(s *store.Store, uploads string, task store.ScheduledPrint)
 			PhotoLayout: recordPhotoLayout, RenderedPath: renderedRel,
 			Pages:    pages,
 			Status:   "queued",
+			Sides:    sides,
 			IsDuplex: isDuplex,
 			IsColor:  task.IsColor,
 
@@ -329,6 +332,7 @@ func executeScheduled(s *store.Store, uploads string, task store.ScheduledPrint)
 
 	printOpts := ipp.PrintJobOptions{
 		DriverOptions: task.DriverOptions,
+		Sides:         sides,
 		IsDuplex:      isDuplex,
 		IsColor:       task.IsColor,
 		Copies:        task.Copies,

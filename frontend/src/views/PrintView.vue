@@ -1038,6 +1038,7 @@ async function uploadAndPrintBatch() {
       if (isPhotoFile(file)) appendPhotoUploads(form, [file])
       else form.append('file', fileToSend, fileToSend.name)
       form.append('printer', printer.value)
+      form.append('sides', duplex.value)
       form.append('duplex', duplex.value === 'one-sided' ? 'false' : 'true')
       form.append('color', isColor.value ? 'true' : 'false')
       form.append('copies', String(copies.value))
@@ -1220,6 +1221,7 @@ async function uploadAndPrint() {
     form.append('file', actualFile, pdfBlob.value ? (downloadName.value || 'document.pdf') : selectedFile.value.name)
   }
   form.append('printer', printer.value)
+  form.append('sides', duplex.value)
   form.append('duplex', duplex.value === 'one-sided' ? 'false' : 'true')
   form.append('color', isColor.value ? 'true' : 'false')
   form.append('copies', String(copies.value))
@@ -1291,6 +1293,7 @@ async function handleReprint(payload) {
       method: 'POST',
       body: JSON.stringify({
         printer: payload.printer,
+        sides: payload.sides,
         duplex: payload.duplex,
         color: payload.color,
         copies: payload.copies,

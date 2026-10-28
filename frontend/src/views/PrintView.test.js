@@ -37,6 +37,7 @@ test('single, combined and batch photos submit originals even when a PDF preview
       state.printer.value = 'http://localhost:631/printers/photo'
       state.selectedFile.value = original
       state.photoDateWatermark.value = true
+      state.duplex.value = 'two-sided-short-edge'
       if (mode === 'combined') {
         state.selectedImages.value = [original, original]
         state.imageRotations.value = [0, 90]
@@ -64,6 +65,8 @@ test('single, combined and batch photos submit originals even when a PDF preview
       const prints = requests.filter(r => r.url === '/api/print')
       assert.equal(prints.length, 1, mode)
       const body = prints[0].options.body
+      assert.equal(body.get('sides'), 'two-sided-short-edge')
+      assert.equal(body.get('duplex'), 'true')
       const photos = body.getAll(mode === 'combined' ? 'files' : 'file')
       assert.equal(photos.length, mode === 'combined' ? 2 : 1)
       for (const photo of photos) {
@@ -75,6 +78,10 @@ test('single, combined and batch photos submit originals even when a PDF preview
         assert.equal(body.get('per_page'), '2')
       }
       assert.equal(body.get('photo_date_watermark'), 'true')
+      await state.handleReprint({ id: 1, printer: state.printer.value, sides: 'two-sided-short-edge', duplex: true })
+      const reprint = requests.find(r => r.url === '/api/print-records/1/reprint')
+      assert.ok(reprint)
+      assert.equal(JSON.parse(reprint.options.body).sides, 'two-sided-short-edge')
     } finally {
       state.clearFile()
       scope.stop()

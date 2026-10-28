@@ -19,7 +19,7 @@ const component = runInNewContext(compiled
 
 test('manual duplex page selection preserves the photo date setting', () => {
   for (const photoDateWatermark of [false, true]) {
-    for (const duplex of ['one-sided', 'two-sided-long-edge']) {
+    for (const duplex of ['one-sided', 'two-sided-long-edge', 'two-sided-short-edge']) {
       for (const pageSet of ['all', 'odd', 'even', 'even-reverse']) {
         const props = reactive(Object.fromEntries(Object.entries(component.props).map(([key, value]) =>
           [key, typeof value.default === 'function' ? value.default() : value.default])))

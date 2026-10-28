@@ -46,6 +46,7 @@ type ScheduledPrint struct {
 	Filename      string
 	StoredPath    string
 
+	Sides              string
 	IsDuplex           bool
 	IsColor            bool
 	Copies             int
@@ -86,7 +87,7 @@ type ScheduledPrint struct {
 }
 
 const scheduledPrintColumns = `s.id, s.user_id, u.username, s.name, s.printer_uri, s.filename, s.stored_path,
-	s.is_duplex, s.is_color, s.copies, s.orientation, s.paper_size, s.paper_type, s.media_source, s.print_scaling,
+	s.is_duplex, s.sides, s.is_color, s.copies, s.orientation, s.paper_size, s.paper_type, s.media_source, s.print_scaling,
 	s.page_range, s.page_set, s.mirror, s.watermark_text, s.photo_date_watermark, s.number_up, s.number_up_layout, s.page_border,
 	s.schedule_type, s.schedule_time, s.schedule_weekday, s.schedule_day,
 	s.run_at, s.next_run_at, s.last_run_at, s.last_status, s.last_error, s.enabled,
@@ -97,7 +98,7 @@ func scanScheduledPrint(sc scanner) (ScheduledPrint, error) {
 	var filesJSON, historyJSON, driverJSON string
 	err := sc.Scan(
 		&rec.ID, &rec.UserID, &rec.Username, &rec.Name, &rec.PrinterURI, &rec.Filename, &rec.StoredPath,
-		&rec.IsDuplex, &rec.IsColor, &rec.Copies, &rec.Orientation, &rec.PaperSize, &rec.PaperType, &rec.MediaSource, &rec.PrintScaling,
+		&rec.IsDuplex, &rec.Sides, &rec.IsColor, &rec.Copies, &rec.Orientation, &rec.PaperSize, &rec.PaperType, &rec.MediaSource, &rec.PrintScaling,
 		&rec.PageRange, &rec.PageSet, &rec.Mirror, &rec.WatermarkText, &rec.PhotoDateWatermark, &rec.NumberUp, &rec.NumberUpLayout, &rec.PageBorder,
 		&rec.ScheduleType, &rec.ScheduleTime, &rec.ScheduleWeekday, &rec.ScheduleDay,
 		&rec.RunAt, &rec.NextRunAt, &rec.LastRunAt, &rec.LastStatus, &rec.LastError, &rec.Enabled,
@@ -106,6 +107,11 @@ func scanScheduledPrint(sc scanner) (ScheduledPrint, error) {
 	if err != nil {
 		return rec, err
 	}
+	rec.Sides, err = ipp.ResolveSides(rec.Sides, rec.IsDuplex)
+	if err != nil {
+		return rec, err
+	}
+	rec.IsDuplex = rec.Sides != ipp.SidesOneSided
 	if err := json.Unmarshal([]byte(driverJSON), &rec.DriverOptions); err != nil {
 		return rec, err
 	}
@@ -120,6 +126,11 @@ func scanScheduledPrint(sc scanner) (ScheduledPrint, error) {
 
 // InsertScheduledPrint 插入一条定时任务，返回新 ID。
 func InsertScheduledPrint(ctx context.Context, tx *sql.Tx, rec *ScheduledPrint) (int64, error) {
+	sides, err := ipp.ResolveSides(rec.Sides, rec.IsDuplex)
+	if err != nil {
+		return 0, err
+	}
+	rec.Sides, rec.IsDuplex = sides, sides != ipp.SidesOneSided
 	driverJSON, err := json.Marshal(rec.DriverOptions)
 	if err != nil {
 		return 0, err
@@ -134,14 +145,14 @@ func InsertScheduledPrint(ctx context.Context, tx *sql.Tx, rec *ScheduledPrint) 
 	}
 	res, err := tx.ExecContext(ctx, `INSERT INTO scheduled_prints (
 		user_id, name, printer_uri, filename, stored_path,
-		is_duplex, is_color, copies, orientation, paper_size, paper_type, media_source, print_scaling,
+		is_duplex, sides, is_color, copies, orientation, paper_size, paper_type, media_source, print_scaling,
 		page_range, page_set, mirror, watermark_text, photo_date_watermark, number_up, number_up_layout, page_border,
 		schedule_type, schedule_time, schedule_weekday, schedule_day,
 		run_at, next_run_at, last_run_at, last_status, last_error, enabled,
 		created_at, updated_at, files_json, loop, start_date, driver_options_json, photos_per_run
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		rec.UserID, rec.Name, rec.PrinterURI, rec.Filename, rec.StoredPath,
-		rec.IsDuplex, rec.IsColor, rec.Copies, rec.Orientation, rec.PaperSize, rec.PaperType, rec.MediaSource, rec.PrintScaling,
+		rec.IsDuplex, rec.Sides, rec.IsColor, rec.Copies, rec.Orientation, rec.PaperSize, rec.PaperType, rec.MediaSource, rec.PrintScaling,
 		rec.PageRange, rec.PageSet, rec.Mirror, rec.WatermarkText, rec.PhotoDateWatermark, rec.NumberUp, rec.NumberUpLayout, rec.PageBorder,
 		rec.ScheduleType, rec.ScheduleTime, rec.ScheduleWeekday, rec.ScheduleDay,
 		rec.RunAt, rec.NextRunAt, rec.LastRunAt, rec.LastStatus, rec.LastError, rec.Enabled,
@@ -156,19 +167,24 @@ func InsertScheduledPrint(ctx context.Context, tx *sql.Tx, rec *ScheduledPrint) 
 // UpdateScheduledPrint 覆盖打印参数与调度策略。next_run_at 也一并更新，
 // 避免旧调度点仍在数据库里被扫到。
 func UpdateScheduledPrint(ctx context.Context, tx *sql.Tx, rec *ScheduledPrint) error {
+	sides, err := ipp.ResolveSides(rec.Sides, rec.IsDuplex)
+	if err != nil {
+		return err
+	}
+	rec.Sides, rec.IsDuplex = sides, sides != ipp.SidesOneSided
 	driverJSON, err := json.Marshal(rec.DriverOptions)
 	if err != nil {
 		return err
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE scheduled_prints SET
 		name = ?, printer_uri = ?,
-		is_duplex = ?, is_color = ?, copies = ?, orientation = ?, paper_size = ?, paper_type = ?, media_source = ?, print_scaling = ?,
+		is_duplex = ?, sides = ?, is_color = ?, copies = ?, orientation = ?, paper_size = ?, paper_type = ?, media_source = ?, print_scaling = ?,
 		page_range = ?, page_set = ?, mirror = ?, watermark_text = ?, photo_date_watermark = ?, number_up = ?, number_up_layout = ?, page_border = ?,
 		schedule_type = ?, schedule_time = ?, schedule_weekday = ?, schedule_day = ?,
 		run_at = ?, next_run_at = ?, enabled = ?, updated_at = ?, loop = ?, start_date = ?, next_file_index = ?, driver_options_json = ?, photos_per_run = ?
 		WHERE id = ?`,
 		rec.Name, rec.PrinterURI,
-		rec.IsDuplex, rec.IsColor, rec.Copies, rec.Orientation, rec.PaperSize, rec.PaperType, rec.MediaSource, rec.PrintScaling,
+		rec.IsDuplex, rec.Sides, rec.IsColor, rec.Copies, rec.Orientation, rec.PaperSize, rec.PaperType, rec.MediaSource, rec.PrintScaling,
 		rec.PageRange, rec.PageSet, rec.Mirror, rec.WatermarkText, rec.PhotoDateWatermark, rec.NumberUp, rec.NumberUpLayout, rec.PageBorder,
 		rec.ScheduleType, rec.ScheduleTime, rec.ScheduleWeekday, rec.ScheduleDay,
 		rec.RunAt, rec.NextRunAt, rec.Enabled, rec.UpdatedAt, rec.Loop, rec.StartDate, rec.NextFileIndex, string(driverJSON), rec.PhotosPerRun,

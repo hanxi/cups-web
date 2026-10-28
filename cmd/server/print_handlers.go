@@ -21,6 +21,7 @@ type printResp struct {
 	JobID    string `json:"jobId,omitempty"`
 	OK       bool   `json:"ok"`
 	Pages    int    `json:"pages"`
+	Sides    string `json:"sides"`
 	IsDuplex bool   `json:"isDuplex"`
 	IsColor  bool   `json:"isColor"`
 	Copies   int    `json:"copies"`
@@ -67,7 +68,12 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isDuplex := r.FormValue("duplex") == "true"
+	sides, err := ipp.ResolveSides(r.FormValue("sides"), r.FormValue("duplex") == "true")
+	if err != nil {
+		writeJSONError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	isDuplex := sides != ipp.SidesOneSided
 	isColor := r.FormValue("color") == "true"
 	photoDateWatermark := r.FormValue("photo_date_watermark") == "true"
 
@@ -353,9 +359,8 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 手动双面（奇/偶 或 偶数倒序）语义上必然单面输出：如果用户没在前端切回单面，
 	// 这里强制回落，避免 CUPS pdftopdf 用空白页填补被过滤掉的另一面（issue #109）。
-	if origPageSet == "odd" || origPageSet == "even" || origPageSet == "even-reverse" {
-		isDuplex = false
-	}
+	sides = ipp.SidesForPageSet(sides, origPageSet)
+	isDuplex = sides != ipp.SidesOneSided
 
 	if saveHistory && len(photoLayout.Sources) > 0 {
 		renderedRel, err = saveRenderedPDF(printPath, storedRel, uploadDir)
@@ -383,6 +388,7 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 				StoredPath: storedRel,
 				Pages:      pages,
 				Status:     "queued",
+				Sides:      sides,
 				IsDuplex:   isDuplex,
 				IsColor:    isColor,
 
@@ -445,6 +451,7 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 
 	printOpts := ipp.PrintJobOptions{
 		DriverOptions: driverOpts,
+		Sides:         sides,
 		IsDuplex:      isDuplex,
 		IsColor:       isColor,
 		Copies:        copies,
@@ -486,6 +493,7 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 		JobID:    job,
 		OK:       true,
 		Pages:    pages,
+		Sides:    sides,
 		IsDuplex: isDuplex,
 		IsColor:  isColor,
 		Copies:   copies,

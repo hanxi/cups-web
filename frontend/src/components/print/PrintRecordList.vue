@@ -149,7 +149,7 @@ const reprintingId = ref(null)
 const reprintRecord = ref(null)
 
 // 重打表单字段与 PrintOptions 组件保持完全一致（duplex 为字符串，isColor 为布尔）；
-// 提交时再折算成后端 reprint 接口需要的 duplex/color 布尔值。
+// sides 保留翻页方式，duplex/color 布尔值兼容原有接口。
 function defaultReprintForm() {
   return {
     printer: '',
@@ -212,7 +212,7 @@ function openReprintDialog(rec) {
     printer: props.currentPrinter || rec.printerUri,
     orientation: rec.orientation ?? def.orientation,
     isColor: rec.isColor,
-    duplex: rec.isDuplex ? 'two-sided-long-edge' : 'one-sided',
+    duplex: rec.sides || (rec.isDuplex ? 'two-sided-long-edge' : 'one-sided'),
     copies: rec.copies ?? def.copies,
     driverOptions: !props.currentPrinter || props.currentPrinter === rec.printerUri ? (rec.driverOptions || {}) : {},
     paperSize: rec.paperSize ?? def.paperSize,
@@ -249,6 +249,7 @@ function submitReprint() {
   emit('reprint', {
     id: rec.id,
     printer: f.printer,
+    sides: f.duplex,
     duplex: f.duplex !== 'one-sided',
     color: f.isColor,
     copies: f.copies,

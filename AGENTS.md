@@ -211,7 +211,8 @@ cups-web/
 | --- | --- | --- |
 | `file` | file | 待打印文件 |
 | `printer` | string | 打印机 URI |
-| `duplex` | `"true"` / `"false"` | 双面 |
+| `sides` | `one-sided` / `two-sided-long-edge` / `two-sided-short-edge` | 单面 / 长边 / 短边，优先于 `duplex` |
+| `duplex` | `"true"` / `"false"` | 兼容旧客户端：缺少 `sides` 时，true 为长边双面 |
 | `color` | `"true"` / `"false"` | 彩色 |
 | `copies` | int | 份数 |
 | `orientation` | `portrait` / `landscape` | 方向 |
@@ -366,6 +367,12 @@ KV 表。当前键：`retention_days`（`0` = 永久）、`session_hash_key` / `
 - `text` → `gofpdf` + 内嵌中文字体
 
 > ⚠️ 标准化管线只解决 CUPS 老驱动兼容性问题，gs 会破坏空壳 CJK 字体导致 pdf.js 预览错位。管线原理与 cidfmap 机制见 [docs/pdf-pipeline.md](docs/pdf-pipeline.md)。
+
+### 双面翻页方式（issue #129）
+
+- 普通/批量打印、文档/照片重打、定时任务统一传递 `sides` 三态；JSON 同名。旧 `duplex` / `isDuplex` 布尔值仍兼容，显式 `sides` 优先且只允许三个标准 keyword，非法值返回 400。
+- `print_jobs` 和 `scheduled_prints` 增量增加 `sides` 列；空串表示旧记录，按 `is_duplex` 还原为单面或长边。写入时同步布尔值，重打预填及定时任务编辑、暂停/恢复保留翻页方式。
+- 奇数页、偶数页、偶数倒序按手动双面处理，提交与历史均强制单面（issue #109）；倒序重排前的原始 `page_set` 必须参与判断。
 
 ### 自定义百分比缩放（`pdf_scale.go`）
 

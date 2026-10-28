@@ -41,6 +41,7 @@ type printRecordResponse struct {
 	Pages          int                   `json:"pages"`
 	JobID          string                `json:"jobId"`
 	Status         string                `json:"status"`
+	Sides          string                `json:"sides"`
 	IsDuplex       bool                  `json:"isDuplex"`
 	IsColor        bool                  `json:"isColor"`
 
@@ -244,6 +245,7 @@ func mapPrintRecords(records []store.PrintRecord) []printRecordResponse {
 			Pages:      rec.Pages,
 			JobID:      jobID,
 			Status:     rec.Status,
+			Sides:      rec.Sides,
 			IsDuplex:   rec.IsDuplex,
 			IsColor:    rec.IsColor,
 
@@ -275,6 +277,7 @@ type reprintRequest struct {
 	ImagesPerPage      *int              `json:"imagesPerPage"`
 	DriverOptions      ipp.DriverOptions `json:"driverOptions"`
 	Printer            string            `json:"printer"`
+	Sides              string            `json:"sides"`
 	Duplex             bool              `json:"duplex"`
 	Color              bool              `json:"color"`
 	Copies             int               `json:"copies"`
@@ -318,6 +321,13 @@ func reprintHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var optionErr error
+	req.Sides, optionErr = ipp.ResolveSides(req.Sides, req.Duplex)
+	if optionErr != nil {
+		writeJSONError(w, http.StatusBadRequest, optionErr.Error())
+		return
+	}
+	req.Sides = ipp.SidesForPageSet(req.Sides, req.PageSet)
+	req.Duplex = req.Sides != ipp.SidesOneSided
 	req.DriverOptions, optionErr = ipp.ResolveDriverOptions(r.Context(), req.Printer, req.DriverOptions)
 	if optionErr != nil {
 		writeJSONError(w, http.StatusBadRequest, optionErr.Error())
@@ -536,12 +546,6 @@ func reprintHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 手动双面（奇/偶 或 偶数倒序）语义上必然单面输出，防止 CUPS pdftopdf
-	// 用空白页填补被过滤掉的另一面（issue #109）。
-	if req.PageSet == "odd" || req.PageSet == "even" || req.PageSet == "even-reverse" {
-		req.Duplex = false
-	}
-
 	var recordID int64
 	err = appStore.WithTx(r.Context(), false, func(tx *sql.Tx) error {
 		rec := store.PrintRecord{
@@ -551,6 +555,7 @@ func reprintHandler(w http.ResponseWriter, r *http.Request) {
 			StoredPath: storedRel,
 			Pages:      pages,
 			Status:     "queued",
+			Sides:      req.Sides,
 			IsDuplex:   req.Duplex,
 			IsColor:    req.Color,
 
@@ -606,6 +611,7 @@ func reprintHandler(w http.ResponseWriter, r *http.Request) {
 
 	printOpts := ipp.PrintJobOptions{
 		DriverOptions: req.DriverOptions,
+		Sides:         req.Sides,
 		IsDuplex:      req.Duplex,
 		IsColor:       req.Color,
 		Copies:        req.Copies,
@@ -638,6 +644,7 @@ func reprintHandler(w http.ResponseWriter, r *http.Request) {
 		JobID:    job,
 		OK:       true,
 		Pages:    pages,
+		Sides:    req.Sides,
 		IsDuplex: req.Duplex,
 		IsColor:  req.Color,
 		Copies:   req.Copies,

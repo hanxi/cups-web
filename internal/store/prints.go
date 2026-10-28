@@ -24,6 +24,7 @@ type PrintRecord struct {
 	Pages      int
 	JobID      sql.NullString
 	Status     string
+	Sides      string
 	IsDuplex   bool
 	IsColor    bool
 
@@ -64,7 +65,7 @@ type PhotoLayout struct {
 // printRecordColumns 是 SELECT 时的统一列清单（带 p./u. 前缀），
 // 与 scanPrintRecord 的字段顺序严格对应。
 const printRecordColumns = `p.id, p.user_id, u.username, p.printer_uri, p.filename, p.stored_path, p.pages,
-	p.job_id, p.status, p.is_duplex, p.is_color,
+	p.job_id, p.status, p.is_duplex, p.sides, p.is_color,
 	p.copies, p.orientation, p.paper_size, p.paper_type, p.media_source, p.print_scaling,
 	p.page_range, p.page_set, p.mirror, p.watermark_text, p.photo_date_watermark, p.number_up, p.number_up_layout, p.page_border,
 	p.created_at, p.driver_options_json, p.photo_layout_json, p.rendered_path`
@@ -77,11 +78,15 @@ func scanPrintRecord(s scanner) (PrintRecord, error) {
 	var photoJSON string
 	err := s.Scan(
 		&rec.ID, &rec.UserID, &rec.Username, &rec.PrinterURI, &rec.Filename, &rec.StoredPath,
-		&rec.Pages, &rec.JobID, &rec.Status, &rec.IsDuplex, &rec.IsColor,
+		&rec.Pages, &rec.JobID, &rec.Status, &rec.IsDuplex, &rec.Sides, &rec.IsColor,
 		&rec.Copies, &rec.Orientation, &rec.PaperSize, &rec.PaperType, &rec.MediaSource, &rec.PrintScaling,
 		&rec.PageRange, &rec.PageSet, &rec.Mirror, &rec.WatermarkText, &rec.PhotoDateWatermark, &rec.NumberUp, &rec.NumberUpLayout, &rec.PageBorder,
 		&rec.CreatedAt, &driverJSON, &photoJSON, &rec.RenderedPath,
 	)
+	if err == nil {
+		rec.Sides, err = ipp.ResolveSides(rec.Sides, rec.IsDuplex)
+		rec.IsDuplex = rec.Sides != ipp.SidesOneSided
+	}
 	if err == nil {
 		err = json.Unmarshal([]byte(driverJSON), &rec.DriverOptions)
 	}
@@ -99,6 +104,11 @@ type PrintFilter struct {
 }
 
 func InsertPrintRecord(ctx context.Context, tx *sql.Tx, rec *PrintRecord) (int64, error) {
+	sides, err := ipp.ResolveSides(rec.Sides, rec.IsDuplex)
+	if err != nil {
+		return 0, err
+	}
+	rec.Sides, rec.IsDuplex = sides, sides != ipp.SidesOneSided
 	driverJSON, err := json.Marshal(rec.DriverOptions)
 	if err != nil {
 		return 0, err
@@ -109,13 +119,13 @@ func InsertPrintRecord(ctx context.Context, tx *sql.Tx, rec *PrintRecord) (int64
 	}
 	res, err := tx.ExecContext(ctx, `INSERT INTO print_jobs (
 		user_id, printer_uri, filename, stored_path, pages,
-		job_id, status, is_duplex, is_color,
+		job_id, status, is_duplex, sides, is_color,
 		copies, orientation, paper_size, paper_type, media_source, print_scaling,
 		page_range, page_set, mirror, watermark_text, photo_date_watermark, number_up, number_up_layout, page_border,
 		created_at, driver_options_json, photo_layout_json, rendered_path
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		rec.UserID, rec.PrinterURI, rec.Filename, rec.StoredPath, rec.Pages,
-		rec.JobID, rec.Status, rec.IsDuplex, rec.IsColor,
+		rec.JobID, rec.Status, rec.IsDuplex, rec.Sides, rec.IsColor,
 		rec.Copies, rec.Orientation, rec.PaperSize, rec.PaperType, rec.MediaSource, rec.PrintScaling,
 		rec.PageRange, rec.PageSet, rec.Mirror, rec.WatermarkText, rec.PhotoDateWatermark, rec.NumberUp, rec.NumberUpLayout, rec.PageBorder,
 		rec.CreatedAt, string(driverJSON), string(photoJSON), rec.RenderedPath,

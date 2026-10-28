@@ -198,7 +198,7 @@ func reprintPhotos(w http.ResponseWriter, r *http.Request, record store.PrintRec
 		return
 	}
 	for key, value := range map[string]string{
-		"printer": req.Printer, "duplex": strconv.FormatBool(req.Duplex), "color": strconv.FormatBool(req.Color), "copies": strconv.Itoa(req.Copies),
+		"sides": req.Sides, "printer": req.Printer, "duplex": strconv.FormatBool(req.Duplex), "color": strconv.FormatBool(req.Color), "copies": strconv.Itoa(req.Copies),
 		"orientation": req.Orientation, "paper_size": req.PaperSize, "paper_type": req.PaperType, "media_source": req.MediaSource,
 		"print_scaling": req.PrintScaling, "page_range": req.PageRange, "page_set": req.PageSet, "mirror": strconv.FormatBool(req.Mirror),
 		"photo_date_watermark": strconv.FormatBool(req.PhotoDateWatermark), "watermark_text": req.WatermarkText,

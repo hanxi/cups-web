@@ -49,6 +49,7 @@ type scheduledPrintResponse struct {
 	PrinterURI string `json:"printerUri"`
 	Filename   string `json:"filename"`
 
+	Sides              string `json:"sides"`
 	IsDuplex           bool   `json:"isDuplex"`
 	IsColor            bool   `json:"isColor"`
 	Copies             int    `json:"copies"`
@@ -103,6 +104,7 @@ func mapScheduledPrint(rec store.ScheduledPrint) scheduledPrintResponse {
 		PrinterURI: rec.PrinterURI,
 		Filename:   rec.Filename,
 
+		Sides:              rec.Sides,
 		IsDuplex:           rec.IsDuplex,
 		IsColor:            rec.IsColor,
 		Copies:             rec.Copies,
@@ -295,6 +297,12 @@ func scheduledUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	payload.Sides, err = ipp.ResolveSides(payload.Sides, payload.IsDuplex)
+	if err != nil {
+		writeJSONError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	payload.IsDuplex = payload.Sides != ipp.SidesOneSided
 	if payload.PhotosPerRun != nil && (*payload.PhotosPerRun < 1 || *payload.PhotosPerRun > 100) {
 		writeJSONError(w, http.StatusBadRequest, "每次打印张数应为 1–100")
 		return
@@ -546,6 +554,7 @@ type scheduledUpdatePayload struct {
 	PrinterURI    string             `json:"printerUri"`
 	Enabled       *bool              `json:"enabled"`
 
+	Sides              string `json:"sides"`
 	IsDuplex           bool   `json:"isDuplex"`
 	IsColor            bool   `json:"isColor"`
 	Copies             int    `json:"copies"`
@@ -582,6 +591,7 @@ func applyScheduledPayload(rec *store.ScheduledPrint, p scheduledUpdatePayload) 
 	}
 	rec.Name = strings.TrimSpace(p.Name)
 	rec.PrinterURI = p.PrinterURI
+	rec.Sides = p.Sides
 	rec.IsDuplex = p.IsDuplex
 	rec.IsColor = p.IsColor
 	rec.Copies = p.Copies
@@ -636,6 +646,10 @@ func buildScheduledRecordFromForm(r *http.Request, userID int64, files []store.S
 		return getStr(key) == "true"
 	}
 
+	sides, err := ipp.ResolveSides(getStr("sides"), getBool("duplex"))
+	if err != nil {
+		return store.ScheduledPrint{}, err
+	}
 	driverOpts, err := driverOptionsFromForm(r, getStr("printer"))
 	if err != nil {
 		return store.ScheduledPrint{}, err
@@ -657,7 +671,8 @@ func buildScheduledRecordFromForm(r *http.Request, userID int64, files []store.S
 		Filename:   files[0].Filename,
 		StoredPath: files[0].StoredPath,
 
-		IsDuplex:           getBool("duplex"),
+		Sides:              sides,
+		IsDuplex:           sides != ipp.SidesOneSided,
 		IsColor:            getBool("color"),
 		Copies:             getInt("copies", 1),
 		Orientation:        getStr("orientation"),
