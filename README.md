@@ -67,6 +67,7 @@ AIO 镜像内置 `scanimage` + `libsane-hpaio`，Web 界面「扫描」入口对
 - **异步任务 + 实时日志**：提交后立即返回 `jobId`，页面每 1.5 秒轮询进度并展示 `scanimage` / `gs` 的实时输出；硬超时 5 分钟
 - **历史记录持久化**：扫描件默认存到 `SCAN_DIR`（`docker-compose.yml` 里挂到 `./.scans:/scans`），元数据落 `scan_records` 表，普通用户只看得到自己的记录，管理员可看全站
 - **设备可用性探测**：`scanimage -L` 会同时列出 `hpaio:` 与 `hpljm1005:` / `escl:` 等多个后端，但 `hpaio:` 在部分 HP 一体机（如 M1005）上打开就报 SANE `Error during device I/O`。选中设备后前端会异步调 `/api/scan/devices/probe` 探测一次；打不开时给出红字提示，请换 `hpljm1005:` / `escl:` 等零配置后端再试
+- **设备发现缓存**：`scanimage -L` 需约 17 秒（多个 SANE 后端串行发现累加），结果按 `SCAN_DEVICES_CACHE_TTL`（默认 `60s`）缓存，避免频繁切页重复等待。设备固定时可调大（如 `24h`）；插拔或更换扫描仪后点页面上的「刷新」，前端会带 `?force=1` 强制重新枚举。
 
 > ⚠️ **不用 hplip 自带的 `hp-scan`**：容器里 HPLIP daemon 与 dbus 依赖不稳定，即便补启 `dbus-daemon --system --fork` 仍报 `SANE: Error during device I/O (code=9)`。改走标准 SANE 栈的 `scanimage` 子进程，同宿主同硬件（如 HP LaserJet M1005 MFP）已验证可用。
 >
@@ -471,6 +472,7 @@ export LISTEN_ADDR=:8080
 | `PRINTER_BLOCK_PRIVATE` | `true` 时拒绝指向私网地址的打印机 URI | `false` |
 | `OFD_CONVERTER_JAR` | OFD → PDF 转换器 jar 路径 | `/ofd-converter.jar` |
 | `SCAN_DIR` | 扫描件输出目录，Docker 内挂到 `./.scans` | `scans` |
+| `SCAN_DEVICES_CACHE_TTL` | 扫描设备发现缓存有效期（Go duration 格式，如 `60s` / `24h`）。`scanimage -L` 需约 17s（多个 SANE 后端串行发现累加），调大可减少切页等待；插拔设备后前端「刷新」会带 `?force=1` 打穿缓存。`<=0` 禁用缓存 | `60s` |
 
 > 💡 `.env.example` 列了 AIO 部署常用的 `CUPSADMIN` / `CUPSPASSWORD` / `TZ`，以及仅 Web 镜像使用的 `CUPS_HOST` / `CUPS_SOCKET_PATH` 注释示例。AIO 的前三项都有内置默认值（`print` / `print` / `Asia/Shanghai`），不写 `.env` 也能启动；仅 Web 部署需配置外部 CUPS 的 TCP 地址或 socket。
 >
