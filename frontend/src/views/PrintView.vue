@@ -300,6 +300,7 @@
             :is-multi-image="isMultiImage"
             :preview-url="previewUrl"
             :preview-type="previewType"
+            :start-page="previewStartPage"
             :text-preview="previewText"
             :paper-size-label="paperSizeLabel"
             v-model:orientation="orientation"
@@ -465,6 +466,16 @@ const mediaSource = ref('auto')
 const printScaling = ref('auto')
 const scalePercent = ref(100)
 const pageRange = ref('')
+// 预览起始页：取页码范围里的第一个数字（如 "3"→3、"5-10"→5、"1 3 5-7"→1），
+// 让预览随用户填的页码范围跳到对应起始页（issue #131）。空值或非法回退到第 1 页。
+const previewStartPage = computed(() => {
+  const s = String(pageRange.value || '').trim()
+  if (!s) return 1
+  const m = /^(\d+)/.exec(s.split(/[\s,]+/)[0] || '')
+  if (!m) return 1
+  const n = Number(m[1])
+  return Number.isFinite(n) && n > 0 ? n : 1
+})
 const pageSet = ref('all')
 const mirror = ref(false)
 const photoDateWatermark = ref(false)

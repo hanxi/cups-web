@@ -39,7 +39,7 @@
             <img :alt="t('accessibility.preview')" :src="previewUrl" class="w-full h-full" :style="{ objectFit: printScaling === 'fill' ? 'cover' : 'contain' }" />
           </div>
         </div>
-        <PdfCanvas v-else-if="previewType === 'pdf'" :src="previewUrl" :watermark-text="watermarkText" :content-scale="contentScale" @preview-failed="onPreviewFailed" />
+        <PdfCanvas v-else-if="previewType === 'pdf'" :src="previewUrl" :start-page="startPage" :watermark-text="watermarkText" :content-scale="contentScale" @preview-failed="onPreviewFailed" />
         <div
           v-else-if="previewType === 'text'"
           class="p-3 text-[8px] leading-tight overflow-hidden h-full text-gray-700 dark:text-gray-300 whitespace-pre-wrap transition-transform duration-200"
@@ -70,6 +70,7 @@ const props = defineProps({
   isMultiImage: { type: Boolean, default: false },
   previewUrl: { type: String, default: '' },
   previewType: { type: String, default: '' },
+  startPage: { type: Number, default: 1 },
   textPreview: { type: String, default: '' },
   paperSizeLabel: { type: String, default: '' },
   orientation: { type: String, default: 'portrait' },

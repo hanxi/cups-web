@@ -40,7 +40,9 @@ const props = defineProps({
   watermarkText: { type: String, default: '' },
   // 自定义百分比缩放的预览倍率（1 = 不缩放）。用 CSS transform 展示，
   // 不改渲染分辨率：canvas 仍按容器满尺寸渲染，缩小后反而更清晰。
-  contentScale: { type: Number, default: 1 }
+  contentScale: { type: Number, default: 1 },
+  // 预览起始页（issue #131）：随页码范围跳到对应起始页，留空/越界回退到第 1 页。
+  startPage: { type: Number, default: 1 }
 })
 
 const contentScaleStyle = computed(() =>
@@ -131,11 +133,18 @@ async function startFallback(token) {
     URL.revokeObjectURL(res.url)
     return
   }
-  fallbackPages.set(1, res.url)
-  totalPages.value = res.count || 1
-  currentPage.value = 1
+  const total = res.count || 1
+  totalPages.value = total
+  const initialPage = clampPage(props.startPage, total)
+  currentPage.value = initialPage
   fallbackMode.value = true
-  fallbackImgUrl.value = res.url
+  if (initialPage === 1) {
+    fallbackPages.set(1, res.url)
+    fallbackImgUrl.value = res.url
+  } else {
+    URL.revokeObjectURL(res.url)
+    await showFallbackPage(initialPage, token)
+  }
   loading.value = false
 }
 
@@ -281,7 +290,8 @@ async function renderPdf() {
 
     pdfDoc = doc
     totalPages.value = pdfDoc.numPages
-    currentPage.value = 1
+    const initialPage = clampPage(props.startPage, pdfDoc.numPages)
+    currentPage.value = initialPage
 
     // 等待 DOM 布局完成
     await nextTick()
@@ -289,7 +299,7 @@ async function renderPdf() {
 
     if (myToken !== requestToken) return
 
-    await renderPage(1)
+    await renderPage(initialPage)
     if (myToken !== requestToken) return
     loading.value = false
   } catch (e) {
@@ -309,6 +319,12 @@ async function renderPdf() {
     loading.value = false
     emit('preview-failed', e)
   }
+}
+
+function clampPage(n, total) {
+  if (!Number.isFinite(n) || n < 1) return 1
+  if (total > 0 && n > total) return total
+  return n
 }
 
 function goToPage(pageNum) {
@@ -334,6 +350,14 @@ watch(() => props.src, () => {
   if (props.src) {
     nextTick(() => renderPdf())
   }
+})
+
+// 页码范围变化时跳到对应起始页（issue #131）。仅在 PDF 已加载且不在加载/出错态时生效，
+// 避免和 renderPdf 的初始页设置抢写 currentPage。
+watch(() => props.startPage, (n) => {
+  if (!pdfDoc || loading.value || error.value) return
+  const target = clampPage(n, totalPages.value)
+  if (target !== currentPage.value) goToPage(target)
 })
 
 watch(() => props.watermarkText, () => {
