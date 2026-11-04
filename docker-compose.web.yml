@@ -11,5 +11,8 @@ services:
       TZ: ${TZ:-Asia/Shanghai}
     volumes:
       - ./.data:/data
+      # 自定义字体挂载（解决中文公文、商用文档缺少字体导致的排版错乱）：
+      # 也可直接放入 ./.data/fonts/ 目录；支持 .ttf / .ttc / .otf。
+      # - ./.fonts:/data/fonts:ro
       - ./.uploads:/uploads
     restart: unless-stopped

@@ -12,6 +12,44 @@ set -e
 /usr/local/bin/restore-drivers || echo "[entrypoint] WARN: restore-drivers 部分失败，继续启动"
 
 # ══════════════════════════════════════════════════════════════
+# 1b. Custom fonts initialization (外部挂载字体加载与缓存刷新)
+# ══════════════════════════════════════════════════════════════
+# 用户可通过挂载卷（如 ./.data/fonts 或单独挂载至 /data/fonts）传入自定义中文字体。
+# 启动时检测并将字体软链接到系统字体路径，刷新 fontconfig，并动态修补 Ghostscript cidfmap。
+# 容错：目录不存在或为空时跳过，失败不阻断启动。
+FONT_SRC="/data/fonts"
+FONT_TARGET="/usr/share/fonts/truetype/custom"
+if [ -d "$FONT_SRC" ] && [ "$(find "$FONT_SRC" -maxdepth 1 -type f \( -iname '*.ttf' -o -iname '*.ttc' -o -iname '*.otf' \) 2>/dev/null | head -1)" ]; then
+    echo "[entrypoint] 发现挂载字体，同步至系统字体目录..."
+    mkdir -p "$FONT_TARGET"
+    cp -snf "$FONT_SRC"/*.* "$FONT_TARGET/" 2>/dev/null || cp -f "$FONT_SRC"/*.* "$FONT_TARGET/" 2>/dev/null || true
+    fc-cache -f "$FONT_TARGET" 2>/dev/null || true
+
+    # 若挂载了真实 simsun/simhei 等字体，同步修补 Ghostscript cidfmap
+    GS_CIDFMAP="/etc/ghostscript/cidfmap.local"
+    if [ -f "$GS_CIDFMAP" ]; then
+        if [ -f "$FONT_TARGET/simsun.ttf" ]; then
+            sed -i 's|/usr/share/fonts/truetype/arphic/uming.ttc) /SubfontID 0|/usr/share/fonts/truetype/custom/simsun.ttf) /SubfontID 0|g' "$GS_CIDFMAP" 2>/dev/null || true
+        fi
+        if [ -f "$FONT_TARGET/simhei.ttf" ]; then
+            sed -i 's|/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc) /SubfontID 0|/usr/share/fonts/truetype/custom/simhei.ttf) /SubfontID 0|g' "$GS_CIDFMAP" 2>/dev/null || true
+        fi
+        if [ -f "$FONT_TARGET/simkai.ttf" ]; then
+            sed -i 's|/usr/share/fonts/truetype/arphic/ukai.ttc) /SubfontID 0|/usr/share/fonts/truetype/custom/simkai.ttf) /SubfontID 0|g' "$GS_CIDFMAP" 2>/dev/null || true
+        fi
+        if [ -f "$FONT_TARGET/simfang.ttf" ]; then
+            sed -i '/^\/#b7#c2#cb#ce[, ]/s|/usr/share/fonts/truetype/custom/simsun.ttf) /SubfontID 0|/usr/share/fonts/truetype/custom/simfang.ttf) /SubfontID 0|' "$GS_CIDFMAP" 2>/dev/null || true
+            sed -i '/^\/#b7#c2#cb#ce[, ]/s|/usr/share/fonts/truetype/arphic/uming.ttc) /SubfontID 0|/usr/share/fonts/truetype/custom/simfang.ttf) /SubfontID 0|' "$GS_CIDFMAP" 2>/dev/null || true
+        fi
+
+        GS_INIT_DIR=$(find /usr/share/ghostscript -path "*/Resource/Init" -type d 2>/dev/null | head -1)
+        if [ -n "$GS_INIT_DIR" ]; then
+            cp -f "$GS_CIDFMAP" "$GS_INIT_DIR/cidfmap" 2>/dev/null || true
+        fi
+    fi
+fi
+
+# ══════════════════════════════════════════════════════════════
 # 2. CUPS admin user setup (from cups/entrypoint.sh)
 # ══════════════════════════════════════════════════════════════
 if [ $(grep -ci $CUPSADMIN /etc/shadow) -eq 0 ]; then

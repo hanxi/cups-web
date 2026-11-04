@@ -21,6 +21,7 @@ declare module 'vue' {
     UCheckbox: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/Checkbox.vue')['default']
     UDropdownMenu: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/DropdownMenu.vue')['default']
     UFileUpload: typeof import('./src/components/print/FileUpload.vue')['default']
+    UFontMissingModal: typeof import('./src/components/print/FontMissingModal.vue')['default']
     UForm: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/Form.vue')['default']
     UFormField: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/FormField.vue')['default']
     UIcon: typeof import('./node_modules/@nuxt/ui/dist/runtime/vue/components/Icon.vue')['default']

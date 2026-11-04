@@ -101,6 +101,13 @@
           </label>
           <p class="text-xs text-muted mt-1 ml-6">{{ t('ui.visitors_automatically_enter_the_print_page_using_the_built_in') }}</p>
         </div>
+        <div class="md:col-span-4">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <UCheckbox v-model="settings.allowFontFallback" />
+            <span class="text-sm">{{ t('ui.allow_font_fallback') }}</span>
+          </label>
+          <p class="text-xs text-muted mt-1 ml-6">{{ t('ui.allow_font_fallback_desc') }}</p>
+        </div>
         <div class="flex items-end gap-2 md:col-span-4">
           <UButton color="primary" @click="saveSettings" icon="i-lucide-save" :loading="savingSettings" :disabled="savingSettings">{{ t('ui.save_settings') }}</UButton>
           <UButton variant="outline" @click="showCleanupConfirm = true" icon="i-lucide-trash-2" :loading="cleaningUp" :disabled="cleaningUp">{{ t('ui.clean_up_now') }}</UButton>
@@ -118,6 +125,113 @@
           :maxlength="32768"
         />
         <div class="text-xs text-muted mt-1">{{ t('ui.applies_immediately_to_the_login_page_and_main_interface_maximum') }}</div>
+      </div>
+    </UCard>
+
+    <UCard>
+      <template #header>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 class="text-xl font-bold flex items-center gap-2">
+            <UIcon name="i-lucide-type" class="w-5 h-5" /> {{ t('ui.font_management') }}
+          </h2>
+          <div class="flex items-center gap-2">
+            <UButton
+              size="sm"
+              variant="outline"
+              icon="i-lucide-refresh-cw"
+              :loading="refreshingFonts"
+              :disabled="refreshingFonts"
+              @click="refreshFonts"
+            >
+              {{ t('ui.refresh_font_cache') }}
+            </UButton>
+            <UButton
+              size="sm"
+              color="primary"
+              icon="i-lucide-upload"
+              :loading="uploadingFont"
+              :disabled="uploadingFont"
+              @click="triggerFontUpload"
+            >
+              {{ t('ui.upload_font') }}
+            </UButton>
+            <input
+              ref="fontFileInput"
+              type="file"
+              class="hidden"
+              accept=".ttf,.ttc,.otf"
+              multiple
+              @change="onFontFileSelected"
+            />
+          </div>
+        </div>
+      </template>
+
+      <div class="space-y-4">
+        <div class="text-sm text-muted flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <span>{{ t('ui.font_management_desc') }}</span>
+            <span class="ml-2 font-mono text-xs bg-elevated px-2 py-0.5 rounded border border-default">{{ fontData.fontDir || '/data/fonts' }}</span>
+          </div>
+          <div class="text-xs">
+            {{ t('ui.system_recognized_families', { count: fontData.totalSystemFamilies || 0 }) }}
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <UTable :columns="fontColumns" :data="fontData.customFonts">
+            <template #name-cell="{ row }">
+              <div class="flex items-start gap-2 py-0.5">
+                <UIcon name="i-lucide-type" class="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <div class="min-w-0">
+                  <div class="font-medium text-sm flex items-center gap-1.5 flex-wrap">
+                    <span class="truncate">{{ row.original.displayName || row.original.name }}</span>
+                    <UBadge
+                      v-if="row.original.subfamily && row.original.subfamily.toLowerCase() !== 'regular'"
+                      color="neutral"
+                      variant="subtle"
+                      size="xs"
+                    >
+                      {{ row.original.subfamily }}
+                    </UBadge>
+                    <UBadge
+                      v-if="row.original.format"
+                      color="primary"
+                      variant="subtle"
+                      size="xs"
+                    >
+                      {{ row.original.format }}
+                    </UBadge>
+                  </div>
+                  <div class="text-xs text-muted font-mono flex items-center gap-1 mt-0.5">
+                    <UIcon name="i-lucide-file" class="w-3 h-3 shrink-0" />
+                    <span>{{ row.original.name }}</span>
+                  </div>
+                </div>
+              </div>
+            </template>
+            <template #sizeBytes-cell="{ row }">
+              {{ formatFileSize(row.original.sizeBytes) }}
+            </template>
+            <template #updatedAt-cell="{ row }">
+              {{ formatTime(row.original.updatedAt) }}
+            </template>
+            <template #actions-cell="{ row }">
+              <UButton
+                size="xs"
+                variant="outline"
+                color="error"
+                icon="i-lucide-trash-2"
+                @click="confirmDeleteFont(row.original)"
+              >
+                {{ t('ui.delete') }}
+              </UButton>
+            </template>
+          </UTable>
+          <div v-if="!fontData.customFonts?.length" class="text-center py-6 text-sm text-muted">
+            {{ t('ui.no_custom_fonts') }}
+          </div>
+        </div>
       </div>
     </UCard>
 
@@ -147,6 +261,26 @@
         </div>
       </template>
     </UModal>
+
+    <UModal :title="t('ui.confirm_delete_font')" v-model:open="showDeleteFontModal">
+      <template #content>
+        <div class="p-6 space-y-4">
+          <h3 class="text-lg font-semibold">{{ t('ui.confirm_delete_font') }}</h3>
+          <p>
+            {{
+              pendingDeleteFont?.displayName && pendingDeleteFont?.displayName !== pendingDeleteFont?.name
+                ? t('ui.delete_font_confirm_detail', { name: pendingDeleteFont?.displayName, file: pendingDeleteFont?.name })
+                : t('ui.delete_font_confirm', { name: pendingDeleteFont?.name })
+            }}
+          </p>
+          <p class="text-sm text-muted">{{ t('ui.this_cannot_be_undone') }}</p>
+          <div class="flex justify-end gap-2">
+            <UButton variant="ghost" @click="showDeleteFontModal = false">{{ t('ui.cancel') }}</UButton>
+            <UButton color="error" :loading="deletingFont" @click="executeDeleteFont">{{ t('ui.confirm_deletion') }}</UButton>
+          </div>
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -154,7 +288,7 @@
 import { useI18n } from 'vue-i18n'
 import { ref, computed, onMounted } from 'vue'
 import { getCSRF, readError } from '../utils/api'
-import { formatTime, statusText } from '../utils/format'
+import { formatTime, statusText, formatFileSize } from '../utils/format'
 
 const { t } = useI18n()
 
@@ -174,8 +308,16 @@ const form = ref({
 })
 const printFilters = ref({ username: '', start: '', end: '' })
 const printRecords = ref([])
-const settings = ref({ retentionDays: '', saveHistory: true, maxPagesPerJob: '0', maxUploadMB: '0', customCss: '', guestMode: false })
+const settings = ref({ retentionDays: '', saveHistory: true, maxPagesPerJob: '0', maxUploadMB: '0', customCss: '', guestMode: false, allowFontFallback: false })
 const showCleanupConfirm = ref(false)
+
+const fontData = ref({ fontDir: '', customFonts: [], totalSystemFamilies: 0 })
+const uploadingFont = ref(false)
+const refreshingFonts = ref(false)
+const deletingFont = ref(false)
+const pendingDeleteFont = ref(null)
+const showDeleteFontModal = ref(false)
+const fontFileInput = ref(null)
 
 const savingUser = ref(false)
 const savingSettings = ref(false)
@@ -209,6 +351,13 @@ const printColumns = computed(() => ([
   { accessorKey: 'pages', header: t('ui.pages') },
   { accessorKey: 'status', header: t('ui.status') },
   { id: 'download', header: t('ui.download') }
+]))
+
+const fontColumns = computed(() => ([
+  { accessorKey: 'name', header: t('ui.font_name') },
+  { accessorKey: 'sizeBytes', header: t('ui.file_size') },
+  { accessorKey: 'updatedAt', header: t('ui.updated_at') },
+  { id: 'actions', header: t('ui.actions') }
 ]))
 
 function validateForm() {
@@ -361,6 +510,7 @@ async function loadSettings() {
   settings.value.maxUploadMB = String(bytes > 0 ? Math.round(bytes / (1024 * 1024)) : 0)
   settings.value.customCss = typeof data.customCss === 'string' ? data.customCss : ''
   settings.value.guestMode = data.guestMode === true
+  settings.value.allowFontFallback = data.allowFontFallback === true
 }
 
 async function triggerCleanup() {
@@ -403,7 +553,8 @@ async function saveSettings() {
       maxPagesPerJob: maxPages,
       maxUploadBytes: maxMB * 1024 * 1024,
       customCss: settings.value.customCss || '',
-      guestMode: settings.value.guestMode === true
+      guestMode: settings.value.guestMode === true,
+      allowFontFallback: settings.value.allowFontFallback === true
     }
     const resp = await fetch('/api/admin/settings', {
       method: 'PUT',
@@ -434,7 +585,123 @@ async function saveSettings() {
   }
 }
 
+async function loadFonts() {
+  try {
+    const resp = await fetch('/api/admin/fonts', { credentials: 'include' })
+    if (!resp.ok) {
+      if (resp.status === 401) emit('logout')
+      return
+    }
+    fontData.value = await resp.json()
+  } catch (err) {
+    console.error('Failed to load fonts:', err)
+  }
+}
+
+function triggerFontUpload() {
+  fontFileInput.value?.click()
+}
+
+async function onFontFileSelected(event) {
+  const files = event.target.files
+  if (!files || files.length === 0) return
+
+  const formData = new FormData()
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i]
+    const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase()
+    if (!['.ttf', '.ttc', '.otf'].includes(ext)) {
+      toast.add({
+        title: t('ui.font_format_unsupported'),
+        description: file.name,
+        color: 'error',
+        icon: 'i-lucide-x-circle'
+      })
+      event.target.value = ''
+      return
+    }
+    formData.append('files', file)
+  }
+
+  uploadingFont.value = true
+  try {
+    const resp = await fetch('/api/admin/fonts/upload', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'X-CSRF-Token': getCSRF()
+      },
+      body: formData
+    })
+    if (!resp.ok) {
+      const msg = await readError(resp)
+      toast.add({ title: t('ui.upload_failed'), description: msg, color: 'error', icon: 'i-lucide-x-circle' })
+      if (resp.status === 401) emit('logout')
+      return
+    }
+    toast.add({ title: t('ui.font_upload_success'), color: 'success', icon: 'i-lucide-check-circle' })
+    await loadFonts()
+  } finally {
+    uploadingFont.value = false
+    event.target.value = ''
+  }
+}
+
+function confirmDeleteFont(font) {
+  pendingDeleteFont.value = font
+  showDeleteFontModal.value = true
+}
+
+async function executeDeleteFont() {
+  if (!pendingDeleteFont.value) return
+  deletingFont.value = true
+  try {
+    const resp = await fetch(`/api/admin/fonts/${encodeURIComponent(pendingDeleteFont.value.name)}`, {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: {
+        'X-CSRF-Token': getCSRF()
+      }
+    })
+    if (!resp.ok) {
+      const msg = await readError(resp)
+      toast.add({ title: t('ui.task_failed'), description: msg, color: 'error', icon: 'i-lucide-x-circle' })
+      if (resp.status === 401) emit('logout')
+      return
+    }
+    toast.add({ title: t('ui.font_delete_success'), color: 'success', icon: 'i-lucide-check-circle' })
+    showDeleteFontModal.value = false
+    pendingDeleteFont.value = null
+    await loadFonts()
+  } finally {
+    deletingFont.value = false
+  }
+}
+
+async function refreshFonts() {
+  refreshingFonts.value = true
+  try {
+    const resp = await fetch('/api/admin/fonts/refresh', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'X-CSRF-Token': getCSRF()
+      }
+    })
+    if (!resp.ok) {
+      const msg = await readError(resp)
+      toast.add({ title: t('ui.task_failed'), description: msg, color: 'error', icon: 'i-lucide-x-circle' })
+      if (resp.status === 401) emit('logout')
+      return
+    }
+    toast.add({ title: t('ui.font_refresh_success'), color: 'success', icon: 'i-lucide-check-circle' })
+    await loadFonts()
+  } finally {
+    refreshingFonts.value = false
+  }
+}
+
 onMounted(async () => {
-  await Promise.all([loadUsers(), loadPrintRecords(), loadSettings()])
+  await Promise.all([loadUsers(), loadPrintRecords(), loadSettings(), loadFonts()])
 })
 </script>

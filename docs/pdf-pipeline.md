@@ -73,6 +73,15 @@ gs -dPDFDEBUG -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=/tmp/out.pdf <in.
 
 > ⚠️ Acrobat 导出的"空壳 Type0 + `UniGB-UCS2-H`"字体字典（`/BaseFont /#ba#da#cc#e5` 这种裸宋体名，准考证/国标表格常见）经 gs 改写为"subset 前缀 + FontFile2 假内嵌"后（`/BaseFont /CCGWER+#ba#da#cc#e5`），**pdf.js** 预览会出现"每 3-4 字错 1 字"的挤压错位（浏览器原生 PDF 引擎因有系统字体兜底不受影响）。之所以仍然共用 `normalizePDF`，是因为"预览与打印看到同一份字节流"的一致性比这类特殊 PDF 的预览准确性更重要——前端只使用 `pdfjs-dist` 在 canvas 里渲染预览（见 `frontend/src/components/print/PdfCanvas.vue`），遇到上述错位时用户可以忽略，不影响打印。
 
+## 自定义中文字体挂载与排版保真
+
+为解决公文打印（如仿宋_GB2312、方正小标宋简体）与商务文档转换时因缺少字体引起的断行错位、排版走样问题：
+1. **外部卷挂载**：在 `docker-compose.yml` 中将宿主机字体目录挂载至容器内的 `/data/fonts`（或直接放入 `./.data/fonts/`）。容器启动脚本 `entrypoint.sh` 会自动检测 `.ttf` / `.ttc` / `.otf`，软链接至系统字体目录并执行 `fc-cache -f` 刷新缓存，同时同步修补 Ghostscript 的 `cidfmap` 映射。
+2. **文档字体预检（Font Preflight）**：
+   - 在对 `.docx` 和未内嵌字体的 `.pdf` 执行转换前，服务端预先检查文档声明的字体是否已在系统安装。
+   - 若发现缺失字体且用户未开启「允许自动替换」，接口返回 422 结构化响应 `MISSING_FONTS`，前端弹出缺失字体警告框，避免静默打出格式错误的废纸。
+   - 用户可选择「本次允许替换」或「始终允许替换」（存储于客户端偏好并在管理设置中支持全局默认配置）。
+
 ## HTTP 超时
 
 `cmd/server/main.go` 的 `http.Server` 配置为 `ReadTimeout = WriteTimeout = IdleTimeout = 120s`。之所以放宽到 2 分钟，是因为 `/api/convert` 与 `/api/print` 在移动端场景需要：上传 10MB+ 原图 → 服务端下采样/标准化 → 回传 PDF，整条链路在 4G 网络下 15s 远远不够（[Issue #22](https://github.com/hanxi/cups-web/issues/22)）。如果未来要对个别接口设置更激进的独立超时，建议用 `http.TimeoutHandler` 包住具体子路由，而不是再调低全局值。

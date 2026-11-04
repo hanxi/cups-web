@@ -154,6 +154,23 @@ func printHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if kind == fileKindOffice || kind == fileKindPDF {
+		if !isFontFallbackAllowed(r.Context(), r.FormValue("allow_font_fallback")) {
+			if missing, _ := checkDocumentMissingFonts(countCtx, storedAbs, fh.Filename); len(missing) > 0 {
+				_ = os.Remove(storedAbs)
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"ok":           false,
+					"code":         "MISSING_FONTS",
+					"message":      "文档使用了系统未安装的字体，直接打印可能导致排版错乱",
+					"missingFonts": missing,
+				})
+				return
+			}
+		}
+	}
+
 	switch kind {
 	case fileKindPDF:
 		// 默认不再对上传 PDF 走 gs 规范化，直接打印原始字节。

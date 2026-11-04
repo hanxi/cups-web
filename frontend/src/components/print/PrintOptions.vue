@@ -160,6 +160,16 @@
               </label>
             </UFormField>
 
+            <!-- 允许字体自动替换 -->
+            <UFormField :label="t('ui.allow_font_fallback_short')">
+              <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer transition hover:bg-elevated w-fit"
+                :class="allowFontFallback ? 'border-primary bg-primary/5' : 'border-muted'">
+                <UCheckbox :model-value="allowFontFallback" @update:model-value="$emit('update:allowFontFallback', $event)" />
+                <UIcon name="i-lucide-type" class="w-4 h-4" />
+                <span class="text-sm">{{ t('ui.allow_font_fallback') }}</span>
+              </label>
+            </UFormField>
+
             <UFormField v-if="photoDateVisible" :label="t('ui.photo_date')" :help="t('ui.uses_the_exif_capture_date_skipping_photos_without_a_valid')">
               <USwitch :model-value="photoDateWatermark" :disabled="photoDateDisabled || printing" :label="t('ui.print_photo_date')" @update:model-value="$emit('update:photoDateWatermark', $event)" />
             </UFormField>
@@ -216,6 +226,7 @@ const props = defineProps({
   numberUp: { type: Number, default: 1 },
   numberUpLayout: { type: String, default: 'lrtb' },
   pageBorder: { type: String, default: 'none' },
+  allowFontFallback: { type: Boolean, default: false },
   printing: { type: Boolean, default: false },
   driverRematchKey: { type: Number, default: 0 }
 })
@@ -226,7 +237,7 @@ const emit = defineEmits([
   'update:duplex', 'update:copies',
   'update:paperSize', 'update:paperType', 'update:mediaSource', 'update:printScaling', 'update:scalePercent', 'update:pageRange',
   'update:photoDateWatermark', 'update:pageSet', 'update:mirror', 'update:watermarkText',
-  'update:numberUp', 'update:numberUpLayout', 'update:pageBorder'
+  'update:numberUp', 'update:numberUpLayout', 'update:pageBorder', 'update:allowFontFallback'
 ])
 
 const showAdvanced = ref(readPreference('print_options_expanded') === '1')

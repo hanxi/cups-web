@@ -22,6 +22,7 @@ const (
 	SettingMaxUploadBytes = "max_upload_bytes"
 	SettingCustomCSS      = "custom_css"
 	SettingGuestMode      = "guest_mode"
+	SettingAllowFontFallback = "allow_font_fallback"
 )
 
 type Store struct {
@@ -306,6 +307,11 @@ func (s *Store) migrate(ctx context.Context) error {
 	}
 	if _, err := s.DB.ExecContext(ctx, `INSERT OR IGNORE INTO settings(key, value) VALUES (?, ?)`,
 		SettingGuestMode, "0",
+	); err != nil {
+		return fmt.Errorf("seed settings: %w", err)
+	}
+	if _, err := s.DB.ExecContext(ctx, `INSERT OR IGNORE INTO settings(key, value) VALUES (?, ?)`,
+		SettingAllowFontFallback, "0",
 	); err != nil {
 		return fmt.Errorf("seed settings: %w", err)
 	}
