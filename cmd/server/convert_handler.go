@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"mime"
@@ -102,6 +103,22 @@ func convertHandler(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	kind := detectFileKind(inPath, fh.Filename)
+	if kind == fileKindOffice || (kind == fileKindPDF && r.FormValue("normalize") == "true") {
+		if !isFontFallbackAllowed(r.Context(), r.FormValue("allow_font_fallback")) {
+			if missing, _ := checkDocumentMissingFonts(ctx, inPath, fh.Filename); len(missing) > 0 {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"ok":           false,
+					"code":         "MISSING_FONTS",
+					"message":      "文档使用了系统未安装的字体，直接转换可能导致排版错乱",
+					"missingFonts": missing,
+				})
+				return
+			}
+		}
+	}
+
 	switch kind {
 	case fileKindImage:
 		outPath, outCleanup, err = convertImageToPDF(inPath, orientation, paperSize, invert, compress, imageLayout)

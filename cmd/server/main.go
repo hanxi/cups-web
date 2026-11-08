@@ -72,6 +72,20 @@ func main() {
 		log.Fatal("failed to create scans dir: ", err)
 	}
 
+	// FONTS_DIR: 自定义字体存放目录。优先取环境变量 FONTS_DIR；
+	// 若容器内 /data 目录存在则默认 /data/fonts，开发环境回退到 data/fonts。
+	fontDir = os.Getenv("FONTS_DIR")
+	if fontDir == "" {
+		if fi, err := os.Stat("/data"); err == nil && fi.IsDir() {
+			fontDir = "/data/fonts"
+		} else {
+			fontDir = filepath.Join("data", "fonts")
+		}
+	}
+	if err := os.MkdirAll(fontDir, 0755); err != nil {
+		log.Printf("failed to create fonts dir: %v", err)
+	}
+
 	if err := auth.SetupSecureCookie(appStore.DB); err != nil {
 		log.Fatal("failed to setup secure cookie: ", err)
 	}
@@ -193,6 +207,12 @@ func main() {
 	// WriteTimeout=120s 掐断），这里提供任务状态与增量日志的轮询入口。
 	// jobId 是 randomToken() 生成的不透明大写 base32 串，故约束放宽到字母数字。
 	admin.HandleFunc("/drivers/jobs/{id:[A-Za-z0-9]+}", adminDriverJobHandler).Methods("GET")
+
+	// 字体管理（原生中文打印支持）：查看自定义字体、上传、删除、刷新缓存。
+	admin.HandleFunc("/fonts", adminListFontsHandler).Methods("GET")
+	admin.HandleFunc("/fonts/upload", adminUploadFontHandler).Methods("POST")
+	admin.HandleFunc("/fonts/{name}", adminDeleteFontHandler).Methods("DELETE")
+	admin.HandleFunc("/fonts/refresh", adminRefreshFontsHandler).Methods("POST")
 
 	// Static files (embedded) - register after API routes so /api/* is matched first
 	serverFS := server.NewEmbeddedServer(frontend.FS)

@@ -9,6 +9,12 @@ const routes = [
   { path: '/print', name: 'print', component: PrintView, meta: { requiresAuth: true } },
   { path: '/admin', name: 'admin', component: AdminView, meta: { requiresAuth: true, requiresAdmin: true } },
   {
+    path: '/fonts',
+    name: 'fonts',
+    component: () => import('../views/FontsView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
     path: '/drivers',
     name: 'drivers',
     component: () => import('../views/DriversView.vue'),

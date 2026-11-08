@@ -46,12 +46,13 @@ type adminUserResponse struct {
 }
 
 type settingsPayload struct {
-	RetentionDays  *int64  `json:"retentionDays"`
-	SaveHistory    *bool   `json:"saveHistory"`
-	MaxPagesPerJob *int64  `json:"maxPagesPerJob"`
-	MaxUploadBytes *int64  `json:"maxUploadBytes"`
-	CustomCSS      *string `json:"customCss"`
-	GuestMode      *bool   `json:"guestMode"`
+	RetentionDays     *int64  `json:"retentionDays"`
+	SaveHistory       *bool   `json:"saveHistory"`
+	MaxPagesPerJob    *int64  `json:"maxPagesPerJob"`
+	MaxUploadBytes    *int64  `json:"maxUploadBytes"`
+	CustomCSS         *string `json:"customCss"`
+	GuestMode         *bool   `json:"guestMode"`
+	AllowFontFallback *bool   `json:"allowFontFallback"`
 }
 
 // customCSSMaxLen 是自定义 CSS 的字节上限（32 KiB）。
@@ -271,6 +272,7 @@ func adminGetSettingsHandler(w http.ResponseWriter, r *http.Request) {
 	var maxBytes int64
 	var customCSS string
 	var guestMode int64
+	var allowFontFallback int64
 	err := appStore.WithTx(r.Context(), true, func(tx *sql.Tx) error {
 		val, err := store.GetSettingInt(r.Context(), tx, store.SettingRetentionDays, 0)
 		if err != nil {
@@ -302,6 +304,11 @@ func adminGetSettingsHandler(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 		guestMode = gm
+		aff, err := store.GetSettingInt(r.Context(), tx, store.SettingAllowFontFallback, 0)
+		if err != nil {
+			return err
+		}
+		allowFontFallback = aff
 		return nil
 	})
 	if err != nil {
@@ -309,12 +316,13 @@ func adminGetSettingsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, map[string]interface{}{
-		"retentionDays":  retention,
-		"saveHistory":    saveHistory != 0,
-		"maxPagesPerJob": maxPages,
-		"maxUploadBytes": maxBytes,
-		"customCss":      customCSS,
-		"guestMode":      guestMode != 0,
+		"retentionDays":     retention,
+		"saveHistory":       saveHistory != 0,
+		"maxPagesPerJob":    maxPages,
+		"maxUploadBytes":    maxBytes,
+		"customCss":         customCSS,
+		"guestMode":         guestMode != 0,
+		"allowFontFallback": allowFontFallback != 0,
 	})
 }
 
@@ -396,6 +404,15 @@ func adminUpdateSettingsHandler(w http.ResponseWriter, r *http.Request) {
 				v = 1
 			}
 			if err := store.SetSettingInt(r.Context(), tx, store.SettingGuestMode, v); err != nil {
+				return err
+			}
+		}
+		if payload.AllowFontFallback != nil {
+			var v int64
+			if *payload.AllowFontFallback {
+				v = 1
+			}
+			if err := store.SetSettingInt(r.Context(), tx, store.SettingAllowFontFallback, v); err != nil {
 				return err
 			}
 		}

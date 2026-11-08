@@ -268,6 +268,7 @@
           v-model:numberUp="numberUp"
           v-model:numberUpLayout="numberUpLayout"
           v-model:pageBorder="pageBorder"
+          v-model:allowFontFallback="allowFontFallback"
           :printing="printing"
           :driver-rematch-key="driverRematchKey"
         >
@@ -388,6 +389,11 @@
         </div>
       </template>
     </UModal>
+    <FontMissingModal
+      v-model:open="showFontMissingModal"
+      :missing-fonts="missingFontsList"
+      @proceed="onProceedFontSubstitution"
+    />
   </div>
 </template>
 
@@ -402,6 +408,7 @@ import { appendPhotoUploads, isPhotoFile } from '../utils/photo-upload'
 import FileUpload from '../components/print/FileUpload.vue'
 import IdCardUpload from '../components/print/IdCardUpload.vue'
 import PrintPreview from '../components/print/PrintPreview.vue'
+import FontMissingModal from '../components/print/FontMissingModal.vue'
 import { paperDimensions, printerChoiceLabel } from '../utils/printer-options'
 import PrintOptions from '../components/print/PrintOptions.vue'
 import PrintPresets from '../components/print/PrintPresets.vue'
@@ -483,12 +490,41 @@ const watermarkText = ref('')
 const numberUp = ref(1)
 const numberUpLayout = ref('lrtb')
 const pageBorder = ref('none')
+const allowFontFallback = ref(false)
+
+const showFontMissingModal = ref(false)
+const missingFontsList = ref([])
+let pendingFontAction = null
+
+async function parseResponseError(resp) {
+  try {
+    const text = await resp.clone().text()
+    const data = JSON.parse(text)
+    if (data?.code === 'MISSING_FONTS') {
+      return { isMissingFonts: true, missingFonts: data.missingFonts || [] }
+    }
+  } catch {}
+  return { isMissingFonts: false }
+}
+
+async function onProceedFontSubstitution(always) {
+  if (always) {
+    allowFontFallback.value = true
+    rememberPrintSettings()
+  }
+  if (pendingFontAction) {
+    const action = pendingFontAction
+    pendingFontAction = null
+    await action()
+  }
+}
 
 // ─── 打印参数记忆与预置（issue #128） ─────────────────────
 // 「上次设置」存 localStorage（跟随设备，guest 也可用），命名预置存服务端。
 const settingRefs = {
   isColor, invert, compressImages, duplex, orientation, copies, paperSize, paperType, mediaSource,
-  printScaling, scalePercent, pageSet, mirror, photoDateWatermark, watermarkText, numberUp, numberUpLayout, pageBorder
+  printScaling, scalePercent, pageSet, mirror, photoDateWatermark, watermarkText, numberUp, numberUpLayout, pageBorder,
+  allowFontFallback
 }
 // guest 为多人共享账号，预置会互相覆盖，只保留「恢复默认」。
 const canManagePresets = computed(() => !!props.session && props.session.username !== 'guest')
@@ -1008,7 +1044,7 @@ function processBatchFiles(files) {
   textPreview.value = { key: 'ui.files_selected_select_start_printing_to_print_them_in_sequence', params: { p0: batchFiles.value.length } }
 }
 
-async function uploadAndPrintBatch() {
+async function uploadAndPrintBatch(forceAllowFallback = false) {
   if (!printer.value) { toast.add({ title: t('ui.select_a_printer_2'), color: 'warning' }); return }
   if (batchFiles.value.length === 0) return
 
@@ -1037,8 +1073,19 @@ async function uploadAndPrintBatch() {
         fd.append('print_scaling', scaling)
         if (invert.value) fd.append('invert', 'true')
         if (compressImages.value) fd.append('compress_images', 'true')
+        if (forceAllowFallback || allowFontFallback.value) fd.append('allow_font_fallback', 'true')
         const convertResp = await apiFetch('/api/convert', { method: 'POST', body: fd }, () => emit('logout'))
         if (!convertResp.ok) {
+          if (convertResp.status === 422) {
+            const errInfo = await parseResponseError(convertResp)
+            if (errInfo.isMissingFonts) {
+              missingFontsList.value = errInfo.missingFonts
+              pendingFontAction = () => uploadAndPrintBatch(true)
+              showFontMissingModal.value = true
+              batchPrinting.value = false
+              return
+            }
+          }
           throw new Error(await readError(convertResp))
         }
         const blob = await convertResp.blob()
@@ -1048,6 +1095,7 @@ async function uploadAndPrintBatch() {
       const form = new FormData()
       if (isPhotoFile(file)) appendPhotoUploads(form, [file])
       else form.append('file', fileToSend, fileToSend.name)
+      if (forceAllowFallback || allowFontFallback.value) form.append('allow_font_fallback', 'true')
       form.append('printer', printer.value)
       form.append('sides', duplex.value)
       form.append('duplex', duplex.value === 'one-sided' ? 'false' : 'true')
@@ -1073,7 +1121,19 @@ async function uploadAndPrintBatch() {
       }
 
       const resp = await apiFetch('/api/print', { method: 'POST', body: form }, () => emit('logout'))
-      if (!resp.ok) throw new Error(await readError(resp))
+      if (!resp.ok) {
+        if (resp.status === 422) {
+          const errInfo = await parseResponseError(resp)
+          if (errInfo.isMissingFonts) {
+            missingFontsList.value = errInfo.missingFonts
+            pendingFontAction = () => uploadAndPrintBatch(true)
+            showFontMissingModal.value = true
+            batchPrinting.value = false
+            return
+          }
+        }
+        throw new Error(await readError(resp))
+      }
       successCount++
     } catch (e) {
       failCount++
@@ -1133,15 +1193,29 @@ async function convertTextViaServer(file, orient, pSize) {
 }
 
 // 通过后端 /api/convert 将 Office / OFD 文件转成 PDF。
-async function convertOfficeToPdf(file) {
+async function convertOfficeToPdf(file, forceAllowFallback = false) {
   const fd = new FormData()
   fd.append('file', file, file.name)
+  if (forceAllowFallback || allowFontFallback.value) {
+    fd.append('allow_font_fallback', 'true')
+  }
   const resp = await apiFetch('/api/convert', { method: 'POST', body: fd }, () => emit('logout'))
-  if (!resp.ok) throw new Error(await readError(resp))
+  if (!resp.ok) {
+    if (resp.status === 422) {
+      const errInfo = await parseResponseError(resp)
+      if (errInfo.isMissingFonts) {
+        missingFontsList.value = errInfo.missingFonts
+        pendingFontAction = () => convertToPdf(true)
+        showFontMissingModal.value = true
+        throw new Error('MISSING_FONTS_HALT')
+      }
+    }
+    throw new Error(await readError(resp))
+  }
   return resp.blob()
 }
 
-async function convertToPdf() {
+async function convertToPdf(forceAllowFallback = false) {
   if (converting.value) return
   if (!selectedFile.value && !isMultiImage.value) return
   const conversionVersion = imageConversionVersion
@@ -1155,7 +1229,7 @@ async function convertToPdf() {
         imageRotations.value, invert.value
       )
     } else if (isOfficeFile(f) || isOFDFile(f)) {
-      blob = await convertOfficeToPdf(f)
+      blob = await convertOfficeToPdf(f, forceAllowFallback)
     } else if (isPhotoFile(f)) {
       blob = await convertImagesToPdfViaServer([f], orientation.value, paperSize.value, null, null, invert.value)
     } else {
@@ -1169,7 +1243,9 @@ async function convertToPdf() {
     converted.value = true
     toast.add({ title: t('ui.conversion_complete'), color: 'success', icon: 'i-lucide-check-circle' })
   } catch (e) {
-    toast.add({ title: t('ui.conversion_failed'), description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
+    if (e.message !== 'MISSING_FONTS_HALT') {
+      toast.add({ title: t('ui.conversion_failed'), description: e.message, color: 'error', icon: 'i-lucide-x-circle' })
+    }
   } finally {
     converting.value = false
   }
@@ -1179,7 +1255,7 @@ async function convertToPdf() {
 // 后端 /api/convert?normalize=true 会把 PDF 重写为 1.4 版本并嵌入所有字体，
 // 用于修复 CJK 字体外挂 CMap 导致的乱码等问题。规范化结果替换 pdfBlob 与
 // previewUrl，后续打印发的就是这份字节流。
-async function applyGsNormalization() {
+async function applyGsNormalization(forceAllowFallback = false) {
   const f = selectedFile.value
   if (!f || f.type !== 'application/pdf') return
   if (gsApplying.value || gsApplied.value) return
@@ -1188,8 +1264,22 @@ async function applyGsNormalization() {
     const fd = new FormData()
     fd.append('file', f, f.name)
     fd.append('normalize', 'true')
+    if (forceAllowFallback || allowFontFallback.value) {
+      fd.append('allow_font_fallback', 'true')
+    }
     const resp = await apiFetch('/api/convert', { method: 'POST', body: fd }, () => emit('logout'))
-    if (!resp.ok) throw new Error(await readError(resp))
+    if (!resp.ok) {
+      if (resp.status === 422) {
+        const errInfo = await parseResponseError(resp)
+        if (errInfo.isMissingFonts) {
+          missingFontsList.value = errInfo.missingFonts
+          pendingFontAction = () => applyGsNormalization(true)
+          showFontMissingModal.value = true
+          return
+        }
+      }
+      throw new Error(await readError(resp))
+    }
     const blob = await resp.blob()
     // 用户在期间换/清了文件，丢弃结果
     if (selectedFile.value !== f) return
@@ -1208,12 +1298,12 @@ async function applyGsNormalization() {
 }
 
 // ─── 打印 ─────────────────────────────────────────────────
-async function uploadAndPrint() {
+async function uploadAndPrint(forceAllowFallback = false) {
   if (!printer.value) { toast.add({ title: t('ui.select_a_printer_2'), color: 'warning' }); return }
 
   // 批量打印模式
   if (batchFiles.value.length > 0) {
-    await uploadAndPrintBatch()
+    await uploadAndPrintBatch(forceAllowFallback)
     return
   }
 
@@ -1230,6 +1320,9 @@ async function uploadAndPrint() {
     form.append('compress_images', String(compressImages.value))
   } else {
     form.append('file', actualFile, pdfBlob.value ? (downloadName.value || 'document.pdf') : selectedFile.value.name)
+  }
+  if (forceAllowFallback || allowFontFallback.value) {
+    form.append('allow_font_fallback', 'true')
   }
   form.append('printer', printer.value)
   form.append('sides', duplex.value)
@@ -1260,6 +1353,15 @@ async function uploadAndPrint() {
       body: form
     }, () => emit('logout'))
     if (!resp.ok) {
+      if (resp.status === 422) {
+        const errInfo = await parseResponseError(resp)
+        if (errInfo.isMissingFonts) {
+          missingFontsList.value = errInfo.missingFonts
+          pendingFontAction = () => uploadAndPrint(true)
+          showFontMissingModal.value = true
+          return
+        }
+      }
       throw new Error(await readError(resp))
     }
     const j = await resp.json()

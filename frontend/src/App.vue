@@ -64,6 +64,14 @@
                 icon="i-lucide-puzzle"
                 @click="router.push('/drivers')"
               > {{ t('ui.drivers') }} </UButton>
+              <UButton
+                v-if="isAdmin"
+                :variant="route.path === '/fonts' ? 'soft' : 'ghost'"
+                :color="route.path === '/fonts' ? 'primary' : 'neutral'"
+                size="xs"
+                icon="i-lucide-type"
+                @click="router.push('/fonts')"
+              > {{ t('ui.fonts') }} </UButton>
             </div>
             <UButton
               v-if="session"
@@ -185,6 +193,7 @@ const menuItems = computed(() => {
   if (isAdmin.value) {
     nav.push({ label: t('ui.administration'), icon: 'i-lucide-settings', onSelect: () => router.push('/admin') })
     nav.push({ label: t('ui.drivers'), icon: 'i-lucide-puzzle', onSelect: () => router.push('/drivers') })
+    nav.push({ label: t('ui.fonts'), icon: 'i-lucide-type', onSelect: () => router.push('/fonts') })
   }
   const account = [{ label: t('ui.sign_out'), icon: 'i-lucide-log-out', onSelect: () => logout() }]
   return nav.length ? [nav, account] : [account]

@@ -60,6 +60,9 @@ services:
     volumes:
       - ./.etc:/etc/cups
       - ./.data:/data
+      # 自定义字体挂载（解决中文公文、商用文档缺少字体导致的排版错乱）：
+      # 也可直接放入 ./.data/fonts/ 目录；支持 .ttf / .ttc / .otf，容器启动时自动加载并刷新缓存。
+      # - ./.fonts:/data/fonts:ro
       - ./.uploads:/uploads
       # 扫描产物持久化（issue #111）：/scans 是 SCAN_DIR 默认值,cups-web 把每次
       # 扫描的 PNG/JPEG/PDF 写到这里,并在 scan_records 表里留元数据。不挂载

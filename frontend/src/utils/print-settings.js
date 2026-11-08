@@ -25,7 +25,8 @@ export const DEFAULT_PRINT_SETTINGS = Object.freeze({
   watermarkText: '',
   numberUp: 1,
   numberUpLayout: 'lrtb',
-  pageBorder: 'none'
+  pageBorder: 'none',
+  allowFontFallback: false
 })
 
 const oneOf = values => value => values.includes(value)
@@ -53,7 +54,8 @@ const validators = {
   watermarkText: value => typeof value === 'string' && value.length <= 1000,
   numberUp: oneOf([1, 2, 4, 6, 9, 16]),
   numberUpLayout: oneOf(['lrtb', 'rltb', 'tblr', 'tbrl']),
-  pageBorder: oneOf(['single', 'none'])
+  pageBorder: oneOf(['single', 'none']),
+  allowFontFallback: isBool
 }
 
 const DRIVER_GROUPS = ['pageSize', 'mediaType', 'quality']
