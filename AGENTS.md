@@ -73,6 +73,9 @@ cups-web/
 │   ├── watermark.go               # 水印
 │   ├── pdf_normalize.go           # PDF 标准化管线
 │   ├── fonts.go                   # 中文字体加载
+│   ├── font_handlers.go           # /api/admin/fonts/*（字体列表 / 上传 / 删除 / 刷新）
+│   ├── font_parser.go             # SFNT (TTF/OTF/TTC) name 表元数据解析
+│   ├── font_preflight.go          # 缺失字体预检阻断
 │   ├── maintenance.go             # 后台维护任务
 │   └── version.go                 # 构建期版本号
 ├── internal/
@@ -192,6 +195,10 @@ cups-web/
 | POST | `/api/admin/drivers/upload` | 上传 `.ppd` / `.deb`（**同步**，64MB 上限） |
 | POST | `/api/admin/drivers/setup` | **异步**一键设置，`202` + `jobId` |
 | GET | `/api/admin/drivers/jobs/{id}` | 轮询任务状态 |
+| GET | `/api/admin/fonts` | 自定义字体列表 + 状态 |
+| POST | `/api/admin/fonts/upload` | 上传字体（`.ttf` / `.ttc` / `.otf`，**同步**，64MB 上限） |
+| DELETE | `/api/admin/fonts/{name}` | 删除自定义字体 |
+| POST | `/api/admin/fonts/refresh` | 手动同步并刷新字体缓存 |
 
 #### 驱动异步任务要点
 
@@ -204,6 +211,29 @@ cups-web/
 `drivers[]` 每项是 `DriverStatus`：`name` / `displayName` / `description` / `arch` / `needCompile` / `installed` / `installedAt` / `installedArch` / `supported` / `hasScript`。`installed` 以 `manifest.txt` 是否存在为唯一判据。
 
 `customDebs[]` 每项是 `CustomDebPackage`：`filename` / `installedAt` / `installedArch` / `sizeBytes`。纯信息性条目。
+
+#### 字体管理与预检要点
+
+- **物理存储与系统同步**：
+  - 落盘目录由 `FONTS_DIR` 决定（默认 `/data/fonts`，回退 `data/fonts`；AIO 与仅 Web 容器内挂载 `./.data:/data` 对应 `/data/fonts`）。
+  - 启动阶段（`entrypoint.sh` 步骤 1b）或接口触发（上传 / 删除 / 刷新）时调用 `syncAndRefreshFonts`：
+    - 将字体软链接（或拷贝）到系统字体目录 `/usr/share/fonts/truetype/custom`，并清理已被物理删除的孤儿软链；
+    - 执行 `fc-cache -f /usr/share/fonts/truetype/custom` 刷新 fontconfig 缓存（带 30s 超时保护）；
+    - 若发现 `simsun.ttf`、`simhei.ttf`、`simkai.ttf`、`simfang.ttf` 等基础字库，原地修补 `/etc/ghostscript/cidfmap.local` 并同步覆盖 `$GS_INIT_DIR/cidfmap`，使 Ghostscript `pdfwrite` 标准化管线能正确命中字形；
+    - 调用 `InvalidateSystemFontCache()` 立即重置进程内缓存。
+- **元数据解析（`font_parser.go`）**：
+  - 传统按文件名判断字体会导致 `1.ttf` 这类文件被误判。实现针对 SFNT 二进制结构（TTF/OTF/TTC）的标准 `name` 表解析器；
+  - 针对 Platform ID 3 (Windows) 与 Platform ID 0 (Unicode) 严格按 UTF-16BE 解码中文字符；
+  - 提取 Name ID 1（Family）、2（Subfamily）、4（Full Name）、6（PostScript）与 16（Preferred Family）；
+  - `customFonts[]` 保持 `name` 为磁盘真实文件名（接口契约不破坏），新增 `displayName`（中英文合成名如 `仿宋 (FangSong)`、西文如 `Arial`、TTC 多子字体斜杠并列如 `宋体 (SimSun) / 新宋体 (NSimSun)`）、`family`、`subfamily` 与 `format`（`TTF`/`OTF`/`TTC`）；
+  - 列表接口默认按 `displayName` 不区分大小写字母序升序排序。
+- **文档字体预检阻断（`font_preflight.go`）**：
+  - 在 `/api/print` 和 `/api/convert` 接收 `.docx` 或未完全内嵌字体的 `.pdf` 时，提取文档引用的字体名并结合系统字体族（含别名映射表与中文 GBK 十六进制 BaseFont）进行预检；
+  - 缺失字体且未开启允许替换时，直接阻断并返回 `422 Unprocessable Entity`（响应体 `{"error":"MISSING_FONTS","missingFonts":["..."]}`），杜绝静默打出排版错乱的废纸；
+  - 运行参数 `allow_font_fallback`（默认关闭）可在系统设置全局控制，前端模态框支持「本次允许替换」与「始终允许替换」。
+- **安全收敛**：
+  - 上传与删除一律经 `filepath.Base` 清洗，白名单限定 `.ttf`、`.ttc`、`.otf` 扩展名，拦截任何路径穿越符号；
+  - 单次上传文件大小上限 64MB。
 
 ### `/api/print` 表单字段
 
@@ -286,7 +316,7 @@ SQLite，`WAL` + `foreign_keys`；迁移在 `store.go::migrate()` 中用幂等 S
 
 ### `settings`
 
-KV 表。当前键：`retention_days`（`0` = 永久）、`session_hash_key` / `session_block_key`。
+KV 表。当前键：`retention_days`（`0` = 永久）、`save_history`、`max_pages_per_job`、`max_upload_bytes`、`custom_css`、`guest_mode`、`allow_font_fallback`（`0` = 缺字体预检阻断，`1` = 允许自动替换）、`session_hash_key` / `session_block_key`。
 
 ### `print_presets`（issue #128）
 

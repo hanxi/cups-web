@@ -76,11 +76,22 @@ gs -dPDFDEBUG -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=/tmp/out.pdf <in.
 ## 自定义中文字体挂载与排版保真
 
 为解决公文打印（如仿宋_GB2312、方正小标宋简体）与商务文档转换时因缺少字体引起的断行错位、排版走样问题：
-1. **外部卷挂载**：在 `docker-compose.yml` 中将宿主机字体目录挂载至容器内的 `/data/fonts`（或直接放入 `./.data/fonts/`）。容器启动脚本 `entrypoint.sh` 会自动检测 `.ttf` / `.ttc` / `.otf`，软链接至系统字体目录并执行 `fc-cache -f` 刷新缓存，同时同步修补 Ghostscript 的 `cidfmap` 映射。
-2. **文档字体预检（Font Preflight）**：
-   - 在对 `.docx` 和未内嵌字体的 `.pdf` 执行转换前，服务端预先检查文档声明的字体是否已在系统安装。
-   - 若发现缺失字体且用户未开启「允许自动替换」，接口返回 422 结构化响应 `MISSING_FONTS`，前端弹出缺失字体警告框，避免静默打出格式错误的废纸。
-   - 用户可选择「本次允许替换」或「始终允许替换」（存储于客户端偏好并在管理设置中支持全局默认配置）。
+
+### 1. 外部卷挂载与启动同步
+- **挂载路径**：宿主机字体目录挂载至容器内的 `/data/fonts`（在默认 Compose 配置下，直接放入 `./.data/fonts/` 即可）。
+- **entrypoint 同步（步骤 1b）**：容器启动时自动扫描 `/data/fonts` 下所有 `.ttf` / `.ttc` / `.otf` 文件，自动建立软链接至 `/usr/share/fonts/truetype/custom` 并执行 `fc-cache -f`。
+- **Ghostscript 动态修补**：若挂载了真实的 Windows 基础字库（`simsun.ttf`、`simhei.ttf`、`simkai.ttf`、`simfang.ttf`），脚本会自动修补 `/etc/ghostscript/cidfmap.local` 并同步覆盖至 `$GS_INIT_DIR/cidfmap`，使 Ghostscript `pdfwrite` 管线直接调用原生字体字形，避免回退到开源替代字体引起字重或度量不一致。
+
+### 2. Web 界面可视化字体管理（`/fonts`）
+管理员可直接在 Web 页面进行字体管理，无需频繁手动进入容器：
+- **独立路由与直达入口**：提供 `/#/fonts` 独立页面，管理员在桌面端与移动端导航栏均可直接点击「字体」进入。
+- **二进制元数据解析（`font_parser.go`）**：针对 TrueType、OpenType 与 TrueType Collection（TTC）实现标准 SFNT `name` 表解码器，基于 UTF-16BE 提取 Name ID 1（Family）、2（Subfamily）、4（Full Name）与 16（Preferred Family）。即使用户上传或挂载的是形如 `1.ttf` 的文件，系统也能解析出真实名称 `Arial`，中文字体展现为 `仿宋 (FangSong)`，TTC 展开为 `宋体 (SimSun) / 新宋体 (NSimSun)`。
+- **动态生效**：Web 端上传或删除字体后，后端立即自动同步系统软链、执行 `fc-cache -f`、修补 `cidfmap` 并调用 `InvalidateSystemFontCache()`，无需重启容器即可热生效。
+
+### 3. 文档字体预检（Font Preflight）
+- **触发链路**：在 `/api/print` 和 `/api/convert` 接收 `.docx` 或未完全内嵌字体的 `.pdf` 时，服务端自动提取文档所需的字体族名称，并与系统已注册字体库（含常见别名与 GBK 十六进制 BaseFont）比对。
+- **阻断机制**：检测到缺失字体且未启用替换时，接口返回 `422 Unprocessable Entity`（错误码 `MISSING_FONTS`）。前端弹出警告模态框，直观展示缺失字体列表，提供「取消」「本次允许替换」与「始终允许替换」选项，杜绝静默打出格式错误的废纸。
+- **全局控制**：在「管理后台 → 系统设置」中提供「允许缺少字体时自动替换」开关（落库至 `settings` 表的 `allow_font_fallback` 键），可按需关闭预检严格拦截。
 
 ## HTTP 超时
 

@@ -5,7 +5,7 @@
 | 文件 | 内容 |
 | --- | --- |
 | [architecture.md](architecture.md) | 技术栈选型、外部依赖坑位（LibreOffice 可写 HOME、Ghostscript 字体破坏性改造、dpkg-dev 缺失） |
-| [pdf-pipeline.md](pdf-pipeline.md) | PDF 标准化三链路、Ghostscript cidfmap 两套加载机制、空壳 CJK 字体与 pdf.js 预览错位、HTTP 超时设计 |
+| [pdf-pipeline.md](pdf-pipeline.md) | PDF 标准化三链路、Ghostscript cidfmap 机制、自定义中文字体挂载与预检阻断、空壳 CJK 字体与 pdf.js 预览错位、HTTP 超时设计 |
 | [driver-management.md](driver-management.md) | 驱动持久化原理、manifest 白名单翻车案例、AIO 单一 EXIT trap、退出码由来、架构探测、`.deb` 上传机制、`lpinfo` 解析、异步任务模型 |
 | [container-startup.md](container-startup.md) | entrypoint 10 步流程、cupsd watchdog 子 shell 127 死循环、fast-fail 退避、restore-drivers 永远 exit 0 |
 | [docker-build.md](docker-build.md) | AIO / 仅 Web 构建目标与共享依赖、三架构基础镜像选型史、ca-certificates 勿删、HOME/LibreOffice profile、docker-compose 配置理由、CI/CD |
