@@ -271,6 +271,7 @@ func patchGhostscriptCidfmap() {
 	content := string(data)
 	changed := false
 
+	// simsun: 存在则映射至 custom/simsun.ttf，不存在则回退至开源 arphic/uming.ttc
 	if _, err := os.Stat(filepath.Join(systemCustomFontDir, "simsun.ttf")); err == nil {
 		newContent := strings.ReplaceAll(content,
 			"/usr/share/fonts/truetype/arphic/uming.ttc) /SubfontID 0",
@@ -280,7 +281,18 @@ func patchGhostscriptCidfmap() {
 			content = newContent
 			changed = true
 		}
+	} else {
+		newContent := strings.ReplaceAll(content,
+			"/usr/share/fonts/truetype/custom/simsun.ttf) /SubfontID 0",
+			"/usr/share/fonts/truetype/arphic/uming.ttc) /SubfontID 0",
+		)
+		if newContent != content {
+			content = newContent
+			changed = true
+		}
 	}
+
+	// simhei: 存在则映射至 custom/simhei.ttf，不存在则回退至开源 wqy/wqy-zenhei.ttc
 	if _, err := os.Stat(filepath.Join(systemCustomFontDir, "simhei.ttf")); err == nil {
 		newContent := strings.ReplaceAll(content,
 			"/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc) /SubfontID 0",
@@ -290,7 +302,18 @@ func patchGhostscriptCidfmap() {
 			content = newContent
 			changed = true
 		}
+	} else {
+		newContent := strings.ReplaceAll(content,
+			"/usr/share/fonts/truetype/custom/simhei.ttf) /SubfontID 0",
+			"/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc) /SubfontID 0",
+		)
+		if newContent != content {
+			content = newContent
+			changed = true
+		}
 	}
+
+	// simkai: 存在则映射至 custom/simkai.ttf，不存在则回退至开源 arphic/ukai.ttc
 	if _, err := os.Stat(filepath.Join(systemCustomFontDir, "simkai.ttf")); err == nil {
 		newContent := strings.ReplaceAll(content,
 			"/usr/share/fonts/truetype/arphic/ukai.ttc) /SubfontID 0",
@@ -300,19 +323,56 @@ func patchGhostscriptCidfmap() {
 			content = newContent
 			changed = true
 		}
+	} else {
+		newContent := strings.ReplaceAll(content,
+			"/usr/share/fonts/truetype/custom/simkai.ttf) /SubfontID 0",
+			"/usr/share/fonts/truetype/arphic/ukai.ttc) /SubfontID 0",
+		)
+		if newContent != content {
+			content = newContent
+			changed = true
+		}
 	}
+
+	// simfang
+	hasSimfang := false
 	if _, err := os.Stat(filepath.Join(systemCustomFontDir, "simfang.ttf")); err == nil {
-		lines := strings.Split(content, "\n")
-		for i, line := range lines {
-			if strings.HasPrefix(strings.TrimSpace(line), "/#b7#c2#cb#ce") {
-				line = strings.ReplaceAll(line, "/usr/share/fonts/truetype/custom/simsun.ttf) /SubfontID 0", "/usr/share/fonts/truetype/custom/simfang.ttf) /SubfontID 0")
-				line = strings.ReplaceAll(line, "/usr/share/fonts/truetype/arphic/uming.ttc) /SubfontID 0", "/usr/share/fonts/truetype/custom/simfang.ttf) /SubfontID 0")
+		hasSimfang = true
+	}
+	hasSimsun := false
+	if _, err := os.Stat(filepath.Join(systemCustomFontDir, "simsun.ttf")); err == nil {
+		hasSimsun = true
+	}
+	lines := strings.Split(content, "\n")
+	for i, line := range lines {
+		if strings.HasPrefix(strings.TrimSpace(line), "/#b7#c2#cb#ce") {
+			var targetPath string
+			if hasSimfang {
+				targetPath = "/usr/share/fonts/truetype/custom/simfang.ttf) /SubfontID 0"
+			} else if hasSimsun {
+				targetPath = "/usr/share/fonts/truetype/custom/simsun.ttf) /SubfontID 0"
+			} else {
+				if strings.Contains(line, ",Bold") {
+					targetPath = "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc) /SubfontID 0"
+				} else {
+					targetPath = "/usr/share/fonts/truetype/arphic/uming.ttc) /SubfontID 0"
+				}
+			}
+			// 替换任何旧的 /Path (...) /SubfontID 0
+			oldTarget := line
+			if idx := strings.Index(line, "/Path ("); idx != -1 {
+				endIdx := strings.Index(line[idx:], " /CSI")
+				if endIdx != -1 {
+					line = line[:idx] + "/Path (" + targetPath + line[idx+endIdx:]
+				}
+			}
+			if oldTarget != line {
 				lines[i] = line
 				changed = true
 			}
 		}
-		content = strings.Join(lines, "\n")
 	}
+	content = strings.Join(lines, "\n")
 
 	if changed {
 		if err := os.WriteFile(gsCidfmap, []byte(content), 0644); err != nil {
