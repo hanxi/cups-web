@@ -47,20 +47,59 @@ func TestIsFontAvailable(t *testing.T) {
 		t.Errorf("expected 'FangSong' to be available via simfang alias")
 	}
 
-	// 忽略字体测试
+	// 忽略字体与西文字体自动放行测试
 	if !isFontAvailable("Symbol", systemFonts) {
 		t.Errorf("expected 'Symbol' to be ignored and considered available")
 	}
 	if !isFontAvailable("Wingdings", systemFonts) {
 		t.Errorf("expected 'Wingdings' to be ignored and considered available")
 	}
+	if !isFontAvailable("Helvetica-Bold", systemFonts) {
+		t.Errorf("expected 'Helvetica-Bold' to be considered available as western font")
+	}
+	if !isFontAvailable("Times-Roman", systemFonts) {
+		t.Errorf("expected 'Times-Roman' to be considered available as western font")
+	}
 
-	// 确实缺失的字体
+	// 确实缺失的公文中文字体
 	if isFontAvailable("方正小标宋简体", systemFonts) {
 		t.Errorf("expected '方正小标宋简体' to be missing")
 	}
-	if isFontAvailable("SimHei", systemFonts) {
-		t.Errorf("expected 'SimHei' to be missing")
+	if isFontAvailable("FZXiaoBiaoSong-B05S", systemFonts) {
+		t.Errorf("expected 'FZXiaoBiaoSong-B05S' to be missing")
+	}
+}
+
+func TestSubsetFontAndCJKDetection(t *testing.T) {
+	// 子集前缀测试
+	if !isSubsetFontName("ABCDEF+SimSun") {
+		t.Errorf("expected ABCDEF+SimSun to be subset font")
+	}
+	if !isSubsetFontName("XYZABC+FangSong") {
+		t.Errorf("expected XYZABC+FangSong to be subset font")
+	}
+	if isSubsetFontName("SimSun") {
+		t.Errorf("expected SimSun to not be subset font")
+	}
+	if isSubsetFontName("123456+SimSun") {
+		t.Errorf("expected 123456+SimSun to not be subset font")
+	}
+
+	// 中文字体识别测试
+	if !isCJKFontName("SimSun") {
+		t.Errorf("expected SimSun to be CJK")
+	}
+	if !isCJKFontName("仿宋_GB2312") {
+		t.Errorf("expected 仿宋_GB2312 to be CJK")
+	}
+	if !isCJKFontName("#cb#ce#cc#e5") {
+		t.Errorf("expected #cb#ce#cc#e5 to be CJK")
+	}
+	if isCJKFontName("Helvetica-Bold") {
+		t.Errorf("expected Helvetica-Bold to not be CJK")
+	}
+	if isCJKFontName("TimesNewRomanPSMT") {
+		t.Errorf("expected TimesNewRomanPSMT to not be CJK")
 	}
 }
 
@@ -122,5 +161,19 @@ func TestIsFontFallbackAllowed(t *testing.T) {
 	// 显式传参允许
 	if !isFontFallbackAllowed(context.Background(), "true") {
 		t.Errorf("expected isFontFallbackAllowed with 'true' to return true")
+	}
+}
+
+func TestTargetSubsetFontPDF(t *testing.T) {
+	pdfPath := "../../26秋新四年级上册语文全册每课一练.pdf"
+	if _, err := os.Stat(pdfPath); err != nil {
+		t.Skip("target pdf not found")
+	}
+	missing, err := checkDocumentMissingFonts(context.Background(), pdfPath, filepath.Base(pdfPath))
+	if err != nil {
+		t.Fatalf("checkDocumentMissingFonts error: %v", err)
+	}
+	if len(missing) > 0 {
+		t.Errorf("expected embedded subset font PDF to have no missing fonts, got: %v", missing)
 	}
 }

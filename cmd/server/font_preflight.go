@@ -36,14 +36,14 @@ func normalizeFontName(name string) string {
 
 // 常见中文字体别名与关联映射
 var knownFontAliases = map[string][]string{
-	"simsun":               {"simsun", "宋体", "nsimsun", "新宋体", "stsong", "华文宋体"},
-	"宋体":                   {"simsun", "宋体", "nsimsun", "新宋体", "stsong", "华文宋体"},
-	"simhei":               {"simhei", "黑体", "stheiti", "华文黑体"},
-	"黑体":                   {"simhei", "黑体", "stheiti", "华文黑体"},
-	"kaiti":                {"kaiti", "楷体", "simkai", "kaiti_gb2312", "楷体_gb2312", "stkaiti", "华文楷体"},
-	"楷体":                   {"kaiti", "楷体", "simkai", "kaiti_gb2312", "楷体_gb2312", "stkaiti", "华文楷体"},
-	"kaiti_gb2312":         {"kaiti", "楷体", "simkai", "kaiti_gb2312", "楷体_gb2312", "stkaiti", "华文楷体"},
-	"楷体_gb2312":          {"kaiti", "楷体", "simkai", "kaiti_gb2312", "楷体_gb2312", "stkaiti", "华文楷体"},
+	"simsun":               {"simsun", "宋体", "nsimsun", "新宋体", "stsong", "华文宋体", "notoserifcjksc", "sourcehanserif", "arphicuming", "uming"},
+	"宋体":                   {"simsun", "宋体", "nsimsun", "新宋体", "stsong", "华文宋体", "notoserifcjksc", "sourcehanserif", "arphicuming", "uming"},
+	"simhei":               {"simhei", "黑体", "stheiti", "华文黑体", "notosanscjksc", "sourcehansans", "wqyzenhei", "zenhei"},
+	"黑体":                   {"simhei", "黑体", "stheiti", "华文黑体", "notosanscjksc", "sourcehansans", "wqyzenhei", "zenhei"},
+	"kaiti":                {"kaiti", "楷体", "simkai", "kaiti_gb2312", "楷体_gb2312", "stkaiti", "华文楷体", "arphicukai", "ukai"},
+	"楷体":                   {"kaiti", "楷体", "simkai", "kaiti_gb2312", "楷体_gb2312", "stkaiti", "华文楷体", "arphicukai", "ukai"},
+	"kaiti_gb2312":         {"kaiti", "楷体", "simkai", "kaiti_gb2312", "楷体_gb2312", "stkaiti", "华文楷体", "arphicukai", "ukai"},
+	"楷体_gb2312":          {"kaiti", "楷体", "simkai", "kaiti_gb2312", "楷体_gb2312", "stkaiti", "华文楷体", "arphicukai", "ukai"},
 	"fangsong":             {"fangsong", "仿宋", "simfang", "fangsong_gb2312", "仿宋_gb2312", "stfangsong", "华文仿宋"},
 	"仿宋":                   {"fangsong", "仿宋", "simfang", "fangsong_gb2312", "仿宋_gb2312", "stfangsong", "华文仿宋"},
 	"fangsong_gb2312":      {"fangsong", "仿宋", "simfang", "fangsong_gb2312", "仿宋_gb2312", "stfangsong", "华文仿宋"},
@@ -69,19 +69,86 @@ var knownFontAliases = map[string][]string{
 	"苹方":                   {"pingfangsc", "苹方", "pingfang"},
 }
 
-// 符号字体与无需检查的系统基础字体
+// 符号字体与无需检查的系统基础西文字体前缀/集合
 var ignoredFontSet = map[string]struct{}{
-	"symbol":      {},
-	"wingdings":   {},
-	"wingdings2":  {},
-	"wingdings3":  {},
-	"webdings":    {},
-	"mtextra":     {},
-	"marlett":     {},
-	"courier":     {},
-	"helvetica":   {},
-	"times":       {},
+	"symbol":       {},
+	"wingdings":    {},
+	"wingdings2":   {},
+	"wingdings3":   {},
+	"webdings":     {},
+	"mtextra":      {},
+	"marlett":      {},
+	"courier":      {},
+	"helvetica":    {},
+	"times":        {},
+	"timesroman":   {},
+	"timesnewroman": {},
+	"arial":        {},
+	"calibri":      {},
+	"tahoma":       {},
+	"verdana":      {},
+	"georgia":      {},
+	"dejavusans":   {},
+	"dejavuserif":  {},
+	"liberationsans": {},
+	"liberationserif": {},
 	"zapfdingbats": {},
+}
+
+// isSubsetFontName 判定是否为 PDF 规范定义的子集内嵌字体（6个大写字母 + '+'，如 ABCDEF+SimSun）
+func isSubsetFontName(name string) bool {
+	if len(name) < 8 || name[6] != '+' {
+		return false
+	}
+	for i := 0; i < 6; i++ {
+		if name[i] < 'A' || name[i] > 'Z' {
+			return false
+		}
+	}
+	return true
+}
+
+// isCJKFontName 判定字体名是否为中文/CJK 字体
+func isCJKFontName(fontName string) bool {
+	for _, r := range fontName {
+		if r >= 0x4e00 && r <= 0x9fff {
+			return true
+		}
+	}
+
+	lower := strings.ToLower(fontName)
+	// GBK 字节十六进制转义，如 #cb#ce#cc#e5
+	for hex := range gbkHexToFontName {
+		if strings.Contains(lower, hex) || strings.Contains(strings.ReplaceAll(lower, "#", ""), strings.ReplaceAll(hex, "#", "")) {
+			return true
+		}
+	}
+
+	norm := normalizeFontName(fontName)
+
+	// 常见中文字体拼音、英文族名关键词
+	cjkKeywords := []string{
+		"simsun", "nsimsun", "simhei", "simkai", "simfang",
+		"fangsong", "kaiti", "songti", "heiti", "yahei", "msyahei",
+		"fz", "fangzheng", "pingfang", "stsong", "stkaiti", "stfangsong",
+		"stheiti", "dengxian", "youyuan", "liyou", "huawen",
+		"sourcehansans", "sourcehanserif", "notosanscjk", "notoserifcjk",
+		"wqy", "arphic",
+	}
+
+	for _, kw := range cjkKeywords {
+		if strings.Contains(norm, kw) {
+			return true
+		}
+	}
+
+	for k := range knownFontAliases {
+		if norm == normalizeFontName(k) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // PDF GBK 字节 BaseFont 十六进制转中文名
@@ -177,6 +244,11 @@ func InvalidateSystemFontCache() {
 func isFontAvailable(fontName string, systemFonts map[string]struct{}) bool {
 	norm := normalizeFontName(fontName)
 	if _, ok := ignoredFontSet[norm]; ok {
+		return true
+	}
+
+	// 纯西文字体在 Linux 环境下拥有系统基础字库兜底，不作为缺失阻断
+	if !isCJKFontName(fontName) {
 		return true
 	}
 
@@ -301,10 +373,20 @@ func extractPDFUnembeddedFonts(filePath string) ([]string, error) {
 				continue
 			}
 
-			// 检查是否包含子集前缀，如 ABCDEF+FangSong -> FangSong
+			// 符合 [A-Z]{6}+ 前缀的为 PDF 规范定义的子集内嵌字体，已自带完整字形流，不作缺失判断
+			if isSubsetFontName(baseFont) {
+				continue
+			}
+
+			// 检查是否包含子集前缀（非标准格式容错）
 			cleanFont := baseFont
 			if idx := strings.Index(baseFont, "+"); idx >= 0 && idx < 10 {
 				cleanFont = baseFont[idx+1:]
+			}
+
+			// 纯西文字体在 Linux 环境下拥有系统基础字库兜底，不作为缺失阻断
+			if !isCJKFontName(cleanFont) {
+				continue
 			}
 
 			// 检查是否内嵌
@@ -338,7 +420,8 @@ func extractPDFUnembeddedFonts(filePath string) ([]string, error) {
 				lowerFont := strings.ToLower(cleanFont)
 				displayName := cleanFont
 				for hexPrefix, mappedName := range gbkHexToFontName {
-					if strings.Contains(lowerFont, hexPrefix) {
+					cleanHex := strings.ReplaceAll(hexPrefix, "#", "")
+					if strings.Contains(lowerFont, hexPrefix) || strings.Contains(lowerFont, cleanHex) {
 						displayName = mappedName
 						break
 					}

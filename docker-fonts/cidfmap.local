@@ -1,29 +1,22 @@
 %!
-% ---- cidfmap.local: GBK-byte BaseFont 显式映射到自定义 TrueType 字体 ----
+% ---- cidfmap.local: GBK-byte BaseFont 显式映射到系统自带 TrueType/TTC 字体 ----
 % 本文件由 cups-web 项目维护（docker-fonts/cidfmap.local），构建时 COPY 到容器中。
-% 通过 `pdf_normalize.go` 里 gs 命令行的 `-I/etc/ghostscript` + `.runlibfile` 显式加载。
-%
-% 映射命中后 gs pdfwrite 生成的 PDF 里对应字体会走这里指定的字形，而不是
-% 默认的 DroidSansFallback（唯一无衬线字重）。
-%
-% 策略说明：使用 docker-fonts/ 目录中的 Windows 原版 TrueType 字体（simsun/simhei/simkai/simfang），
-% 这些是单字重字库，Bold 变体映射到与 Regular 相同的字体文件，保持字形风格一致——
-% 虽然没有真正的粗体字重，但 PDF 渲染器可根据 FontDescriptor 中的 StemV/Weight 信息
-% 做合成加粗（synthetic bold），这比映射到完全不同风格的字体（如宋体 Bold → 黑体）要好得多。
-% 字体文件在构建时被 COPY 到 /usr/share/fonts/truetype/custom/ 目录。
+% 默认映射到镜像自带的开源 arphic/wqy 字体，避免未挂载 Windows 字体时因文件不存在报错。
+% 当检测到 /usr/share/fonts/truetype/custom/ 下存在真实 simsun/simhei/simkai/simfang 时，
+% entrypoint.sh 与 font_handlers 会动态修补本文件指向对应真实字体。
 
 % 宋体 (CB CE CC E5)
-/#cb#ce#cc#e5 << /FileType /TrueType /Path (/usr/share/fonts/truetype/custom/simsun.ttf) /SubfontID 0 /CSI [(GB1) 2] >> ;
-/#cb#ce#cc#e5,Bold << /FileType /TrueType /Path (/usr/share/fonts/truetype/custom/simsun.ttf) /SubfontID 0 /CSI [(GB1) 2] >> ;
+/#cb#ce#cc#e5 << /FileType /TrueType /Path (/usr/share/fonts/truetype/arphic/uming.ttc) /SubfontID 0 /CSI [(GB1) 2] >> ;
+/#cb#ce#cc#e5,Bold << /FileType /TrueType /Path (/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc) /SubfontID 0 /CSI [(GB1) 2] >> ;
 
 % 黑体 (BA DA CC E5)
-/#ba#da#cc#e5 << /FileType /TrueType /Path (/usr/share/fonts/truetype/custom/simhei.ttf) /SubfontID 0 /CSI [(GB1) 2] >> ;
-/#ba#da#cc#e5,Bold << /FileType /TrueType /Path (/usr/share/fonts/truetype/custom/simhei.ttf) /SubfontID 0 /CSI [(GB1) 2] >> ;
+/#ba#da#cc#e5 << /FileType /TrueType /Path (/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc) /SubfontID 0 /CSI [(GB1) 2] >> ;
+/#ba#da#cc#e5,Bold << /FileType /TrueType /Path (/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc) /SubfontID 0 /CSI [(GB1) 2] >> ;
 
 % 楷体 (BF AC CC E5)
-/#bf#ac#cc#e5 << /FileType /TrueType /Path (/usr/share/fonts/truetype/custom/simkai.ttf) /SubfontID 0 /CSI [(GB1) 2] >> ;
-/#bf#ac#cc#e5,Bold << /FileType /TrueType /Path (/usr/share/fonts/truetype/custom/simkai.ttf) /SubfontID 0 /CSI [(GB1) 2] >> ;
+/#bf#ac#cc#e5 << /FileType /TrueType /Path (/usr/share/fonts/truetype/arphic/ukai.ttc) /SubfontID 0 /CSI [(GB1) 2] >> ;
+/#bf#ac#cc#e5,Bold << /FileType /TrueType /Path (/usr/share/fonts/truetype/arphic/ukai.ttc) /SubfontID 0 /CSI [(GB1) 2] >> ;
 
 % 仿宋 (B7 C2 CB CE)
-/#b7#c2#cb#ce << /FileType /TrueType /Path (/usr/share/fonts/truetype/custom/simfang.ttf) /SubfontID 0 /CSI [(GB1) 2] >> ;
-/#b7#c2#cb#ce,Bold << /FileType /TrueType /Path (/usr/share/fonts/truetype/custom/simfang.ttf) /SubfontID 0 /CSI [(GB1) 2] >> ;
+/#b7#c2#cb#ce << /FileType /TrueType /Path (/usr/share/fonts/truetype/arphic/uming.ttc) /SubfontID 0 /CSI [(GB1) 2] >> ;
+/#b7#c2#cb#ce,Bold << /FileType /TrueType /Path (/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc) /SubfontID 0 /CSI [(GB1) 2] >> ;
