@@ -76,7 +76,8 @@ func refreshScheduledNextRun(task *store.ScheduledPrint, previous store.Schedule
 			changed = changed || task.ScheduleDay != previous.ScheduleDay
 		}
 	}
-	recompute := changed || task.NextRunAt == ""
+	finishedBingOnce := task.Source == store.ScheduledSourceBing && task.ScheduleType == store.ScheduleOnce && !task.Enabled
+	recompute := changed || (task.NextRunAt == "" && !finishedBingOnce)
 	if !previous.Enabled && task.Enabled {
 		next, err := time.Parse(time.RFC3339, task.NextRunAt)
 		recompute = recompute || err != nil || !next.After(now)
@@ -138,13 +139,24 @@ func executeScheduledOccurrence(s *store.Store, uploads string, task store.Sched
 		task.NextRunAt = next
 		task.Enabled = enabled && (!manual || task.Enabled)
 	}
+	if task.Source == store.ScheduledSourceBing {
+		if !manual && task.ScheduleType == store.ScheduleOnce {
+			task.NextRunAt = ""
+		}
+		if !missed {
+			return bingWallpapers.executeOccurrence(s, uploads, task, now, executor)
+		}
+		file.Filename = "Bing"
+	}
 	if len(task.Files) > 0 && !missed {
 		return executeScheduledBatch(s, uploads, task, now, executor)
 	}
 	// Queue submissions use executeScheduledBatch's durable per-photo claim.
 	// Only single-file jobs and skipped occurrences reach this branch.
-	if err := persistScheduledResult(s, task.ID, task.LastRunAt, task.LastStatus, task.LastError, task.NextRunAt, task.Enabled); err != nil {
-		return err
+	if task.Source != store.ScheduledSourceBing {
+		if err := persistScheduledResult(s, task.ID, task.LastRunAt, task.LastStatus, task.LastError, task.NextRunAt, task.Enabled); err != nil {
+			return err
+		}
 	}
 	status, errMsg := "skipped", "错过执行窗口，已跳过"
 	var execErr error

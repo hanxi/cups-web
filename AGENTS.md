@@ -140,6 +140,8 @@ cups-web/
 | PUT/DELETE | `/api/scheduled-prints/{id}` | 更新 / 删除定时任务 |
 | POST | `/api/scheduled-prints/{id}/run` | 异步提前执行，返回 `202 {ok, status:"running"}` |
 | GET | `/api/scheduled-prints/{id}/files/{index}` | 照片队列缩略图（本人或管理员） |
+| GET | `/api/scheduled-prints/bing/preview` | 中国区 Bing 今日背景图元数据和同源图片地址 |
+| GET | `/api/scheduled-prints/bing/image/{imageID}` | 预览地址，返回当天可下载且经校验的 Bing JPEG |
 | GET | `/api/print-records` | 打印记录 |
 | GET | `/api/print-records/{id}/file` | 下载原始文件 |
 | POST | `/api/print-records/{id}/reprint` | 重打参数预填 |
@@ -348,6 +350,11 @@ KV 表。当前键：`retention_days`（`0` = 永久）、`save_history`、`max_
 - 修改打印参数或暂停时保留下次执行点；恢复时只重算已过期的执行点，避免撤销提前打印后的计划顺延。编辑页面保留未展示的打印参数，列表忽略较早请求的迟到响应。
 - 提交前将队列持久化为 `enabled=0, last_status=running`，成功或明确失败后原子写入结果、进度并恢复计划；服务中断、结果落库失败或 IPP 提交结果不确定时保留暂停，防止自动重复提交不确定结果。
 - 原图和缩略图存于 `uploads/scheduled/`，沿用历史清理豁免；缩略图读取、删除用 `os.OpenInRoot` / `os.OpenRoot` 限制路径。原有单文件任务不受队列完成规则影响。
+
+### Bing 每日背景图定时打印
+
+- 创建时提交 multipart `source=bing`，无需文件，支持一次性、每天、每周、每月。任务响应以 `source` 区分来源，既有任务默认为 `upload`，编辑时来源固定。
+- 预览和后台执行都从固定的中国区 Bing 端点获取图片，按北京时间判断当天图。自动执行或立即执行各提交一张，立即执行保留原计划。取图失败写入任务结果，IPP 提交不确定时暂停。打印历史保存实际提交的图片。
 
 ## 🔐 认证与安全
 

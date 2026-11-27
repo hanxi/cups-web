@@ -79,6 +79,9 @@ func runScheduledTask(s *store.Store, uploads string, task store.ScheduledPrint,
 	if !current.Enabled || scheduledQueueComplete(current) {
 		return
 	}
+	if current.Source == store.ScheduledSourceBing {
+		now = time.Now()
+	}
 	next, err := time.Parse(time.RFC3339, current.NextRunAt)
 	if err != nil || next.After(now) {
 		return
@@ -487,7 +490,7 @@ func resolveScheduledOrientation(task store.ScheduledPrint, source io.Reader) (s
 	if task.Orientation != "auto" {
 		return task.Orientation, nil
 	}
-	if len(task.Files) == 0 {
+	if len(task.Files) == 0 && task.Source != store.ScheduledSourceBing {
 		return "", errors.New("自动方向仅支持照片定时队列")
 	}
 	cfg, format, err := image.DecodeConfig(source)
@@ -506,6 +509,14 @@ func resolveScheduledOrientation(task store.ScheduledPrint, source io.Reader) (s
 // ensureScheduleDefaults 修剪 store.ScheduledPrint 字段，保证枚举合法。
 // 保持业务逻辑集中在一处，handler 与 scheduler 都可以调用。
 func ensureScheduleDefaults(rec *store.ScheduledPrint) error {
+	if rec.Source == store.ScheduledSourceBing {
+		rec.Copies, rec.PhotosPerRun, rec.NumberUp = 1, 1, 1
+		rec.Loop = false
+		rec.PageRange, rec.PageSet = "", "all"
+		if rec.Orientation == "" {
+			rec.Orientation = "auto"
+		}
+	}
 	if rec.PhotosPerRun == 0 {
 		rec.PhotosPerRun = 1
 	}
@@ -526,7 +537,7 @@ func ensureScheduleDefaults(rec *store.ScheduledPrint) error {
 	if rec.PrinterURI == "" {
 		return errors.New("printer 不能为空")
 	}
-	if rec.Filename == "" || rec.StoredPath == "" {
+	if rec.Source != store.ScheduledSourceBing && (rec.Filename == "" || rec.StoredPath == "") {
 		return errors.New("文件缺失")
 	}
 	if rec.Copies < 1 {
@@ -543,7 +554,7 @@ func ensureScheduleDefaults(rec *store.ScheduledPrint) error {
 	switch rec.Orientation {
 	case "portrait", "landscape":
 	case "auto":
-		if len(rec.Files) == 0 {
+		if len(rec.Files) == 0 && rec.Source != store.ScheduledSourceBing {
 			return errors.New("自动方向仅支持照片定时队列")
 		}
 	default:

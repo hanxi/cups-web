@@ -46,6 +46,7 @@ type scheduledPrintResponse struct {
 	UserID     int64  `json:"userId"`
 	Username   string `json:"username"`
 	Name       string `json:"name"`
+	Source     string `json:"source"`
 	PrinterURI string `json:"printerUri"`
 	Filename   string `json:"filename"`
 
@@ -92,15 +93,20 @@ func mapScheduledPrint(rec store.ScheduledPrint) scheduledPrintResponse {
 	if history == nil {
 		history = []store.ScheduledRun{}
 	}
+	completed := scheduledQueueComplete(rec)
+	if rec.Source == store.ScheduledSourceBing && rec.ScheduleType == store.ScheduleOnce {
+		completed = !rec.Enabled && rec.NextRunAt == "" && rec.LastStatus != "running"
+	}
 	return scheduledPrintResponse{
 		PhotosPerRun: rec.PhotosPerRun,
 		Files:        files, NextFileIndex: rec.NextFileIndex, SubmittedCount: rec.SubmittedCount,
-		Loop: rec.Loop, StartDate: rec.StartDate, Completed: scheduledQueueComplete(rec),
+		Loop: rec.Loop, StartDate: rec.StartDate, Completed: completed,
 		Running: scheduledTaskRunning(rec.ID), History: history,
 		ID:         rec.ID,
 		UserID:     rec.UserID,
 		Username:   rec.Username,
 		Name:       rec.Name,
+		Source:     rec.Source,
 		PrinterURI: rec.PrinterURI,
 		Filename:   rec.Filename,
 
@@ -186,6 +192,12 @@ func scheduledCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer r.MultipartForm.RemoveAll()
+	source := r.PostFormValue("source")
+	bing := source == store.ScheduledSourceBing
+	if source != "" && !bing && source != store.ScheduledSourceUpload {
+		writeJSONError(w, http.StatusBadRequest, "invalid scheduled print source")
+		return
+	}
 	headers := r.MultipartForm.File["files"]
 	queue := len(headers) > 0
 	if queue && len(r.MultipartForm.File["file"]) > 0 {
@@ -195,17 +207,23 @@ func scheduledCreateHandler(w http.ResponseWriter, r *http.Request) {
 	if !queue {
 		headers = r.MultipartForm.File["file"]
 	}
-	if len(headers) == 0 || len(headers) > 100 || (!queue && len(headers) != 1) {
+	if bing && len(headers) > 0 {
+		writeJSONError(w, http.StatusBadRequest, "Bing 任务不能上传文件")
+		return
+	}
+	if !bing && (len(headers) == 0 || len(headers) > 100 || (!queue && len(headers) != 1)) {
 		writeJSONError(w, http.StatusBadRequest, "请选择文件；照片队列最多 100 张")
 		return
 	}
-	pending := make([]store.ScheduledFile, len(headers))
-	for i, fh := range headers {
-		pending[i] = store.ScheduledFile{Filename: fh.Filename, StoredPath: "pending"}
-	}
-	if _, err := buildScheduledRecordFromForm(r, sess.UserID, pending); err != nil {
-		writeJSONError(w, http.StatusBadRequest, err.Error())
-		return
+	if !bing {
+		pending := make([]store.ScheduledFile, len(headers))
+		for i, fh := range headers {
+			pending[i] = store.ScheduledFile{Filename: fh.Filename, StoredPath: "pending"}
+		}
+		if _, err := buildScheduledRecordFromForm(r, sess.UserID, pending); err != nil {
+			writeJSONError(w, http.StatusBadRequest, err.Error())
+			return
+		}
 	}
 	var saved []string
 	keep := false
@@ -322,6 +340,10 @@ func scheduledUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	current, err = accessibleScheduledTask(r, id)
 	if err != nil {
 		writeScheduledAccessError(w, err)
+		return
+	}
+	if payload.Source != "" && payload.Source != current.Source {
+		writeJSONError(w, http.StatusBadRequest, "不能修改定时任务的图片来源")
 		return
 	}
 	if payload.DriverOptions == nil && payload.PrinterURI != current.PrinterURI {
@@ -546,6 +568,7 @@ func scheduledThumbnailHandler(w http.ResponseWriter, r *http.Request) {
 
 // scheduledUpdatePayload 是 PUT 允许覆盖的字段。文件与用户不变。
 type scheduledUpdatePayload struct {
+	Source        string             `json:"source"`
 	PhotosPerRun  *int               `json:"photosPerRun"`
 	DriverOptions *ipp.DriverOptions `json:"driverOptions"`
 	Loop          *bool              `json:"loop"`
@@ -667,9 +690,8 @@ func buildScheduledRecordFromForm(r *http.Request, userID int64, files []store.S
 		UserID: userID,
 		Loop:   getBool("loop"), StartDate: getStr("start_date"),
 		Name:       strings.TrimSpace(getStr("name")),
+		Source:     getStr("source"),
 		PrinterURI: getStr("printer"),
-		Filename:   files[0].Filename,
-		StoredPath: files[0].StoredPath,
 
 		Sides:              sides,
 		IsDuplex:           sides != ipp.SidesOneSided,
@@ -695,6 +717,9 @@ func buildScheduledRecordFromForm(r *http.Request, userID int64, files []store.S
 		ScheduleDay:     getInt("schedule_day", 1),
 		RunAt:           getStr("run_at"),
 		Enabled:         true,
+	}
+	if len(files) > 0 {
+		rec.Filename, rec.StoredPath = files[0].Filename, files[0].StoredPath
 	}
 	if len(r.MultipartForm.File["files"]) > 0 {
 		rec.Files = files

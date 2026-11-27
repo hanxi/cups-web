@@ -18,6 +18,11 @@ const (
 	ScheduleMonthly = "monthly"
 )
 
+const (
+	ScheduledSourceUpload = "upload"
+	ScheduledSourceBing   = "bing"
+)
+
 // ScheduledFile 保存固定顺序的照片和缩略图，路径均相对 uploads。
 type ScheduledFile struct {
 	Filename      string `json:"filename"`
@@ -42,6 +47,7 @@ type ScheduledPrint struct {
 	UserID        int64
 	Username      string
 	Name          string
+	Source        string
 	PrinterURI    string
 	Filename      string
 	StoredPath    string
@@ -86,7 +92,7 @@ type ScheduledPrint struct {
 	UpdatedAt string
 }
 
-const scheduledPrintColumns = `s.id, s.user_id, u.username, s.name, s.printer_uri, s.filename, s.stored_path,
+const scheduledPrintColumns = `s.id, s.user_id, u.username, s.name, s.source, s.printer_uri, s.filename, s.stored_path,
 	s.is_duplex, s.sides, s.is_color, s.copies, s.orientation, s.paper_size, s.paper_type, s.media_source, s.print_scaling,
 	s.page_range, s.page_set, s.mirror, s.watermark_text, s.photo_date_watermark, s.number_up, s.number_up_layout, s.page_border,
 	s.schedule_type, s.schedule_time, s.schedule_weekday, s.schedule_day,
@@ -97,7 +103,7 @@ func scanScheduledPrint(sc scanner) (ScheduledPrint, error) {
 	var rec ScheduledPrint
 	var filesJSON, historyJSON, driverJSON string
 	err := sc.Scan(
-		&rec.ID, &rec.UserID, &rec.Username, &rec.Name, &rec.PrinterURI, &rec.Filename, &rec.StoredPath,
+		&rec.ID, &rec.UserID, &rec.Username, &rec.Name, &rec.Source, &rec.PrinterURI, &rec.Filename, &rec.StoredPath,
 		&rec.IsDuplex, &rec.Sides, &rec.IsColor, &rec.Copies, &rec.Orientation, &rec.PaperSize, &rec.PaperType, &rec.MediaSource, &rec.PrintScaling,
 		&rec.PageRange, &rec.PageSet, &rec.Mirror, &rec.WatermarkText, &rec.PhotoDateWatermark, &rec.NumberUp, &rec.NumberUpLayout, &rec.PageBorder,
 		&rec.ScheduleType, &rec.ScheduleTime, &rec.ScheduleWeekday, &rec.ScheduleDay,
@@ -131,6 +137,9 @@ func InsertScheduledPrint(ctx context.Context, tx *sql.Tx, rec *ScheduledPrint) 
 		return 0, err
 	}
 	rec.Sides, rec.IsDuplex = sides, sides != ipp.SidesOneSided
+	if rec.Source == "" {
+		rec.Source = ScheduledSourceUpload
+	}
 	driverJSON, err := json.Marshal(rec.DriverOptions)
 	if err != nil {
 		return 0, err
@@ -144,14 +153,14 @@ func InsertScheduledPrint(ctx context.Context, tx *sql.Tx, rec *ScheduledPrint) 
 		return 0, err
 	}
 	res, err := tx.ExecContext(ctx, `INSERT INTO scheduled_prints (
-		user_id, name, printer_uri, filename, stored_path,
+		user_id, name, source, printer_uri, filename, stored_path,
 		is_duplex, sides, is_color, copies, orientation, paper_size, paper_type, media_source, print_scaling,
 		page_range, page_set, mirror, watermark_text, photo_date_watermark, number_up, number_up_layout, page_border,
 		schedule_type, schedule_time, schedule_weekday, schedule_day,
 		run_at, next_run_at, last_run_at, last_status, last_error, enabled,
 		created_at, updated_at, files_json, loop, start_date, driver_options_json, photos_per_run
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		rec.UserID, rec.Name, rec.PrinterURI, rec.Filename, rec.StoredPath,
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		rec.UserID, rec.Name, rec.Source, rec.PrinterURI, rec.Filename, rec.StoredPath,
 		rec.IsDuplex, rec.Sides, rec.IsColor, rec.Copies, rec.Orientation, rec.PaperSize, rec.PaperType, rec.MediaSource, rec.PrintScaling,
 		rec.PageRange, rec.PageSet, rec.Mirror, rec.WatermarkText, rec.PhotoDateWatermark, rec.NumberUp, rec.NumberUpLayout, rec.PageBorder,
 		rec.ScheduleType, rec.ScheduleTime, rec.ScheduleWeekday, rec.ScheduleDay,

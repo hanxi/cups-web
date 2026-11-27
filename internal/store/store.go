@@ -228,6 +228,7 @@ func (s *Store) migrate(ctx context.Context) error {
 		"loop INTEGER NOT NULL DEFAULT 0",
 		"start_date TEXT NOT NULL DEFAULT ''",
 		"history_json TEXT NOT NULL DEFAULT '[]'",
+		"source TEXT NOT NULL DEFAULT 'upload'",
 	} {
 		if err := addColumnIfMissing(ctx, s.DB, "scheduled_prints", col); err != nil {
 			return fmt.Errorf("migrate scheduled prints: %w", err)

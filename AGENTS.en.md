@@ -140,6 +140,8 @@ All routes have the `/api` prefix. Protected routes use `RequireSession` and `Va
 | PUT/DELETE | `/api/scheduled-prints/{id}` | Update or delete a scheduled job |
 | POST | `/api/scheduled-prints/{id}/run` | Run a job early and asynchronously. Returns `202 {ok, status:"running"}`. |
 | GET | `/api/scheduled-prints/{id}/files/{index}` | Photo queue thumbnail for the owner or an administrator |
+| GET | `/api/scheduled-prints/bing/preview` | Today's Bing China wallpaper metadata and a same-origin image URL |
+| GET | `/api/scheduled-prints/bing/image/{imageID}` | Preview URL for today's downloadable Bing JPEG, validated before serving |
 | GET | `/api/print-records` | Print records |
 | GET | `/api/print-records/{id}/file` | Download the original file |
 | POST | `/api/print-records/{id}/reprint` | Prefill reprint parameters |
@@ -348,6 +350,11 @@ Key-value table. Current keys are `retention_days` (`0` means keep forever), `sa
 - Editing print options or pausing preserves the next run time. On resume, only recalculate expired times so running early still moves the schedule forward. The edit view preserves print options it does not expose. The list ignores late responses from older requests.
 - Before submitting, persist `enabled=0, last_status=running`. On success or a definitive failure, atomically persist the result and progress and restore the schedule. Keep the job paused if service is interrupted, result persistence fails, or the IPP outcome is uncertain to avoid submitting duplicates.
 - Originals and thumbnails live under `uploads/scheduled/` and remain exempt from history cleanup. Restrict thumbnail reads and deletes with `os.OpenInRoot` and `os.OpenRoot`. Existing single-file schedules keep their completion behavior.
+
+### Scheduled Bing daily wallpaper
+
+- Create a multipart job with `source=bing` and no file. It can run once, daily, weekly, or monthly. Task responses include `source`. Existing jobs default to `upload`, and the source is fixed when editing a job.
+- Preview and background runs use fixed Bing China endpoints, with the image date determined in China Standard Time. Automatic and manual runs each submit one image. A manual run keeps the scheduled occurrence. Fetch failures appear in the task results, and the task pauses if the IPP outcome is uncertain. Print history keeps the image that was submitted.
 
 ## 🔐 Authentication and security
 

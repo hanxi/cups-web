@@ -1,5 +1,53 @@
 [
   {
+    "key": "api.bing_index_fetch_failed",
+    "pattern": "^无法获取 Bing 图片信息：([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.bing_index_invalid",
+    "pattern": "^无法读取 Bing 图片信息：([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.bing_wallpaper_not_published",
+    "pattern": "^Bing 今日背景图尚未发布$"
+  },
+  {
+    "key": "api.bing_wallpaper_not_downloadable",
+    "pattern": "^Bing 今日背景图不可下载$"
+  },
+  {
+    "key": "api.bing_wallpaper_invalid_date",
+    "pattern": "^Bing 背景图日期无效$"
+  },
+  {
+    "key": "api.bing_wallpaper_invalid_url",
+    "pattern": "^Bing 背景图地址无效$"
+  },
+  {
+    "key": "api.bing_wallpaper_download_failed",
+    "pattern": "^无法下载 Bing 背景图：([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.bing_wallpaper_invalid_image",
+    "pattern": "^Bing 背景图不是尺寸有效的 JPEG$"
+  },
+  {
+    "key": "api.bing_wallpaper_stage_failed",
+    "pattern": "^无法保存 Bing 临时图片：([\\s\\S]*?)$"
+  },
+  {
+    "key": "api.bing_wallpaper_upload_file",
+    "pattern": "^Bing 任务不能上传文件$"
+  },
+  {
+    "key": "api.scheduled_source_invalid",
+    "pattern": "^invalid scheduled print source$"
+  },
+  {
+    "key": "api.scheduled_source_immutable",
+    "pattern": "^不能修改定时任务的图片来源$"
+  },
+  {
     "key": "api.printer_connection_failed",
     "pattern": "^cannot connect to the printer$"
   },

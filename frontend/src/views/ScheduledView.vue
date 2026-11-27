@@ -39,7 +39,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div class="min-w-0 space-y-1">
             <div class="flex items-center gap-2 flex-wrap">
-              <span class="font-medium truncate">{{ rec.name || rec.filename }}</span>
+              <span class="font-medium truncate">{{ taskName(rec) }}</span>
               <UBadge
                 :color="rec.enabled || rec.completed ? 'success' : rec.running ? 'primary' : 'neutral'"
                 :variant="rec.enabled ? 'subtle' : 'outline'"
@@ -56,7 +56,8 @@
               >{{ lastStatusLabel(rec.lastStatus) }}</UBadge>
             </div>
             <div class="text-xs text-muted flex flex-wrap gap-x-4 gap-y-0.5">
-              <span>{{ t('ui.file_3') }}{{ rec.files?.length ? t('ui.photo_count', { count: rec.files.length }) : rec.filename }}</span>
+              <span v-if="rec.source === 'bing' && rec.name">{{ t('ui.bing_daily_wallpaper') }}</span>
+              <span v-else-if="rec.source !== 'bing'">{{ t('ui.file_3') }}{{ rec.files?.length ? t('ui.photo_count', { count: rec.files.length }) : rec.filename }}</span>
               <span>{{ t('ui.printer_2') }}{{ shortPrinter(rec.printerUri) }}</span>
               <span>{{ t('ui.next_run') }}{{ rec.completed ? '—' : formatTime(rec.nextRunAt) }}</span>
               <span v-if="rec.lastRunAt">{{ t('ui.last_run') }}{{ formatTime(rec.lastRunAt) }}</span>
@@ -65,7 +66,7 @@
             </div>
           </div>
           <div class="flex items-center gap-1 flex-shrink-0">
-            <UButton size="xs" variant="ghost" icon="i-lucide-play" :loading="rec.running || rec._running" :disabled="rec.completed || rec.running" @click="runNow(rec)">{{ rec.files?.length ? t('ui.print_next_batch') : t('ui.run_now') }}</UButton>
+            <UButton size="xs" variant="ghost" icon="i-lucide-play" :loading="rec.running || rec._running" :disabled="(rec.completed && rec.source !== 'bing') || rec.running" @click="runNow(rec)">{{ rec.files?.length ? t('ui.print_next_batch') : t('ui.run_now') }}</UButton>
             <UButton size="xs" variant="ghost" :icon="rec.enabled ? 'i-lucide-pause' : 'i-lucide-play-circle'" :disabled="rec.completed || rec.running" @click="toggleEnabled(rec)">
               {{ rec.enabled ? t('ui.pause') : t('ui.resume') }}
             </UButton>
@@ -101,19 +102,19 @@
             <div v-if="!rec.completed">{{ t('ui.next_photo_2') }}{{ rec.files[rec.nextFileIndex]?.filename }}</div>
             <div>{{ rec.loop ? t('ui.after_submitting_all_photos_start_again_from_the_first') : t('ui.the_schedule_ends_after_all_photos_have_been_submitted') }} {{ t('ui.run_photo_summary', { photos: t('ui.photo_count', rec.photosPerRun || 1), copies: t('ui.copy_count', rec.copies) }) }}</div>
           </div>
-          <details v-if="rec.history?.length" class="text-sm">
-            <summary class="cursor-pointer text-muted">{{ t('ui.recent_run_count', { count: rec.history.length }) }}</summary>
-            <div class="mt-2 divide-y divide-default">
-              <div v-for="(run, index) in rec.history" :key="index" class="flex items-start gap-3 py-2 text-xs">
-                <span class="text-muted shrink-0">{{ formatTime(run.runAt) }}</span>
-                <span class="min-w-0 flex-1 truncate" :title="run.filename">{{ run.filename }}</span>
-                <span :class="run.status === 'failed' ? 'text-error' : 'text-muted'" :title="translateError(run.error)">
-                  {{ run.status === 'printed' ? t('ui.submitted') : run.status === 'skipped' ? t('ui.skipped') : t('ui.failed') }}
-                </span>
-              </div>
-            </div>
-          </details>
         </div>
+        <details v-if="(rec.files?.length || rec.source === 'bing') && rec.history?.length" class="mt-4 text-sm">
+          <summary class="cursor-pointer text-muted">{{ t('ui.recent_run_count', { count: rec.history.length }) }}</summary>
+          <div class="mt-2 divide-y divide-default">
+            <div v-for="(run, index) in rec.history" :key="index" class="flex items-start gap-3 py-2 text-xs">
+              <span class="text-muted shrink-0">{{ formatTime(run.runAt) }}</span>
+              <span class="min-w-0 flex-1 truncate" :title="run.filename">{{ run.filename }}</span>
+              <span :class="run.status === 'failed' ? 'text-error' : 'text-muted'" :title="translateError(run.error)">
+                {{ run.status === 'printed' ? t('ui.submitted') : run.status === 'running' ? t('ui.result_awaiting_confirmation') : run.status === 'skipped' ? t('ui.skipped') : t('ui.failed') }}
+              </span>
+            </div>
+          </div>
+        </details>
       </UCard>
     </div>
 
@@ -130,7 +131,26 @@
             </UFormField>
           </div>
 
-          <UFormField v-if="form.mode === 'queue'" :label="t('ui.photo_queue')" required>
+          <UFormField v-if="form.mode === 'bing'" :label="t('ui.bing_preview')" :help="t('ui.bing_execution_uses_current_image')">
+            <div v-if="bingPreviewLoading" role="status" class="text-sm text-muted">
+              {{ t('ui.bing_preview_loading') }}
+            </div>
+            <figure v-if="bingPreview" v-show="!bingPreviewLoading" class="space-y-2">
+              <img :src="bingPreview.imageUrl" :alt="bingPreview.title || t('ui.bing_daily_wallpaper')"
+                class="max-h-80 w-full rounded-lg bg-elevated object-contain"
+                @load="bingPreviewLoading = false" @error="onBingPreviewImageError" />
+              <figcaption class="text-sm">
+                <span v-if="bingPreview.title" class="font-medium">{{ bingPreview.title }} · </span>
+                <time :datetime="bingPreview.date">{{ bingPreview.date }}</time>
+                <div v-if="bingPreview.copyright" class="text-xs text-muted">{{ bingPreview.copyright }}</div>
+              </figcaption>
+            </figure>
+            <div v-if="bingPreviewError" class="flex flex-wrap items-center gap-2 text-sm">
+              <span role="status" class="text-error">{{ t('ui.bing_preview_failed') }}</span>
+              <UButton size="xs" variant="soft" icon="i-lucide-refresh-cw" @click="loadBingPreview">{{ t('ui.bing_preview_retry') }}</UButton>
+            </div>
+          </UFormField>
+          <UFormField v-else-if="form.mode === 'queue'" :label="t('ui.photo_queue')" required>
             <div class="flex items-center justify-between text-xs text-muted mb-2">
               <span>{{ t('ui.selected_photo_count', { count: editing ? form.existingFiles.length : form.photos.length }) }}</span>
               <label v-if="!editing" class="cursor-pointer text-primary hover:underline"> {{ t('ui.add_photos') }} <input type="file" multiple accept="image/jpeg,image/png,image/gif" class="sr-only" @change="onPhotoPick" />
@@ -241,7 +261,7 @@
               <USelect class="w-full" v-model="form.color" :items="colorItems" value-key="value" label-key="label" />
             </UFormField>
             <UFormField :label="t('ui.copies')">
-              <UInput class="w-full" v-model.number="form.copies" type="number" min="1" max="99" />
+              <UInput class="w-full" v-model.number="form.copies" type="number" min="1" max="99" :disabled="form.mode === 'bing'" />
             </UFormField>
           </div>
 
@@ -293,6 +313,10 @@ const editing = ref(null)
 const submitting = ref(false)
 
 const form = ref(emptyForm())
+const bingPreview = ref(null)
+const bingPreviewLoading = ref(false)
+const bingPreviewError = ref(false)
+let bingPreviewRequest
 const dragIndex = ref(null)
 let photoKey = 0
 let refreshTimer
@@ -301,7 +325,8 @@ let refreshing = 0
 let recordsRequestVersion = 0
 const modeItems = computed(() => ([
   { value: 'queue', label: t('ui.photo_queue_2') },
-  { value: 'single', label: t('ui.single_file_schedule') }
+  { value: 'single', label: t('ui.single_file_schedule') },
+  { value: 'bing', label: t('ui.bing_daily_wallpaper') }
 ]))
 const endModeItems = computed(() => ([
   { value: 'stop', label: t('ui.stop_after_all_photos') },
@@ -320,12 +345,50 @@ watch(() => form.value.mode, (mode) => {
   if (editing.value) return
   clearPhotoPreviews()
   form.value.file = null
-  form.value.scheduleType = mode === 'queue' ? 'daily' : 'once'
-  form.value.paperType = mode === 'queue' ? 'photo' : 'plain'
-  form.value.paperSize = mode === 'queue' ? '6inch' : 'A4'
+  form.value.scheduleType = mode === 'single' ? 'once' : 'daily'
+  form.value.paperType = mode === 'single' ? 'plain' : 'photo'
+  form.value.paperSize = mode === 'single' ? 'A4' : '6inch'
+  if (mode === 'bing') {
+    form.value.orientation = 'auto'
+    form.value.copies = 1
+    form.value.photoDateWatermark = false
+  }
   if (mode === 'single' && form.value.orientation === 'auto') form.value.orientation = 'portrait'
 })
 watch(modalOpen, (open) => { if (!open) clearPhotoPreviews() })
+watch(() => modalOpen.value && form.value.mode === 'bing', (show, _, onCleanup) => {
+  if (!show) return
+  loadBingPreview()
+  onCleanup(() => {
+    bingPreviewRequest?.abort()
+    bingPreview.value = null
+    bingPreviewLoading.value = false
+    bingPreviewError.value = false
+  })
+})
+
+async function loadBingPreview() {
+  bingPreviewRequest?.abort()
+  const request = new AbortController()
+  bingPreviewRequest = request
+  bingPreview.value = null
+  bingPreviewLoading.value = true
+  bingPreviewError.value = false
+  try {
+    const response = await apiFetch('/api/scheduled-prints/bing/preview', { signal: request.signal }, () => emit('logout'))
+    if (!response.ok) throw new Error()
+    const preview = await response.json()
+    if (!request.signal.aborted) bingPreview.value = preview
+  } catch {
+    if (!request.signal.aborted) onBingPreviewImageError()
+  }
+}
+
+function onBingPreviewImageError() {
+  bingPreview.value = null
+  bingPreviewLoading.value = false
+  bingPreviewError.value = true
+}
 
 function emptyForm() {
   return {
@@ -388,7 +451,7 @@ const paperSizeItems = computed(() => ([
   { value: '10inch', label: t('ui.option_8_10_in_photo_paper') }
 ]))
 const orientationItems = computed(() => [
-  ...(form.value.mode === 'queue' ? [{ value: 'auto', label: t('ui.automatic') }] : []),
+  ...(form.value.mode !== 'single' ? [{ value: 'auto', label: t('ui.automatic') }] : []),
   { value: 'portrait', label: t('ui.portrait') },
   { value: 'landscape', label: t('ui.landscape') }
 ])
@@ -410,6 +473,10 @@ function shortPrinter(uri) {
   if (!uri) return ''
   const idx = uri.lastIndexOf('/')
   return idx >= 0 ? uri.slice(idx + 1) : uri
+}
+
+function taskName(rec) {
+  return rec.name || (rec.source === 'bing' ? t('ui.bing_daily_wallpaper') : rec.filename)
 }
 
 function formatTime(iso) {
@@ -503,7 +570,7 @@ function openEdit(rec) {
   editing.value = rec
   form.value = {
     id: rec.id,
-    mode: rec.files?.length ? 'queue' : 'single',
+    mode: rec.source === 'bing' ? 'bing' : rec.files?.length ? 'queue' : 'single',
     photos: [], existingFiles: rec.files || [], loop: rec.loop || false,
     startDate: rec.startDate || '', paperType: rec.paperType || 'plain', printScaling: rec.printScaling || 'fit',
     name: rec.name || '',
@@ -577,7 +644,8 @@ function onFilePick(e) {
 async function submit() {
   const v = form.value
   if (!v.printerUri) { toast.add({ title: t('ui.select_a_printer_2'), color: 'warning' }); return }
-  if (!editing.value && (v.mode === 'queue' ? !v.photos.length : !v.file)) { toast.add({ title: t('ui.select_a_file'), color: 'warning' }); return }
+  const missingSourceFile = (v.mode === 'queue' && !v.photos.length) || (v.mode === 'single' && !v.file)
+  if (!editing.value && missingSourceFile) { toast.add({ title: t('ui.select_a_file'), color: 'warning' }); return }
   if (v.scheduleType === 'once' && !v.runAtLocal) { toast.add({ title: t('ui.choose_an_execution_time'), color: 'warning' }); return }
 
   submitting.value = true
@@ -602,8 +670,10 @@ async function createNew(v) {
     if (!Number.isInteger(v.photosPerRun) || v.photosPerRun < 1 || v.photosPerRun > 100) throw new Error(t('ui.photos_per_run_must_be_from_1_to_100'))
     for (const photo of v.photos) fd.append('files', photo.file, photo.file.name)
     fd.append('loop', String(v.loop))
-  } else {
+  } else if (v.mode === 'single') {
     fd.append('file', v.file, v.file.name)
+  } else {
+    fd.append('source', 'bing')
   }
   fd.append('start_date', v.scheduleType === 'once' ? '' : v.startDate)
   fd.append('name', v.name)
@@ -700,7 +770,8 @@ async function toggleEnabled(rec) {
 }
 
 async function confirmDelete(rec) {
-  if (!confirm(t('ui.delete_job_its_source_file_will_also_be_permanently_removed', { p0: rec.name || rec.filename }))) return
+  const message = rec.source === 'bing' ? 'ui.bing_delete_task' : 'ui.delete_job_its_source_file_will_also_be_permanently_removed'
+  if (!confirm(t(message, { p0: taskName(rec) }))) return
   try {
     const resp = await apiFetch(`/api/scheduled-prints/${rec.id}`, { method: 'DELETE' }, () => emit('logout'))
     if (!resp.ok) throw new Error(await readError(resp))

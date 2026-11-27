@@ -146,6 +146,8 @@ func main() {
 	// 定时打印（issue #28）：用户上传文件 + 打印参数 + 触发策略，由后台调度器到点触发。
 	protected.HandleFunc("/scheduled-prints", scheduledListHandler).Methods("GET")
 	protected.HandleFunc("/scheduled-prints", scheduledCreateHandler).Methods("POST")
+	protected.HandleFunc("/scheduled-prints/bing/preview", bingWallpapers.previewHandler).Methods("GET")
+	protected.HandleFunc("/scheduled-prints/bing/image/{imageID}", bingWallpapers.imageHandler).Methods("GET")
 	protected.HandleFunc("/scheduled-prints/{id:[0-9]+}", scheduledUpdateHandler).Methods("PUT")
 	protected.HandleFunc("/scheduled-prints/{id:[0-9]+}", scheduledDeleteHandler).Methods("DELETE")
 	protected.HandleFunc("/scheduled-prints/{id:[0-9]+}/run", scheduledRunNowHandler).Methods("POST")
