@@ -192,10 +192,12 @@ function sectionList(file, lang, index = false) {
 
 function docLayout(file, lang, article, sections = []) {
   const labels = languages[lang]
+  const gallery = file === `${labels.prefix}docs/screenshots.html`
   const nav = `<nav aria-label="${labels.docsNav}"><a class="nav-home" href="${relative(file, docsFile(lang))}"${file === docsFile(lang) ? ' aria-current="page"' : ''}>${labels.docsHome}</a>${sectionList(file, lang)}</nav>`
   const toc = sections.filter(section => section.level === 2 || section.level === 3)
   const tocNav = toc.length ? `<nav aria-label="${labels.toc}"><h2>${labels.toc}</h2>${toc.map(section => `<a href="#${encodeURIComponent(section.id)}"${section.level === 3 ? ' class="toc-sub"' : ''}>${escape(section.title)}</a>`).join('')}</nav>` : ''
-  return `<div class="wrap doc-layout"><aside class="doc-nav">${nav}</aside><details class="mobile-nav"><summary>${labels.docsNav}</summary>${nav}</details><main id="main" class="doc-main">${tocNav ? `<details class="mobile-toc"><summary>${labels.toc}</summary>${tocNav}</details>` : ''}<article class="article">${article}</article></main><aside class="doc-toc">${tocNav}</aside></div>`
+  const sidebar = gallery ? '' : `<aside class="doc-toc">${tocNav}</aside>`
+  return `<div class="wrap doc-layout${gallery ? ' doc-gallery' : ''}"><aside class="doc-nav">${nav}</aside><details class="mobile-nav"><summary>${labels.docsNav}</summary>${nav}</details><main id="main" class="doc-main">${tocNav ? `<details class="mobile-toc"><summary>${labels.toc}</summary>${tocNav}</details>` : ''}<article class="article">${article}</article></main>${sidebar}</div>`
 }
 
 async function save(file, html) {
@@ -223,6 +225,7 @@ for (const page of pages) {
   await save(page.file, shell(page.file, page.lang, `${page.title} · CUPS Web`, docLayout(page.file, page.lang, body, page.sections), true, alternate))
 }
 for (const name of ['style.css', 'search.js']) await cp(resolve(import.meta.dirname, name), resolve(output, 'assets', name))
+await cp(resolve(root, 'frontend/public/sponsor.png'), resolve(output, 'assets/sponsor.png'))
 await cp(resolve(root, 'docs/screenshots'), resolve(output, 'assets/screenshots'), {
   recursive: true, filter: source => !source.endsWith('.md')
 })

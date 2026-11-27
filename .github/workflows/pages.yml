@@ -6,6 +6,7 @@ on:
     paths:
       - 'website/**'
       - 'docs/**'
+      - 'frontend/public/sponsor.png'
       - 'README.md'
       - 'README.en.md'
       - 'AGENTS.md'
