@@ -84,8 +84,8 @@ img { max-width: 100%; height: auto; vertical-align: middle; }
 .support-panel h2 { font-size: 1.4rem; letter-spacing: -.025em; }
 .support-panel p { margin: 8px 0 12px; line-height: 1.6; color: var(--muted); }
 .support-panel a { font-weight: 650; }
-.support-donation { display: grid; grid-template-columns: minmax(0, 1fr) clamp(168px, 16vw, 208px); align-items: start; gap: 18px; }
-.donation-code { position: relative; width: 100%; max-width: 208px; aspect-ratio: 1; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+.support-donation { display: grid; grid-template-columns: minmax(0, 1fr) 248px; align-items: start; gap: 18px; }
+.donation-code { position: relative; width: 100%; max-width: 248px; aspect-ratio: 1; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
 /* The code is centered at (518, 378) in the 1037px artwork. Keep its surrounding quiet area. */
 .donation-code img { position: absolute; top: 50%; left: 50%; width: 216%; max-width: none; transform: translate(-50%, -36.45%); }
 .footer { border-top: 1px solid var(--line); }
@@ -170,6 +170,10 @@ img { max-width: 100%; height: auto; vertical-align: middle; }
   .mobile-toc nav h2 { display: none; }
 }
 
+@media (max-width: 960px) {
+  .support-donation { grid-template-columns: 1fr; gap: 14px; }
+}
+
 @media (max-width: 760px) {
   :root { --wrap: calc(100% - 32px); }
   .header-inner { gap: 12px; min-height: 60px; }
@@ -186,7 +190,6 @@ img { max-width: 100%; height: auto; vertical-align: middle; }
   .workflow-grid { grid-template-columns: 1fr; gap: 25px; }
   .entry-inner { flex-direction: column; align-items: flex-start; gap: 20px; }
   .support { grid-template-columns: 1fr; gap: 22px; padding-block: 28px; }
-  .support-donation { grid-template-columns: 1fr; gap: 14px; }
   .support-panel + .support-panel { padding: 20px 0 0; border-inline-start: none; border-top: 1px solid var(--line); }
   .footer-inner { gap: 10px; flex-wrap: wrap; padding-block: 12px; }
   .footer-inner > span { order: 2; width: 100%; }

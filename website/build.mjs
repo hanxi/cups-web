@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { cp, lstat, mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { dirname, posix, resolve } from 'node:path'
 import MarkdownIt from 'markdown-it'
@@ -8,6 +9,9 @@ const output = resolve(process.argv[2] ?? resolve(import.meta.dirname, 'dist'))
 const github = 'https://github.com/hanxi/cups-web'
 const md = new MarkdownIt({ html: true, linkify: true })
 const escape = md.utils.escapeHtml
+const stylesheet = await readFile(resolve(import.meta.dirname, 'style.css'))
+const stylesheetVersion = createHash('sha256').update(stylesheet).digest('hex').slice(0, 12)
+const stylesheetPath = `assets/style.${stylesheetVersion}.css`
 
 const groups = [
   ['开始使用', 'Getting started', ['quick-start', 'configuration', 'usage', 'windows-shared-printer', 'reverse-proxy', 'faq', 'screenshots']],
@@ -194,7 +198,7 @@ function shell(file, lang, title, body, isDocs = false, alternate = homeFile(oth
   const footer = `<footer class="footer"><div class="wrap footer-inner">${brand}<span>${labels.footer}</span><a href="${github}/blob/master/LICENSE">${labels.license}</a></div></footer>`
   const dialog = isDocs ? `<dialog class="search-dialog" aria-label="${labels.searchLabel}"><div class="search-bar"><input type="search" placeholder="${labels.searchHint}" aria-label="${labels.searchLabel}" autocomplete="off"><form method="dialog"><button type="submit">${labels.close}</button></form></div><p class="search-status" aria-live="polite"></p><ul class="search-results"></ul></dialog><script type="module" src="${relative(file, 'assets/search.js')}"></script>` : ''
   return `<!doctype html>
-<html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="${escape(labels.description)}"><title>${escape(title)}</title><link rel="icon" type="image/png" sizes="192x192" href="${logo}"><link rel="stylesheet" href="${relative(file, 'assets/style.css')}"></head>
+<html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="${escape(labels.description)}"><title>${escape(title)}</title><link rel="icon" type="image/png" sizes="192x192" href="${logo}"><link rel="stylesheet" href="${relative(file, stylesheetPath)}"></head>
 <body><a class="skip" href="#main">${labels.skip}</a>${header}${body}${footer}${dialog}</body></html>\n`
 }
 
@@ -253,7 +257,10 @@ for (const page of pages) {
   const alternate = byId.get(key(otherLanguage(page.lang), page.id)).file
   await save(page.file, shell(page.file, page.lang, `${page.title} · CUPS Web`, body, true, alternate))
 }
-for (const name of ['style.css', 'search.js', 'logo.png']) await cp(resolve(import.meta.dirname, name), resolve(output, 'assets', name))
+await writeFile(resolve(output, stylesheetPath), stylesheet)
+// Older HTML in caches still requests this stylesheet path.
+await writeFile(resolve(output, 'assets/style.css'), stylesheet)
+for (const name of ['search.js', 'logo.png']) await cp(resolve(import.meta.dirname, name), resolve(output, 'assets', name))
 await cp(resolve(root, 'frontend/public/sponsor.png'), resolve(output, 'assets/sponsor.png'))
 await cp(screenshotDir, resolve(output, 'assets/screenshots'), {
   recursive: true, filter: source => !source.endsWith('.md')
