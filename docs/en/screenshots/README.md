@@ -1,14 +1,8 @@
 # Screenshots
 
-[简体中文](../../screenshots/README.md) · English
+Every screen and common workflow in CUPS Web `v0.2.27`. Screenshots show the Chinese interface with example data. The labels show the browser viewport used to capture each image.
 
-These screenshots show the Chinese UI of a local CUPS Web `v0.2.27` deployment captured with headless Chrome. Accounts, devices, print and scan records, key prefixes, and uploaded files are examples.
-
-## Pages
-
-Full-page captures may extend below the viewport.
-
-### Sign in
+## Sign in
 
 - **Desktop · 1440 × 1000**
 
@@ -22,8 +16,7 @@ Full-page captures may extend below the viewport.
 
   ![Sign in · Phone](../../screenshots/login-mobile.png)
 
-
-### Printing and PDF preview
+## Printing and PDF preview
 
 - **Desktop · 1440 × 1000**
 
@@ -37,8 +30,7 @@ Full-page captures may extend below the viewport.
 
   ![Printing and PDF preview · Phone](../../screenshots/print-mobile.png)
 
-
-### Scheduled printing and photo queues
+## Scheduled printing and photo queues
 
 - **Desktop · 1440 × 1000**
 
@@ -52,8 +44,7 @@ Full-page captures may extend below the viewport.
 
   ![Scheduled printing and photo queues · Phone](../../screenshots/scheduled-mobile.png)
 
-
-### Scanning and scan history
+## Scanning and scan history
 
 - **Desktop · 1440 × 1000**
 
@@ -67,8 +58,7 @@ Full-page captures may extend below the viewport.
 
   ![Scanning and scan history · Phone](../../screenshots/scan-mobile.png)
 
-
-### API keys
+## API keys
 
 - **Desktop · 1440 × 1000**
 
@@ -82,8 +72,7 @@ Full-page captures may extend below the viewport.
 
   ![API keys · Phone](../../screenshots/api-keys-mobile.png)
 
-
-### Administration
+## Administration
 
 - **Desktop · 1440 × 1000**
 
@@ -97,8 +86,7 @@ Full-page captures may extend below the viewport.
 
   ![Administration · Phone](../../screenshots/admin-mobile.png)
 
-
-### Drivers
+## Drivers
 
 - **Desktop · 1440 × 1000**
 
@@ -112,8 +100,7 @@ Full-page captures may extend below the viewport.
 
   ![Drivers · Phone](../../screenshots/drivers-mobile.png)
 
-
-### Fonts
+## Fonts
 
 - **Desktop · 1440 × 1000**
 
@@ -152,3 +139,5 @@ Full-page captures may extend below the viewport.
 - **Create a scheduled job**
 
   ![Create a scheduled job](../../screenshots/scheduled-create-desktop.png)
+
+[简体中文](../../screenshots/README.md) · English
