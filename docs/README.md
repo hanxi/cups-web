@@ -1,5 +1,7 @@
 # 深度文档索引
 
+简体中文 · [English](en/README.md)
+
 本目录收录 [AGENTS.md](../AGENTS.md) 中各章节的原理说明、故障案例与历史决策。AGENTS.md 本身保留可快速扫读的规则手册（API 表、DB 表、目录约定、退出码等），需要理解"为什么"时来此处查阅。
 
 | 文件 | 内容 |
@@ -12,3 +14,5 @@
 | [reverse-proxy.md](reverse-proxy.md) | 反代下「登录提示密码错误」的三段成因、两类跨源 403 的分别修法、为什么默认信任 `X-Forwarded-Host`、cookie `Secure` 三态、Caddy/Traefik、子路径限制、限流与真实 IP |
 | [conventions.md](conventions.md) | 常见开发任务步骤模板（新增 API/DB/页面/文件类型/驱动）、调试测试、Go/Vue 代码风格、Git 提交约定 |
 | [printer-options.md](printer-options.md) | 驱动纸张、无边距、介质与质量选项，参数快照及照片队列批量执行（issue #122） |
+| [windows-shared-printer.md](windows-shared-printer.md) | 将 Windows SMB 共享添加到 CUPS，配置打印专用账号、驱动与 Docker 桥接网络，验证打印链路 |
+| [界面截图](screenshots/README.md) | 桌面、平板和手机上的全部页面，以及打印模式和定时任务表单 |

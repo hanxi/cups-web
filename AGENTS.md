@@ -1,8 +1,16 @@
 # CUPS Web 开发者指南
 
+简体中文 · [English](AGENTS.en.md)
+
 本文档面向开发者，介绍项目架构、API、开发流程与扩展方式。用户文档请参阅 [README.md](README.md)。
 
 > 📚 **深度文档**：原理说明、故障案例与历史决策已移至 [docs/](docs/README.md)，本文件只保留可快速扫读的规则与契约。
+
+## 中英文文档同步
+
+- 新增或更新文档时，在同一次变更中维护中英文版本。`README.md` 对应 `README.en.md`，`AGENTS.md` 对应 `AGENTS.en.md`，`docs/<path>.md` 对应 `docs/en/<path>.md`。英文版沿用相同的相对文件名和目录结构。
+- 同步功能说明、示例、链接、截图引用和导航。标题改动时检查两种语言的章节链接，代码、命令、路径和配置名称应保持一致。
+- 网站首页与文档导航、切换入口等界面文案也要同步维护两种语言。用 `npm ci --prefix website` 和 `npm run build --prefix website` 验证网站构建。合入 `master` 后，[GitHub Pages 工作流](.github/workflows/pages.yml) 会重新构建并发布站点。
 
 ## 📦 项目概述
 

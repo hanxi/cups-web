@@ -1,0 +1,51 @@
+name: Publish website
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'website/**'
+      - 'docs/**'
+      - 'README.md'
+      - 'README.en.md'
+      - 'AGENTS.md'
+      - 'AGENTS.en.md'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - run: npm ci --prefix website
+      - run: npm run build --prefix website
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: website/dist
+
+  deploy:
+    if: github.ref == 'refs/heads/master'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deploy

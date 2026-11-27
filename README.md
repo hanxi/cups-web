@@ -1,5 +1,9 @@
 # 🖨️ CUPS Web — 网页打印管理
 
+简体中文 · [English](README.en.md)
+
+[项目网站与文档](https://hanxi.cc/cups-web/)
+
 <div align="center">
 
 [![GitHub Release](https://img.shields.io/github/v/release/hanxi/cups-web?style=flat-square&logo=github&color=blue)](https://github.com/hanxi/cups-web/releases)
@@ -31,15 +35,17 @@
 <div align="center">
 <table>
   <tr>
-    <td align="center"><img src="screenshots/print1.png" width="400" alt="文件上传"><br/><b>文件上传</b></td>
-    <td align="center"><img src="screenshots/print2.png" width="400" alt="打印机选择"><br/><b>打印机选择</b></td>
+    <td align="center"><a href="docs/screenshots/print-desktop.png"><img src="docs/screenshots/print-preview-desktop.png" width="400" alt="打印设置与 PDF 预览"></a><br/><b>打印设置与 PDF 预览</b></td>
+    <td align="center"><a href="docs/screenshots/scheduled-desktop.png"><img src="docs/screenshots/scheduled-desktop.png" width="400" alt="照片定时打印队列"></a><br/><b>照片定时打印队列</b></td>
   </tr>
   <tr>
-    <td align="center"><img src="screenshots/preview.png" width="400" alt="预览"><br/><b>实时预览</b></td>
-    <td align="center"><img src="screenshots/admin.png" width="400" alt="管理后台"><br/><b>管理后台</b></td>
+    <td align="center"><a href="docs/screenshots/scan-desktop.png"><img src="docs/screenshots/scan-desktop.png" width="400" alt="扫描设置与扫描记录"></a><br/><b>扫描设置与扫描记录</b></td>
+    <td align="center"><a href="docs/screenshots/drivers-desktop.png"><img src="docs/screenshots/drivers-desktop.png" width="400" alt="打印机驱动管理"></a><br/><b>打印机驱动管理</b></td>
   </tr>
 </table>
 </div>
+
+[查看全部页面的桌面、平板和手机截图](docs/screenshots/README.md)
 
 ## ✨ 功能特性
 
@@ -311,6 +317,8 @@ docker exec cups driver-install canon-ufr2
 如果没有通过上面的自动检测添加打印机，也可以手动配置：
 
 访问 CUPS 管理界面：<http://localhost:631>，使用 CUPS 管理员账号登录并添加打印机。
+
+如果打印机接在 Windows 电脑上，可通过 SMB 共享添加到 CUPS。详见 [添加 Windows 共享打印机](docs/windows-shared-printer.md)，其中包含专用账号、驱动安装和只映射 Web 端口的部署方式。
 
 > ⚠️ **重要**：添加打印机后，必须在 CUPS 管理后台将其设为 **Shared（共享）** 状态，否则 Web 端无法发现该打印机。
 

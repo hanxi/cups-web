@@ -1,0 +1,7 @@
+{
+  "name": "cups-web-site",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "node build.mjs" },
+  "dependencies": { "markdown-it": "^14.1.0", "github-slugger": "^2.0.0" }
+}
