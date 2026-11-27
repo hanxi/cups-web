@@ -1446,5 +1446,33 @@
   {
     "key": "api.preset_limit_reached",
     "pattern": "^已达到预置数量上限$"
+  },
+  {
+    "key": "api.passkey_session_expired",
+    "pattern": "^passkey session expired$"
+  },
+  {
+    "key": "api.passkey_limit_reached",
+    "pattern": "^passkey limit reached$"
+  },
+  {
+    "key": "api.passkey_registration_failed",
+    "pattern": "^passkey registration failed$"
+  },
+  {
+    "key": "api.passkey_not_found",
+    "pattern": "^passkey not found$"
+  },
+  {
+    "key": "api.passkey_api_key_forbidden",
+    "pattern": "^API 密钥不能管理 passkey，请使用浏览器登录后再操作$"
+  },
+  {
+    "key": "api.passkey_guest_forbidden",
+    "pattern": "^guest 不支持 passkey$"
+  },
+  {
+    "key": "api.too_many_pending_requests",
+    "pattern": "^too many pending requests$"
   }
 ]

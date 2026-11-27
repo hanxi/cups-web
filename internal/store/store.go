@@ -170,6 +170,18 @@ func (s *Store) migrate(ctx context.Context) error {
 			FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_api_keys_user ON api_keys(user_id)`,
+		// Passkey（WebAuthn）凭证：credential_json 为 go-webauthn Credential 的完整序列化。
+		`CREATE TABLE IF NOT EXISTS webauthn_credentials (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL,
+			credential_id TEXT NOT NULL UNIQUE,
+			name TEXT NOT NULL DEFAULT '',
+			credential_json TEXT NOT NULL,
+			created_at TEXT NOT NULL,
+			last_used_at TEXT NOT NULL DEFAULT '',
+			FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_webauthn_credentials_user ON webauthn_credentials(user_id)`,
 		// Issue #128：用户命名的打印预置，同一用户内名称唯一。
 		`CREATE TABLE IF NOT EXISTS print_presets (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,

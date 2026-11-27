@@ -486,6 +486,10 @@ export LISTEN_ADDR=:8080
 | `TZ` | 时区 | `Asia/Shanghai` |
 | `COOKIE_SECURE` | 会话 / CSRF cookie 的 `Secure` 属性：`auto`（缺省，按每个请求的实际协议判定）/ `true` 恒开 / `false` 恒关 | `auto` |
 | `TRUSTED_ORIGINS` | 额外放行的来源，逗号分隔（形如 `https://print.example.com`）。仅在跨源防护误拦时需要 | 空 |
+| `PASSKEY_ENABLED` | 启用 Passkey 登录（可发现凭证，免输用户名）。需要 HTTPS + 域名，详见 [docs/passkey.md](docs/passkey.md) | `false` |
+| `PASSKEY_RP_ID` | Passkey 的 RP ID，域名（不能是 IP）。启用时必填 | 空 |
+| `PASSKEY_RP_ORIGINS` | 允许的完整 origin，逗号分隔；缺省回退 `TRUSTED_ORIGINS` | 空 |
+| `PASSKEY_RP_NAME` | Passkey 展示名 | `CUPS Web` |
 | `PRINTER_HOST_ALLOWLIST` | 打印机 URI 的主机白名单，逗号分隔。收紧 SSRF 面 | 空（不限制） |
 | `PRINTER_BLOCK_PRIVATE` | `true` 时拒绝指向私网地址的打印机 URI | `false` |
 | `OFD_CONVERTER_JAR` | OFD → PDF 转换器 jar 路径 | `/ofd-converter.jar` |

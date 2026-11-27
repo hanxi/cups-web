@@ -682,7 +682,20 @@
     "preset_applied": "已套用预置「{p0}」",
     "preset_saved": "已保存预置「{p0}」",
     "default_settings_restored": "已恢复默认设置",
-    "delete_print_preset_confirm": "确定删除预置「{p0}」吗？"
+    "delete_print_preset_confirm": "确定删除预置「{p0}」吗？",
+    "sign_in_with_passkey": "使用Passkey（通行密钥）登录",
+    "passkeys": "Passkey",
+    "add_passkey": "添加 Passkey",
+    "passkey_name": "名称",
+    "passkey_name_placeholder": "例如：iPhone、MacBook",
+    "passkey_description": "使用指纹、面容或设备 PIN 登录，无需输入用户名。建议至少绑定两个 Passkey，并保留密码登录作为后备。",
+    "no_passkeys_yet": "还没有 Passkey",
+    "passkey_added": "Passkey 已添加",
+    "passkey_unsupported": "当前浏览器或页面不支持 Passkey，需要 HTTPS 和域名访问。",
+    "passkey_cancelled": "Passkey 操作已取消或超时",
+    "passkey_sign_in_failed": "Passkey 登录失败",
+    "passkey_delete_confirm": "确定删除 Passkey「{name}」？",
+    "passkey_sign_in_hint": "使用指纹、Face ID 或设备锁屏密码，无需输入密码"
   },
   "api": {
     "printer_connection_failed": "无法连接到打印机",
@@ -1045,7 +1058,14 @@
     "preset_settings_invalid": "预置参数格式无效",
     "preset_not_found": "预置不存在",
     "preset_name_exists": "已存在同名预置",
-    "preset_limit_reached": "已达到预置数量上限"
+    "preset_limit_reached": "已达到预置数量上限",
+    "passkey_session_expired": "Passkey 请求已过期，请重试",
+    "passkey_limit_reached": "已达到 Passkey 数量上限（每人 10 个）",
+    "passkey_registration_failed": "Passkey 绑定失败",
+    "passkey_not_found": "未找到该 Passkey",
+    "passkey_api_key_forbidden": "API 密钥不能管理 Passkey，请使用浏览器登录后再操作",
+    "passkey_guest_forbidden": "访客账户不支持 Passkey",
+    "too_many_pending_requests": "待处理请求过多，请稍后重试"
   },
   "language": {
     "label": "界面语言",

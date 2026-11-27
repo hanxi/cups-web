@@ -33,6 +33,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/passkeys',
+    name: 'passkeys',
+    component: () => import('../views/PasskeysView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/api-keys',
     name: 'api-keys',
     component: () => import('../views/ApiKeysView.vue'),

@@ -12,6 +12,7 @@ This directory covers the architecture, troubleshooting, and decisions behind th
 | [Container startup](container-startup.md) | Entrypoint stages, CUPS watchdog, and driver restore |
 | [Docker build](docker-build.md) | AIO and web-only targets, image dependencies, Compose settings, and CI |
 | [Reverse proxy](reverse-proxy.md) | Origins, cookies, proxy configuration, and troubleshooting |
+| [Passkey](passkey.md) | Passkey sign-in: prerequisites, environment variables, discoverable credentials and lockout protection |
 | [Development conventions](conventions.md) | Common development tasks, testing, and repository conventions |
 | [Printer options](printer-options.md) | Paper, media, quality, borderless printing, and photo schedules |
 | [Windows printer sharing](windows-shared-printer.md) | Windows SMB sharing, credentials, Docker bridge networking, and verification |

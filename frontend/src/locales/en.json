@@ -682,7 +682,20 @@
     "preset_applied": "Applied preset \"{p0}\"",
     "preset_saved": "Saved preset \"{p0}\"",
     "default_settings_restored": "Default settings restored",
-    "delete_print_preset_confirm": "Delete preset \"{p0}\"?"
+    "delete_print_preset_confirm": "Delete preset \"{p0}\"?",
+    "sign_in_with_passkey": "Sign in with a passkey",
+    "passkeys": "Passkeys",
+    "add_passkey": "Add passkey",
+    "passkey_name": "Name",
+    "passkey_name_placeholder": "For example: iPhone, MacBook",
+    "passkey_description": "Sign in with fingerprint, face or a device PIN without typing a username. Add at least two passkeys and keep password login as a backup.",
+    "no_passkeys_yet": "No passkeys yet",
+    "passkey_added": "Passkey added",
+    "passkey_unsupported": "This browser or page does not support passkeys. HTTPS and a domain name are required.",
+    "passkey_cancelled": "Passkey sign-in was cancelled or timed out",
+    "passkey_sign_in_failed": "Passkey sign-in failed",
+    "passkey_delete_confirm": "Delete passkey {name}?",
+    "passkey_sign_in_hint": "Use your fingerprint, Face ID or device lock screen. No password needed."
   },
   "api": {
     "printer_connection_failed": "Cannot connect to the printer",
@@ -1045,7 +1058,14 @@
     "preset_settings_invalid": "Invalid preset settings",
     "preset_not_found": "Preset not found",
     "preset_name_exists": "A preset with this name already exists",
-    "preset_limit_reached": "The preset limit has been reached"
+    "preset_limit_reached": "The preset limit has been reached",
+    "passkey_session_expired": "Passkey request expired, please try again",
+    "passkey_limit_reached": "Passkey limit reached (10 per user)",
+    "passkey_registration_failed": "Passkey registration failed",
+    "passkey_not_found": "Passkey not found",
+    "passkey_api_key_forbidden": "API keys cannot manage passkeys; sign in with a browser",
+    "passkey_guest_forbidden": "Guest accounts do not support passkeys",
+    "too_many_pending_requests": "Too many pending requests, please try again later"
   },
   "language": {
     "label": "Language",
