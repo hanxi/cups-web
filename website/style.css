@@ -84,8 +84,10 @@ img { max-width: 100%; height: auto; vertical-align: middle; }
 .support-panel h2 { font-size: 1.4rem; letter-spacing: -.025em; }
 .support-panel p { margin: 8px 0 12px; line-height: 1.6; color: var(--muted); }
 .support-panel a { font-weight: 650; }
-.support-donation { display: grid; grid-template-columns: minmax(0, 1fr) clamp(88px, 11vw, 124px); align-items: start; gap: 18px; }
-.support-donation img { width: 100%; border: 1px solid var(--line); border-radius: 7px; }
+.support-donation { display: grid; grid-template-columns: minmax(0, 1fr) clamp(168px, 16vw, 208px); align-items: start; gap: 18px; }
+.donation-code { position: relative; width: 100%; max-width: 208px; aspect-ratio: 1; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+/* The code is centered at (518, 378) in the 1037px artwork. Keep its surrounding quiet area. */
+.donation-code img { position: absolute; top: 50%; left: 50%; width: 216%; max-width: none; transform: translate(-50%, -36.45%); }
 .footer { border-top: 1px solid var(--line); }
 .footer-inner { color: var(--muted); font-size: .87rem; min-height: 84px; }
 .footer-inner > a:last-child { margin-left: auto; }
@@ -184,6 +186,7 @@ img { max-width: 100%; height: auto; vertical-align: middle; }
   .workflow-grid { grid-template-columns: 1fr; gap: 25px; }
   .entry-inner { flex-direction: column; align-items: flex-start; gap: 20px; }
   .support { grid-template-columns: 1fr; gap: 22px; padding-block: 28px; }
+  .support-donation { grid-template-columns: 1fr; gap: 14px; }
   .support-panel + .support-panel { padding: 20px 0 0; border-inline-start: none; border-top: 1px solid var(--line); }
   .footer-inner { gap: 10px; flex-wrap: wrap; padding-block: 12px; }
   .footer-inner > span { order: 2; width: 100%; }
