@@ -8,11 +8,10 @@ import (
 
 // passkeyConfig 是 passkey（WebAuthn）功能的运行配置，全部来自环境变量。
 type passkeyConfig struct {
-	Enabled         bool
-	RPID            string
-	RPName          string
-	Origins         []string
-	DisablePassword bool // DISABLE_PASSWORD_LOGIN 的原始值；是否真正生效还要看是否已有管理员 passkey
+	Enabled bool
+	RPID    string
+	RPName  string
+	Origins []string
 }
 
 func envBool(v string) bool {
@@ -37,10 +36,9 @@ func splitOrigins(v string) []string {
 // PASSKEY_RP_ORIGINS 缺省时回退 TRUSTED_ORIGINS。
 func parsePasskeyConfig(getenv func(string) string) (passkeyConfig, error) {
 	cfg := passkeyConfig{
-		Enabled:         envBool(getenv("PASSKEY_ENABLED")),
-		RPID:            strings.TrimSpace(getenv("PASSKEY_RP_ID")),
-		RPName:          strings.TrimSpace(getenv("PASSKEY_RP_NAME")),
-		DisablePassword: envBool(getenv("DISABLE_PASSWORD_LOGIN")),
+		Enabled: envBool(getenv("PASSKEY_ENABLED")),
+		RPID:    strings.TrimSpace(getenv("PASSKEY_RP_ID")),
+		RPName:  strings.TrimSpace(getenv("PASSKEY_RP_NAME")),
 	}
 	if !cfg.Enabled {
 		return cfg, nil

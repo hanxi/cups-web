@@ -177,7 +177,7 @@ const router = useRouter()
 const route = useRoute()
 
 const session = ref(null)
-const authConfig = ref({ passkeyEnabled: false, passwordLoginEnabled: true })
+const authConfig = ref({ passkeyEnabled: false })
 const sessionLoaded = ref(false)
 const showSponsorModal = ref(false)
 // 二进制版本号：首次挂载时拉一次 /api/version（公开接口，不要求登录），

@@ -15,7 +15,6 @@
 | `PASSKEY_RP_ID` | Domain such as `print.example.com`. Required when enabled |
 | `PASSKEY_RP_ORIGINS` | Full origins, comma-separated. Falls back to `TRUSTED_ORIGINS` |
 | `PASSKEY_RP_NAME` | Display name, default `CUPS Web` |
-| `DISABLE_PASSWORD_LOGIN` | Disable password sign-in. **Takes effect only when at least one admin has a passkey**, otherwise it is ignored to avoid lockout |
 
 Invalid configuration (missing RP ID, IP as RP ID, missing origin) stops startup with a message.
 
@@ -27,4 +26,6 @@ Invalid configuration (missing RP ID, IP as RP ID, missing origin) stops startup
 - Login endpoints reuse the per-IP login rate limiter. Every failure returns the same `passkey authentication failed`.
 - A clone warning (sign count regression) rejects the login. Guest cannot register or use passkeys.
 - Registration and deletion reject the API key channel. Limit 10 per user.
-- Register at least two passkeys and keep password sign-in as a fallback.
+- Registration and sign-in both require user verification (`userVerification: required`).
+- The sign count is persisted before a session is issued; a deleted credential or a failed write rejects the login.
+- Register at least two passkeys; password sign-in stays available as a fallback.

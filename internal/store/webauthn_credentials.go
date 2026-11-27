@@ -61,26 +61,28 @@ func GetWebAuthnCredentialByCredentialID(ctx context.Context, tx *sql.Tx, creden
 	return scanWebAuthn(tx.QueryRowContext(ctx, `SELECT `+webauthnCols+` FROM webauthn_credentials WHERE credential_id = ?`, credentialID))
 }
 
-// CountAdminWebAuthnCredentials 统计管理员账号名下的 passkey 数量。DISABLE_PASSWORD_LOGIN
-// 只有在至少一个管理员绑定了 passkey 时才生效，避免管理员被锁在系统外。
-func CountAdminWebAuthnCredentials(ctx context.Context, tx *sql.Tx) (int, error) {
-	var n int
-	err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM webauthn_credentials c
-		JOIN users u ON u.id = c.user_id WHERE u.role = ?`, RoleAdmin).Scan(&n)
-	return n, err
-}
-
 func CountWebAuthnCredentialsByUser(ctx context.Context, tx *sql.Tx, userID int64) (int, error) {
 	var n int
 	err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM webauthn_credentials WHERE user_id = ?`, userID).Scan(&n)
 	return n, err
 }
 
-// UpdateWebAuthnCredentialUsage 登录成功后回写最新的签名计数等状态与最近使用时间。
+// UpdateWebAuthnCredentialUsage 登录成功后回写最新的签名计数等状态与最近使用时间；
+// 凭证不存在时返回 sql.ErrNoRows。
 func UpdateWebAuthnCredentialUsage(ctx context.Context, tx *sql.Tx, id int64, credentialJSON string) error {
-	_, err := tx.ExecContext(ctx, `UPDATE webauthn_credentials SET credential_json = ?, last_used_at = ? WHERE id = ?`,
+	res, err := tx.ExecContext(ctx, `UPDATE webauthn_credentials SET credential_json = ?, last_used_at = ? WHERE id = ?`,
 		credentialJSON, nowUTC(), id)
-	return err
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return sql.ErrNoRows // 凭证已被删除
+	}
+	return nil
 }
 
 // DeleteWebAuthnCredential 只删除属于 userID 的记录，无匹配返回 sql.ErrNoRows。

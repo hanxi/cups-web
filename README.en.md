@@ -481,7 +481,6 @@ Open <http://localhost:8080> and sign in with `admin/admin`.
 | `PASSKEY_RP_ID` | Passkey RP ID: a domain name, not an IP. Required when enabled | Empty |
 | `PASSKEY_RP_ORIGINS` | Allowed full origins, comma-separated. Falls back to `TRUSTED_ORIGINS` | Empty |
 | `PASSKEY_RP_NAME` | Passkey display name | `CUPS Web` |
-| `DISABLE_PASSWORD_LOGIN` | Disable password sign-in. Takes effect only after an admin has registered a passkey | `false` |
 | `PRINTER_HOST_ALLOWLIST` | Comma-separated printer URI host allowlist for SSRF protection | Empty (no allowlist) |
 | `PRINTER_BLOCK_PRIVATE` | Reject printer URIs that resolve to private addresses when `true` | `false` |
 | `OFD_CONVERTER_JAR` | OFD-to-PDF converter JAR path | `/ofd-converter.jar` |

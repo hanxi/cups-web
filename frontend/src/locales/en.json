@@ -695,7 +695,6 @@
     "passkey_cancelled": "Passkey sign-in was cancelled or timed out",
     "passkey_sign_in_failed": "Passkey sign-in failed",
     "passkey_delete_confirm": "Delete passkey {name}?",
-    "passkey_password_login_disabled": "Password sign-in is disabled. Use a passkey.",
     "passkey_sign_in_hint": "Use your fingerprint, Face ID or device lock screen. No password needed."
   },
   "api": {

@@ -24,8 +24,11 @@ func TestWebAuthnCredentialCRUD(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		if n, _ := CountAdminWebAuthnCredentials(ctx, tx); n != 1 {
-			t.Fatalf("admin count=%d", n)
+		if err := UpdateWebAuthnCredentialUsage(ctx, tx, c.ID, "{}"); err != nil {
+			return err
+		}
+		if err := UpdateWebAuthnCredentialUsage(ctx, tx, c.ID+99, "{}"); !errors.Is(err, sql.ErrNoRows) {
+			t.Fatalf("update missing credential must return ErrNoRows: %v", err)
 		}
 		if err := DeleteWebAuthnCredential(ctx, tx, c.ID, u.ID+1); !errors.Is(err, sql.ErrNoRows) {
 			t.Fatalf("delete by other user must fail: %v", err)

@@ -9,6 +9,12 @@ services:
       CUPS_HOST: ${CUPS_HOST:-localhost:631}
       CUPS_SOCKET_PATH: ${CUPS_SOCKET_PATH:-}
       TZ: ${TZ:-Asia/Shanghai}
+      # Passkey 登录（需要 HTTPS + 域名），详见 docs/passkey.md。
+      PASSKEY_ENABLED: ${PASSKEY_ENABLED:-false}
+      PASSKEY_RP_ID: ${PASSKEY_RP_ID:-}
+      PASSKEY_RP_ORIGINS: ${PASSKEY_RP_ORIGINS:-}
+      PASSKEY_RP_NAME: ${PASSKEY_RP_NAME:-CUPS Web}
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-}
     volumes:
       - ./.data:/data
       # 自定义字体挂载（解决中文公文、商用文档缺少字体导致的排版错乱）：

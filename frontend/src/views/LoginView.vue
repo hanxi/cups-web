@@ -16,7 +16,7 @@
         class="mb-6"
       />
       
-      <div v-if="authConfig.passkeyEnabled" :class="authConfig.passwordLoginEnabled ? 'mb-6' : ''">
+      <div v-if="authConfig.passkeyEnabled" class="mb-6">
         <UButton
           color="primary"
           variant="soft"
@@ -31,7 +31,7 @@
         <p v-else class="text-xs text-muted text-center mt-2">{{ t('ui.passkey_unsupported') }}</p>
       </div>
 
-      <UForm v-if="authConfig.passwordLoginEnabled" @submit="login" :state="state" class="space-y-6">
+      <UForm @submit="login" :state="state" class="space-y-6">
         <UFormField :label="t('ui.username_2')" name="username" required>
           <UInput v-model="state.username" icon="i-lucide-user" size="lg" class="w-full" />
         </UFormField>
@@ -74,7 +74,7 @@ const loading = ref(false)
 
 const emit = defineEmits(['login-success'])
 
-const authConfig = ref({ passkeyEnabled: false, passwordLoginEnabled: true })
+const authConfig = ref({ passkeyEnabled: false })
 const passkeySupported = browserSupportsWebAuthn()
 const passkeyLoading = ref(false)
 onMounted(async () => { authConfig.value = await fetchAuthConfig() })
@@ -124,7 +124,6 @@ const BACKEND_MESSAGES = computed(() => ({
   'missing credentials': t('ui.enter_your_username_and_password'),
   'too many attempts, please try again later': t('ui.too_many_failed_sign_in_attempts_try_again_later_default'),
   'login failed': t('ui.the_server_could_not_process_sign_in_check_the_server'),
-  'password login disabled': t('ui.passkey_password_login_disabled'),
   'session error': t('ui.could_not_create_a_session_check_the_server_logs')
 }))
 

@@ -122,7 +122,7 @@ All routes have the `/api` prefix. Protected routes use `RequireSession` and `Va
 | GET | `/api/csrf` | Refresh CSRF token |
 | GET | `/api/session` | Query session |
 | GET | `/api/version` | Build version |
-| GET | `/api/auth/config` | `{passkeyEnabled, passwordLoginEnabled}`; the login page renders from it |
+| GET | `/api/auth/config` | `{passkeyEnabled}`; the login page renders from it |
 | POST | `/api/passkey/login/begin` · `login/finish` | Passkey discoverable-credential sign-in (no username). Registered only when `PASSKEY_ENABLED=true` |
 
 ### Authenticated endpoints

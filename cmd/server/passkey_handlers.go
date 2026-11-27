@@ -76,31 +76,9 @@ func registerPasskeyRoutes(api, protected *mux.Router) {
 	protected.HandleFunc("/passkeys/{id:[0-9]+}", passkeyDeleteHandler).Methods("DELETE")
 }
 
-// passwordLoginDisabled：DISABLE_PASSWORD_LOGIN 只有在 passkey 已启用、且至少一个管理员
-// 已绑定 passkey 时才生效，避免没有后备入口时把管理员锁在外面。
-func passwordLoginDisabled(ctx context.Context) bool {
-	if !passkeyCfg.Enabled || !passkeyCfg.DisablePassword {
-		return false
-	}
-	n := 0
-	err := appStore.WithTx(ctx, true, func(tx *sql.Tx) error {
-		c, err := store.CountAdminWebAuthnCredentials(ctx, tx)
-		n = c
-		return err
-	})
-	if err != nil {
-		log.Printf("[passkey] count admin credentials: %v", err)
-		return false // 查询失败时宁可保留密码登录
-	}
-	return n > 0
-}
-
 // AuthConfigHandler handles GET /api/auth/config（公开）。
 func AuthConfigHandler(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, map[string]bool{
-		"passkeyEnabled":       passkeyCfg.Enabled,
-		"passwordLoginEnabled": !passwordLoginDisabled(r.Context()),
-	})
+	writeJSON(w, map[string]bool{"passkeyEnabled": passkeyCfg.Enabled})
 }
 
 // passkeyUser 把 store.User 适配为 webauthn.User，不改动 store 层结构体。
@@ -222,7 +200,11 @@ func passkeyRegisterBeginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// ResidentKey=required：可发现凭证，登录时无需输入用户名。
 	creation, session, err := passkeyWA.BeginRegistration(pu,
-		webauthn.WithResidentKeyRequirement(protocol.ResidentKeyRequirementRequired),
+		webauthn.WithAuthenticatorSelection(protocol.AuthenticatorSelection{
+			RequireResidentKey: protocol.ResidentKeyRequired(),
+			ResidentKey:        protocol.ResidentKeyRequirementRequired,
+			UserVerification:   protocol.VerificationRequired,
+		}),
 		webauthn.WithExclusions(exclusions),
 	)
 	if err != nil {
@@ -340,7 +322,7 @@ func passkeyLoginBeginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// 可发现凭证：不传用户名，由浏览器弹出账号列表。
 	assertion, session, err := passkeyWA.BeginDiscoverableLogin(
-		webauthn.WithUserVerification(protocol.VerificationPreferred),
+		webauthn.WithUserVerification(protocol.VerificationRequired),
 	)
 	if err != nil {
 		log.Printf("[passkey] begin login: %v", err)
@@ -423,6 +405,8 @@ func passkeyLoginFinishHandler(w http.ResponseWriter, r *http.Request) {
 		fail()
 		return
 	}
+	// 先写回签名计数与最近使用时间，再签发会话：凭证已被删除（0 行受影响）或写回失败
+	// 都视为登录失败，避免已删除的 passkey 仍能换到 session。
 	raw, err := json.Marshal(cred)
 	if err == nil {
 		err = appStore.WithTx(r.Context(), false, func(tx *sql.Tx) error {
@@ -430,8 +414,9 @@ func passkeyLoginFinishHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	if err != nil {
-		log.Printf("[passkey] update usage: %v", err)
-		// 计数写回失败不阻断登录，但留日志。
+		log.Printf("[passkey] update usage user=%q credential=%d: %v", matched.user.Username, matchedRow.ID, err)
+		fail()
+		return
 	}
 	clearLoginFailures(key)
 

@@ -122,7 +122,7 @@ cups-web/
 | GET | `/api/csrf` | 刷新 csrf token |
 | GET | `/api/session` | 查询会话 |
 | GET | `/api/version` | 构建版本号 |
-| GET | `/api/auth/config` | `{passkeyEnabled, passwordLoginEnabled}`，登录页据此渲染 |
+| GET | `/api/auth/config` | `{passkeyEnabled}`，登录页据此渲染 |
 | POST | `/api/passkey/login/begin` · `login/finish` | Passkey 可发现凭证登录（免用户名），仅 `PASSKEY_ENABLED=true` 注册 |
 
 ### 已登录用户接口

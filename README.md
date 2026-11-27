@@ -490,7 +490,6 @@ export LISTEN_ADDR=:8080
 | `PASSKEY_RP_ID` | Passkey 的 RP ID，域名（不能是 IP）。启用时必填 | 空 |
 | `PASSKEY_RP_ORIGINS` | 允许的完整 origin，逗号分隔；缺省回退 `TRUSTED_ORIGINS` | 空 |
 | `PASSKEY_RP_NAME` | Passkey 展示名 | `CUPS Web` |
-| `DISABLE_PASSWORD_LOGIN` | 禁用密码登录。仅在已有管理员绑定 Passkey 时才生效 | `false` |
 | `PRINTER_HOST_ALLOWLIST` | 打印机 URI 的主机白名单，逗号分隔。收紧 SSRF 面 | 空（不限制） |
 | `PRINTER_BLOCK_PRIVATE` | `true` 时拒绝指向私网地址的打印机 URI | `false` |
 | `OFD_CONVERTER_JAR` | OFD → PDF 转换器 jar 路径 | `/ofd-converter.jar` |

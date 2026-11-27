@@ -15,7 +15,6 @@
 | `PASSKEY_RP_ID` | 域名，如 `print.example.com`；启用时必填 |
 | `PASSKEY_RP_ORIGINS` | 完整 origin，逗号分隔；缺省回退 `TRUSTED_ORIGINS` |
 | `PASSKEY_RP_NAME` | 展示名，默认 `CUPS Web` |
-| `DISABLE_PASSWORD_LOGIN` | 禁用密码登录；**至少一个管理员已绑定 Passkey 时才生效**，否则忽略，避免锁死 |
 
 配置错误（缺 RP ID、RP ID 是 IP、缺 origin）会让进程启动失败并给出提示。
 
@@ -27,4 +26,6 @@
 - 登录接口按 IP 复用登录限流；失败一律返回统一的 `passkey authentication failed`。
 - 检测到克隆告警（签名计数回退）时拒绝登录；guest 不能绑定或用 Passkey 登录。
 - 绑定/删除拒绝 API Key 通道；每人最多 10 个。
-- 建议至少绑定两个 Passkey，并保留密码登录作为后备。
+- 注册与登录均强制用户验证（`userVerification: required`）。
+- 登录成功前须先写回签名计数；凭证已被删除或写回失败时拒绝签发会话。
+- 建议至少绑定两个 Passkey，密码登录保持可用作为后备。

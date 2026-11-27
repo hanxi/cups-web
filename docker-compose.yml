@@ -41,6 +41,12 @@ services:
       - LISTEN_ADDR=${LISTEN_ADDR:-:1180}
       # 扫描产物落盘目录(issue #111);见下方 ./.scans:/scans 卷的说明。
       - SCAN_DIR=${SCAN_DIR:-/scans}
+      # Passkey 登录（需要 HTTPS + 域名），详见 docs/passkey.md。
+      - PASSKEY_ENABLED=${PASSKEY_ENABLED:-false}
+      - PASSKEY_RP_ID=${PASSKEY_RP_ID:-}
+      - PASSKEY_RP_ORIGINS=${PASSKEY_RP_ORIGINS:-}
+      - PASSKEY_RP_NAME=${PASSKEY_RP_NAME:-CUPS Web}
+      - TRUSTED_ORIGINS=${TRUSTED_ORIGINS:-}
     # ⚠️ 不要挂载宿主的 /run/dbus/system_bus_socket（issue #107）：
     # 旧版为借用宿主 avahi 广播 AirPrint（issue #94）挂了这个 socket，
     # 但宿主没装 avahi-daemon 时反而害了容器——socket 路径被宿主文件占用，

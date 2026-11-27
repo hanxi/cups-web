@@ -695,7 +695,6 @@
     "passkey_cancelled": "Passkey 操作已取消或超时",
     "passkey_sign_in_failed": "Passkey 登录失败",
     "passkey_delete_confirm": "确定删除 Passkey「{name}」？",
-    "passkey_password_login_disabled": "密码登录已被禁用，请使用 Passkey（通行密钥） 登录。",
     "passkey_sign_in_hint": "使用指纹、Face ID 或设备锁屏密码，无需输入密码"
   },
   "api": {

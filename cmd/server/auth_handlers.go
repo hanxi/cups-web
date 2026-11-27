@@ -52,11 +52,6 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusBadRequest, "missing credentials")
 		return
 	}
-	// DISABLE_PASSWORD_LOGIN 生效（且已有管理员 passkey）时拒绝密码登录。
-	if passwordLoginDisabled(r.Context()) {
-		writeJSONError(w, http.StatusForbidden, "password login disabled")
-		return
-	}
 	// guest 是保留账号，只能由 SessionHandler 在开启访客模式时自动登入。
 	// 用它的用户名从公开登录接口挤进来会绕过管理员对该模式的开关意图。
 	if strings.EqualFold(strings.TrimSpace(req.Username), guestUsername) {
