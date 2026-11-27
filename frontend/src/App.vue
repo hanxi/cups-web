@@ -41,6 +41,14 @@
                 @click="router.push('/scan')"
               > {{ t('ui.scan') }} </UButton>
               <UButton
+                v-if="canManageKeys && authConfig.passkeyEnabled"
+                :variant="route.path === '/passkeys' ? 'soft' : 'ghost'"
+                :color="route.path === '/passkeys' ? 'primary' : 'neutral'"
+                size="xs"
+                icon="i-lucide-fingerprint"
+                @click="router.push('/passkeys')"
+              > {{ t('ui.passkeys') }} </UButton>
+              <UButton
                 v-if="canManageKeys"
                 :variant="route.path === '/api-keys' ? 'soft' : 'ghost'"
                 :color="route.path === '/api-keys' ? 'primary' : 'neutral'"
@@ -158,6 +166,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { clearSessionCache, updateSessionCache } from './router'
 import { en, zh_cn } from '@nuxt/ui/locale'
+import { fetchAuthConfig } from './utils/auth-config.js'
 import LanguageSelect from './components/LanguageSelect.vue'
 
 const { t, locale } = useI18n()
@@ -168,6 +177,7 @@ const router = useRouter()
 const route = useRoute()
 
 const session = ref(null)
+const authConfig = ref({ passkeyEnabled: false, passwordLoginEnabled: true })
 const sessionLoaded = ref(false)
 const showSponsorModal = ref(false)
 // 二进制版本号：首次挂载时拉一次 /api/version（公开接口，不要求登录），
@@ -186,6 +196,9 @@ const menuItems = computed(() => {
     nav.push({ label: t('ui.print'), icon: 'i-lucide-file-text', onSelect: () => router.push('/print') })
     nav.push({ label: t('ui.schedules'), icon: 'i-lucide-calendar-clock', onSelect: () => router.push('/scheduled') })
     nav.push({ label: t('ui.scan'), icon: 'i-lucide-scan-line', onSelect: () => router.push('/scan') })
+  }
+  if (canManageKeys.value && authConfig.value.passkeyEnabled) {
+    nav.push({ label: t('ui.passkeys'), icon: 'i-lucide-fingerprint', onSelect: () => router.push('/passkeys') })
   }
   if (canManageKeys.value) {
     nav.push({ label: t('ui.api_keys'), icon: 'i-lucide-key-round', onSelect: () => router.push('/api-keys') })
@@ -288,5 +301,6 @@ onMounted(() => {
   loadSession()
   loadVersion()
   loadCustomCSS()
+  fetchAuthConfig().then(c => { authConfig.value = c })
 })
 </script>

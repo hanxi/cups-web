@@ -16,7 +16,22 @@
         class="mb-6"
       />
       
-      <UForm @submit="login" :state="state" class="space-y-6">
+      <div v-if="authConfig.passkeyEnabled" :class="authConfig.passwordLoginEnabled ? 'mb-6' : ''">
+        <UButton
+          color="primary"
+          variant="soft"
+          icon="i-lucide-fingerprint"
+          size="lg"
+          class="w-full justify-center"
+          :loading="passkeyLoading"
+          :disabled="!passkeySupported"
+          @click="loginWithPasskey"
+        > {{ t('ui.sign_in_with_passkey') }} </UButton>
+        <p v-if="passkeySupported" class="text-xs text-muted text-center mt-2">{{ t('ui.passkey_sign_in_hint') }}</p>
+        <p v-else class="text-xs text-muted text-center mt-2">{{ t('ui.passkey_unsupported') }}</p>
+      </div>
+
+      <UForm v-if="authConfig.passwordLoginEnabled" @submit="login" :state="state" class="space-y-6">
         <UFormField :label="t('ui.username_2')" name="username" required>
           <UInput v-model="state.username" icon="i-lucide-user" size="lg" class="w-full" />
         </UFormField>
@@ -42,7 +57,9 @@
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { reactive, ref } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
+import { browserSupportsWebAuthn, startAuthentication } from '@simplewebauthn/browser'
+import { fetchAuthConfig } from '../utils/auth-config.js'
 import { translateError } from '../utils/translate-error.js'
 
 const { t } = useI18n()
@@ -57,12 +74,57 @@ const loading = ref(false)
 
 const emit = defineEmits(['login-success'])
 
+const authConfig = ref({ passkeyEnabled: false, passwordLoginEnabled: true })
+const passkeySupported = browserSupportsWebAuthn()
+const passkeyLoading = ref(false)
+onMounted(async () => { authConfig.value = await fetchAuthConfig() })
+
+// 可发现凭证登录：不传用户名，浏览器弹出该站点已保存的账号列表供选择。
+async function loginWithPasskey() {
+  error.value = null
+  passkeyLoading.value = true
+  try {
+    const begin = await fetch('/api/passkey/login/begin', { method: 'POST', credentials: 'include' })
+    if (!begin.ok) {
+      error.value = await describeFailure(begin)
+      return
+    }
+    const { sessionKey, options } = await begin.json()
+    let assertion
+    try {
+      assertion = await startAuthentication({ optionsJSON: options.publicKey })
+    } catch (e) {
+      const name = e?.name
+      error.value = () => (name === 'NotAllowedError' || name === 'AbortError')
+        ? t('ui.passkey_cancelled')
+        : t('ui.passkey_sign_in_failed')
+      return
+    }
+    const resp = await fetch('/api/passkey/login/finish', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', 'X-Passkey-Session': sessionKey },
+      body: JSON.stringify(assertion)
+    })
+    if (!resp.ok) {
+      error.value = resp.status === 401 ? () => t('ui.passkey_sign_in_failed') : await describeFailure(resp)
+      return
+    }
+    emit('login-success')
+  } catch (e) {
+    error.value = () => t('ui.cannot_connect_to_the_server', { p0: e.message })
+  } finally {
+    passkeyLoading.value = false
+  }
+}
+
 // 后端 /api/login 的错误串是英文短语，直接展示对终端用户不友好，在此本地化。
 const BACKEND_MESSAGES = computed(() => ({
   'invalid credentials': t('ui.incorrect_username_or_password'),
   'missing credentials': t('ui.enter_your_username_and_password'),
   'too many attempts, please try again later': t('ui.too_many_failed_sign_in_attempts_try_again_later_default'),
   'login failed': t('ui.the_server_could_not_process_sign_in_check_the_server'),
+  'password login disabled': t('ui.passkey_password_login_disabled'),
   'session error': t('ui.could_not_create_a_session_check_the_server_logs')
 }))
 

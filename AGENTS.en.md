@@ -122,6 +122,8 @@ All routes have the `/api` prefix. Protected routes use `RequireSession` and `Va
 | GET | `/api/csrf` | Refresh CSRF token |
 | GET | `/api/session` | Query session |
 | GET | `/api/version` | Build version |
+| GET | `/api/auth/config` | `{passkeyEnabled, passwordLoginEnabled}`; the login page renders from it |
+| POST | `/api/passkey/login/begin` · `login/finish` | Passkey discoverable-credential sign-in (no username). Registered only when `PASSKEY_ENABLED=true` |
 
 ### Authenticated endpoints
 
@@ -156,6 +158,9 @@ All routes have the `/api` prefix. Protected routes use `RequireSession` and `Va
 | GET | `/api/api-keys` | List the caller's API keys without plaintext (issue #113) |
 | POST | `/api/api-keys` | Create a key and reveal plaintext once. Browser session only. |
 | DELETE | `/api/api-keys/{id}` | Delete one of the caller's keys. Browser session only. |
+| GET | `/api/passkeys` | List the caller's passkeys (routes exist only when `PASSKEY_ENABLED=true`). Browser session only; guest gets 403 |
+| POST | `/api/passkeys/register/begin` · `register/finish` | Register a passkey (`ResidentKey: required`); the challenge is linked by the `X-Passkey-Session` header; limit 10 per user |
+| DELETE | `/api/passkeys/{id}` | Delete one of the caller's passkeys |
 | GET | `/api/print-presets` | List the caller's presets (issue #128). Guests receive 403. |
 | POST | `/api/print-presets` | Create `{name, settings}`. Duplicate names return 409. Limit 20 per user. |
 | PUT/DELETE | `/api/print-presets/{id}` | Owner-only rename, overwrite of optional fields, or deletion |
@@ -327,6 +332,10 @@ Index: `idx_scan_records_user_time (user_id, created_at)`. Administrators can vi
 ### `settings`
 
 Key-value table. Current keys are `retention_days` (`0` means keep forever), `save_history`, `max_pages_per_job`, `max_upload_bytes`, `custom_css`, `guest_mode`, `allow_font_fallback` (`0` means block on missing fonts, `1` allows automatic substitution), `session_hash_key`, and `session_block_key`.
+
+### `webauthn_credentials` (passkeys)
+
+`user_id` (cascade delete) / `credential_id` (UNIQUE, base64url) / `name` / `credential_json` (full go-webauthn `Credential` serialization including sign count) / `created_at` / `last_used_at`. The user handle is the 8-byte big-endian `users.id`. See [docs/en/passkey.md](docs/en/passkey.md).
 
 ### `print_presets` (issue #128)
 

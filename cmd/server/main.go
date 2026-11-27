@@ -90,6 +90,10 @@ func main() {
 		log.Fatal("failed to setup secure cookie: ", err)
 	}
 
+	if err := initPasskey(os.Getenv); err != nil {
+		log.Fatal("passkey 配置错误: ", err)
+	}
+
 	r := mux.NewRouter()
 	// 全局安全中间件：安全响应头 + 基于 Sec-Fetch-Site 的跨源 CSRF 防护
 	// （Go 1.25 http.CrossOriginProtection，作为 double-submit 之外的纵深防御）。
@@ -100,6 +104,8 @@ func main() {
 	api.HandleFunc("/login", LoginHandler).Methods("POST")
 	api.HandleFunc("/logout", LogoutHandler).Methods("POST")
 	api.HandleFunc("/csrf", CSRFHandler).Methods("GET")
+	// 公开的登录方式配置：前端据此决定是否显示 passkey 按钮 / 密码表单。
+	api.HandleFunc("/auth/config", AuthConfigHandler).Methods("GET")
 	// session endpoint used by frontend to detect existing session on page load
 	api.HandleFunc("/session", SessionHandler).Methods("GET")
 	// 公开的版本接口：前端在登录页与主界面 footer 上展示，
@@ -183,6 +189,9 @@ func main() {
 	protected.HandleFunc("/api-keys", apiKeyListHandler).Methods("GET")
 	protected.HandleFunc("/api-keys", apiKeyCreateHandler).Methods("POST")
 	protected.HandleFunc("/api-keys/{id:[0-9]+}", apiKeyDeleteHandler).Methods("DELETE")
+
+	// Passkey（PASSKEY_ENABLED=true 才注册路由）：登录 begin/finish 公开，绑定管理需登录。
+	registerPasskeyRoutes(api, protected)
 
 	admin := api.PathPrefix("/admin").Subrouter()
 	// admin 子路由同样先跑 APIKeyAuth：管理员用自己的 key 也能访问管理接口。

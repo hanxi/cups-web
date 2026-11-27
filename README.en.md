@@ -477,6 +477,11 @@ Open <http://localhost:8080> and sign in with `admin/admin`.
 | `TZ` | Time zone | `Asia/Shanghai` |
 | `COOKIE_SECURE` | Session and CSRF cookie `Secure` flag. `auto` follows the request protocol. `true` always sets the flag. `false` always omits it | `auto` |
 | `TRUSTED_ORIGINS` | Comma-separated allowed origins such as `https://print.example.com`. Set when the origin check rejects a known deployment | Empty |
+| `PASSKEY_ENABLED` | Enable passkey sign-in (discoverable credentials, no username needed). Requires HTTPS and a domain. See [docs/en/passkey.md](docs/en/passkey.md) | `false` |
+| `PASSKEY_RP_ID` | Passkey RP ID: a domain name, not an IP. Required when enabled | Empty |
+| `PASSKEY_RP_ORIGINS` | Allowed full origins, comma-separated. Falls back to `TRUSTED_ORIGINS` | Empty |
+| `PASSKEY_RP_NAME` | Passkey display name | `CUPS Web` |
+| `DISABLE_PASSWORD_LOGIN` | Disable password sign-in. Takes effect only after an admin has registered a passkey | `false` |
 | `PRINTER_HOST_ALLOWLIST` | Comma-separated printer URI host allowlist for SSRF protection | Empty (no allowlist) |
 | `PRINTER_BLOCK_PRIVATE` | Reject printer URIs that resolve to private addresses when `true` | `false` |
 | `OFD_CONVERTER_JAR` | OFD-to-PDF converter JAR path | `/ofd-converter.jar` |

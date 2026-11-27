@@ -122,6 +122,8 @@ cups-web/
 | GET | `/api/csrf` | 刷新 csrf token |
 | GET | `/api/session` | 查询会话 |
 | GET | `/api/version` | 构建版本号 |
+| GET | `/api/auth/config` | `{passkeyEnabled, passwordLoginEnabled}`，登录页据此渲染 |
+| POST | `/api/passkey/login/begin` · `login/finish` | Passkey 可发现凭证登录（免用户名），仅 `PASSKEY_ENABLED=true` 注册 |
 
 ### 已登录用户接口
 
@@ -156,6 +158,9 @@ cups-web/
 | GET | `/api/api-keys` | 列出自己名下的 API 密钥（不含明文）(issue #113) |
 | POST | `/api/api-keys` | 生成新密钥，明文仅此响应返回一次；仅浏览器 session 可调 |
 | DELETE | `/api/api-keys/{id}` | 删除自己名下的密钥；仅浏览器 session 可调 |
+| GET | `/api/passkeys` | 列出自己的 Passkey（`PASSKEY_ENABLED=true` 才注册）；仅浏览器 session，guest 403 |
+| POST | `/api/passkeys/register/begin` · `register/finish` | 绑定 Passkey（`ResidentKey: required`），挑战经 `X-Passkey-Session` 头关联；每人上限 10 |
+| DELETE | `/api/passkeys/{id}` | 删除自己的 Passkey |
 | GET | `/api/print-presets` | 列出自己的打印预置（issue #128）；guest 403 |
 | POST | `/api/print-presets` | 新建 `{name, settings}`，同名 409，每人上限 20 |
 | PUT/DELETE | `/api/print-presets/{id}` | 改名 / 覆盖参数（字段可选）/ 删除，仅限本人 |
@@ -327,6 +332,10 @@ SQLite，`WAL` + `foreign_keys`；迁移在 `store.go::migrate()` 中用幂等 S
 ### `settings`
 
 KV 表。当前键：`retention_days`（`0` = 永久）、`save_history`、`max_pages_per_job`、`max_upload_bytes`、`custom_css`、`guest_mode`、`allow_font_fallback`（`0` = 缺字体预检阻断，`1` = 允许自动替换）、`session_hash_key` / `session_block_key`。
+
+### `webauthn_credentials`（Passkey）
+
+`user_id`（级联删除）/ `credential_id`（UNIQUE，base64url）/ `name` / `credential_json`（go-webauthn `Credential` 完整序列化，含签名计数）/ `created_at` / `last_used_at`。user handle 为 8 字节大端 `users.id`。详见 [docs/passkey.md](docs/passkey.md)。
 
 ### `print_presets`（issue #128）
 
