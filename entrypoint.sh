@@ -10,6 +10,7 @@ set -e
 # restore-drivers 自身已不使用 set -e 并会汇总失败数，这里再加一层 `|| true`
 # 语义的兜底，防止它因意外信号/非零退出把 set -e 的 entrypoint 带崩。
 /usr/local/bin/restore-drivers || echo "[entrypoint] WARN: restore-drivers 部分失败，继续启动"
+/opt/cups-drivers/libexec/hplip-plugin restore || echo "[entrypoint] WARN: HPLIP plug-in restore failed; continuing startup"
 
 # ══════════════════════════════════════════════════════════════
 # 1b. Custom fonts initialization (外部挂载字体加载与缓存刷新)

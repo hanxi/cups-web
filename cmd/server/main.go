@@ -209,6 +209,8 @@ func main() {
 	admin.HandleFunc("/cleanup", adminCleanupHandler).Methods("POST")
 	admin.HandleFunc("/drivers", adminListDriversHandler).Methods("GET")
 	admin.HandleFunc("/drivers/install", adminInstallDriverHandler).Methods("POST")
+	admin.HandleFunc("/drivers/hplip-plugin/prepare", adminPrepareHPLIPPluginHandler).Methods("POST")
+	admin.HandleFunc("/drivers/hplip-plugin/install", adminInstallHPLIPPluginHandler).Methods("POST")
 	admin.HandleFunc("/drivers/remove", adminRemoveDriverHandler).Methods("POST")
 	admin.HandleFunc("/drivers/detect", adminDetectPrintersHandler).Methods("GET")
 	admin.HandleFunc("/drivers/ppds", adminListPPDCandidatesHandler).Methods("GET")

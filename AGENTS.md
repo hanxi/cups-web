@@ -204,6 +204,8 @@ cups-web/
 | POST | `/api/admin/cleanup` | 手动清理 |
 | GET | `/api/admin/drivers` | 驱动列表 + 状态 |
 | POST | `/api/admin/drivers/install` | **异步**安装，`202` + `jobId` |
+| POST | `/api/admin/drivers/hplip-plugin/prepare` | AIO 异步下载并验签，任务结果含 `version`、`license` 和 `digest` |
+| POST | `/api/admin/drivers/hplip-plugin/install` | AIO 异步安装，提交 `{acceptedLicense: true, digest}` 绑定已审阅的包 |
 | POST | `/api/admin/drivers/remove` | **异步**卸载，`202` + `jobId` |
 | GET | `/api/admin/drivers/detect` | 扫描打印机推荐驱动 |
 | GET | `/api/admin/drivers/ppds` | 候选 PPD 列表（`?deviceUri=&deviceId=&manufacturer=&model=&limit=8`） |
@@ -220,6 +222,7 @@ cups-web/
 - `install` / `remove` / `setup` **必须异步**（编译型驱动耗时可达十几分钟，全局 `WriteTimeout=120s` 会 kill 同步进程）。handler 立刻 `202` + `jobId`，命令跑在 `context.Background()` goroutine（硬超时 30min），前端轮询 `jobs/{id}`。
 - **单飞**：同一时刻只允许一个驱动任务（apt/dpkg 全局锁），已有任务时返回 `409` + 正在跑的 `jobId`。
 - 任务只存内存，保留 1 小时，进程重启即丢。
+- HPLIP 插件安装成功后将原始安装包和签名保存在驱动卷的 `hplip-plugin/<arch>/<version>.zip`。AIO 启动时验签并离线恢复版本和架构匹配的插件。恢复失败仅记录日志，容器继续启动。`GET /api/admin/drivers` 返回 `hplipPlugin` 状态。
 
 > 异步模型的完整设计理由与请求/响应形状见 [docs/driver-management.md](docs/driver-management.md#异步任务模型driver_handlersgo)。
 

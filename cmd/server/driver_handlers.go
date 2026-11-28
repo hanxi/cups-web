@@ -284,6 +284,7 @@ func adminListDriversHandler(w http.ResponseWriter, r *http.Request) {
 		"currentArch": arch,
 		"drivers":     drivers,
 		"customDebs":  listCustomDebs(),
+		"hplipPlugin": getHPLIPPluginStatus(r.Context()),
 		// 上传的 .deb 现在会被归档到 custom-deb/packages/ 并在容器启动时由
 		// restore-drivers 用 `dpkg -i` 自动重装（幂等），不再需要用户手动重新上传。
 		"customDebNotice": "上传的 .deb 包已归档，容器重启时会自动重新安装；" +

@@ -76,6 +76,8 @@ AIO 镜像内置 `scanimage` + `libsane-hpaio`，Web 界面「扫描」入口对
 - **设备可用性探测**：`scanimage -L` 会同时列出 `hpaio:` 与 `hpljm1005:` / `escl:` 等多个后端，但 `hpaio:` 在部分 HP 一体机（如 M1005）上打开就报 SANE `Error during device I/O`。选中设备后前端会异步调 `/api/scan/devices/probe` 探测一次；打不开时给出红字提示，请换 `hpljm1005:` / `escl:` 等零配置后端再试
 - **设备发现缓存**：`scanimage -L` 需约 17 秒（多个 SANE 后端串行发现累加），结果按 `SCAN_DEVICES_CACHE_TTL`（默认 `60s`）缓存，避免频繁切页重复等待。设备固定时可调大（如 `24h`）；插拔或更换扫描仪后点页面上的「刷新」，前端会带 `?force=1` 强制重新枚举。
 
+HP LaserJet Professional M1136 MFP 等机型通过 HPAIO 扫描时需要 HP HPLIP 插件。在 AIO 容器中，以管理员身份打开「驱动管理 → HP HPLIP 插件 → 安装」，阅读 HP 许可后选择「接受并安装」。首次安装会联网下载并校验与容器内 HPLIP 版本匹配的插件。请保留 Compose 的 `./.drivers` 挂载，同版本、同架构的容器重建后会离线恢复插件。升级镜像导致 HPLIP 版本变化时，在驱动管理中安装匹配的新版本。 [Issue #136](https://github.com/hanxi/cups-web/issues/136)
+
 > ⚠️ **不用 hplip 自带的 `hp-scan`**：容器里 HPLIP daemon 与 dbus 依赖不稳定，即便补启 `dbus-daemon --system --fork` 仍报 `SANE: Error during device I/O (code=9)`。改走标准 SANE 栈的 `scanimage` 子进程，同宿主同硬件（如 HP LaserJet M1005 MFP）已验证可用。
 >
 > 📌 **当前镜像标签**：扫描功能与设备探测已合并到 master 分支，但 Docker Hub 上的 `hanxi/cups-web:master` 尚未重建。当前请拉 `hanxi/cups-web:dev`（每次 master push 自动更新）体验，或从源码 `make all` 自行构建；等 `master`/正式版镜像更新后再切回 `latest`。

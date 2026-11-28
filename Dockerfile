@@ -352,6 +352,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libnss-mdns \
       # ── 通用工具（驱动安装脚本需要） ──
       curl \
+      gpg \
       wget \
       unzip \
       rsync \
@@ -440,6 +441,7 @@ COPY scripts/driver/driver-list.sh /usr/local/bin/driver-list
 COPY scripts/driver/driver-remove.sh /usr/local/bin/driver-remove
 COPY scripts/driver/restore-drivers.sh /usr/local/bin/restore-drivers
 COPY scripts/driver/hp-firmware-monitor.py /usr/local/bin/hp-firmware-monitor
+COPY --chmod=755 scripts/driver/hplip-plugin.py /opt/cups-drivers/libexec/hplip-plugin
 # apt 的 DPkg::Pre-Install-Pkgs 钩子：driver-install 期间临时挂上，用来归档 apt
 # 即将安装的 .deb 原件（包级驱动持久化）。放 libexec 而不是 /usr/local/bin —— 它
 # 不是给人用的命令。见 scripts/driver/capture-debs.sh 的文件头注释。

@@ -204,6 +204,8 @@ Each item contains `name`, `uri`, `info`, `location`, and `makeAndModel`. `info`
 | POST | `/api/admin/cleanup` | Manual cleanup |
 | GET | `/api/admin/drivers` | Driver list and status |
 | POST | `/api/admin/drivers/install` | Asynchronous install. Returns `202` and `jobId`. |
+| POST | `/api/admin/drivers/hplip-plugin/prepare` | AIO asynchronous download and signature verification. The job result contains `version`, `license`, and `digest`. |
+| POST | `/api/admin/drivers/hplip-plugin/install` | AIO asynchronous install. Submit `{acceptedLicense: true, digest}` to bind the install to the reviewed package. |
 | POST | `/api/admin/drivers/remove` | Asynchronous uninstall. Returns `202` and `jobId`. |
 | GET | `/api/admin/drivers/detect` | Detect printers and recommend drivers |
 | GET | `/api/admin/drivers/ppds` | PPD candidates (`?deviceUri=&deviceId=&manufacturer=&model=&limit=8`) |
@@ -220,6 +222,7 @@ Each item contains `name`, `uri`, `info`, `location`, and `makeAndModel`. `info`
 - `install`, `remove`, and `setup` must run asynchronously. Compiling drivers can take more than ten minutes, which exceeds the global `WriteTimeout=120s`. Return `202` and `jobId` immediately, and run the command in a `context.Background()` goroutine with a 30-minute hard timeout. The frontend polls `jobs/{id}`.
 - Allow one driver job at a time because apt/dpkg use a global lock. Return `409` with the active `jobId` if a job is already running.
 - Jobs are stored in memory for one hour and cleared when the process restarts.
+- After installing the HPLIP plug-in, the server saves the original installer and signature as `hplip-plugin/<arch>/<version>.zip` on the driver volume. At startup, the AIO container verifies and restores the matching version and architecture offline. It logs restore failures and continues starting. `GET /api/admin/drivers` includes the `hplipPlugin` status.
 
 > See [driver management](docs/en/driver-management.md) for the asynchronous job design and request/response shapes.
 

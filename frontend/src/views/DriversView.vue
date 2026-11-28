@@ -217,6 +217,47 @@
       </div>
     </UCard>
 
+    <UCard v-if="hplipPlugin">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="space-y-1">
+          <h3 class="font-semibold">{{ t('ui.hplip_plugin') }}</h3>
+          <p class="text-sm text-muted">{{ t('ui.hplip_plugin_description', { version: hplipPlugin.version }) }}</p>
+          <UBadge :color="hplipPlugin.installed ? 'success' : 'neutral'" variant="subtle" size="sm">
+            {{ t(hplipPlugin.installed ? 'ui.installed' : 'ui.not_installed') }}
+          </UBadge>
+          <UBadge v-if="hplipPlugin.saved" color="info" variant="subtle" size="sm" class="ml-2">
+            {{ t('ui.restoration_on_restart') }}
+          </UBadge>
+        </div>
+        <UButton
+          v-if="hplipPlugin.supported && !(hplipPlugin.installed && hplipPlugin.saved)"
+          icon="i-lucide-download"
+          :disabled="busy"
+          @click="prepareHplipPlugin"
+        >
+          {{ t('ui.install') }}
+        </UButton>
+        <p v-else-if="!hplipPlugin.supported" class="text-sm text-muted">
+          {{ t('ui.unsupported_on_the_current_architecture', { p0: currentArch }) }}
+        </p>
+      </div>
+    </UCard>
+
+    <UModal v-model:open="showHplipLicense" :title="t('ui.hplip_plugin_license')">
+      <template #body>
+        <p class="mb-2 font-medium">HPLIP {{ hplipLicense?.version }}</p>
+        <div tabindex="0" class="max-h-[45vh] overflow-y-auto whitespace-pre-wrap break-words rounded border border-default p-3 text-sm">
+          {{ hplipLicense?.license }}
+        </div>
+      </template>
+      <template #footer>
+        <div class="ml-auto flex gap-2">
+          <UButton variant="ghost" @click="showHplipLicense = false">{{ t('ui.cancel') }}</UButton>
+          <UButton :disabled="busy || !hplipLicense" @click="installHplipPlugin">{{ t('ui.hplip_plugin_accept_install') }}</UButton>
+        </div>
+      </template>
+    </UModal>
+
     <!-- 上传自定义驱动 -->
     <UCard>
       <template #header>
@@ -669,6 +710,9 @@ const drivers = ref([])
 const currentArch = ref('')
 const customDebs = ref([])
 const customDebNotice = ref('')
+const hplipPlugin = ref(null)
+const hplipLicense = ref(null)
+const showHplipLicense = ref(false)
 const installingDriver = ref(null)
 const removingDriver = ref(null)
 const pendingDriver = ref(null)
@@ -676,7 +720,7 @@ const showInstallModal = ref(false)
 const showRemoveModal = ref(false)
 
 // 任何一个驱动任务在跑时禁用所有触发按钮，防止重复点击（后端也会回 409）
-const busy = computed(() => !!settingUp.value || !!installingDriver.value || !!removingDriver.value)
+const busy = computed(() => jobRunning.value || !!settingUp.value || !!installingDriver.value || !!removingDriver.value)
 
 const driverColumns = computed(() => ([
   { accessorKey: 'displayName', header: t('ui.driver_name') },
@@ -742,8 +786,41 @@ async function loadDrivers() {
     currentArch.value = data.currentArch || ''
     customDebs.value = data.customDebs || []
     customDebNotice.value = data.customDebNotice || ''
+    hplipPlugin.value = data.hplipPlugin || null
   } catch (e) {
     toast.add({ title: t('ui.could_not_load_driver_list'), description: String(e), color: 'error', icon: 'i-lucide-x-circle' })
+  }
+}
+
+async function prepareHplipPlugin() {
+  hplipLicense.value = null
+  startJobPanel({ key: 'ui.hplip_plugin_preparing' })
+  try {
+    const job = await runDriverJob('/api/admin/drivers/hplip-plugin/prepare', {})
+    hplipLicense.value = job.result
+    finishJobPanel(true)
+    showHplipLicense.value = true
+  } catch (e) {
+    finishJobPanel(false)
+    toast.add({ title: t('ui.hplip_plugin_prepare_failed'), description: translateError(e.message), color: 'error' })
+  }
+}
+
+async function installHplipPlugin() {
+  const digest = hplipLicense.value?.digest
+  if (!digest || busy.value) return
+  showHplipLicense.value = false
+  startJobPanel({ key: 'ui.installing_driver', driverDisplayName: 'HP HPLIP' })
+  try {
+    await runDriverJob('/api/admin/drivers/hplip-plugin/install', { acceptedLicense: true, digest })
+    finishJobPanel(true)
+    toast.add({ title: t('ui.installation_complete'), color: 'success' })
+  } catch (e) {
+    finishJobPanel(false)
+    toast.add({ title: t('ui.installation_failed'), description: translateError(e.message), color: 'error' })
+  } finally {
+    hplipLicense.value = null
+    await loadDrivers()
   }
 }
 
